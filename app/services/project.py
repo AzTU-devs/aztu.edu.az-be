@@ -3,7 +3,7 @@ from models.project.project import Project
 from models.project.project_tr import ProjectTranslation
 from app.api.v1.schema.project import ProjectCreate, ProjectReorder
 
-def get_all_projects(db: Session):
+async def get_all_projects(db: Session):
     return db.query(Project).order_by(Project.display_order).all()
 
 def get_project_by_id(db: Session, project_id: int):
