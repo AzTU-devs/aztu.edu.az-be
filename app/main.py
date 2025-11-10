@@ -1,8 +1,12 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1.router.project import router as project_router
+from fastapi.staticfiles import StaticFiles
 
-# Import your routers (create separate files for modular routes)
-# from app.routers import news, announcements, users
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set.")
 
 app = FastAPI(
     title="AzTU University API",
@@ -10,10 +14,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Allow CORS for frontend (adjust origins to your frontend URL)
 origins = [
-    "http://localhost:3000",  # React dev server
-    "https://aztu.edu.az"     # Production frontend
+    "http://localhost:5173",
+    "https://aztu.edu.az"
 ]
 
 app.add_middleware(
@@ -24,12 +27,14 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# Root endpoint
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+app.include_router(project_router, prefix="/api/project", tags=["Project"])
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to AzTU University API!"}
 
-# Example: Health check endpoint
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}

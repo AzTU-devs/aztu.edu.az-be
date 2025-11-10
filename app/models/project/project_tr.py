@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, DateTime, func
+from app.core.database import Base
 from sqlalchemy.orm import relationship
-from database import Base
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func
 
 class ProjectTranslation(Base):
     __tablename__ = "project_translation"
@@ -10,5 +10,6 @@ class ProjectTranslation(Base):
     lang_code = Column(String(2), nullable=False)
     title = Column(Text, nullable=False)
     desc = Column(Text, nullable=False)
+    html_content = Column(String, nullable=False)
 
     project = relationship("Project", back_populates="translations")
