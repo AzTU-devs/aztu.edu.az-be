@@ -24,19 +24,15 @@ def _safe_ext(filename: str | None) -> str:
     ext = filename.rsplit(".", 1)[-1].lower().strip()
     return ext if ext else "jpg"
 
-
 async def create_slider(request, db: AsyncSession):
-    file_path = None
-
     try:
-        slider_id = slider_id_generator()  # ✅ no DB call here
+        public_slider_id = slider_id_generator()
 
-        # 1) Save image to disk
         upload_dir = "app/static/sliders"
         os.makedirs(upload_dir, exist_ok=True)
 
         ext = _safe_ext(getattr(request.image, "filename", None))
-        file_path = os.path.join(upload_dir, f"{slider_id}.{ext}")
+        file_path = os.path.join(upload_dir, f"{public_slider_id}.{ext}")
 
         content = await request.image.read()
         if not content:
@@ -48,15 +44,13 @@ async def create_slider(request, db: AsyncSession):
         with open(file_path, "wb") as f:
             f.write(content)
 
-        image_path = f"static/sliders/{slider_id}.{ext}"
+        image_path = f"static/sliders/{public_slider_id}.{ext}"
 
-        # 2) Shift existing sliders down (single SQL)
         await db.execute(update(Slider).values(display_order=Slider.display_order + 1))
         display_order = 1
 
-        # 3) Create slider row
         slider = Slider(
-            slider_id=slider_id,
+            slider_id=public_slider_id,  # ✅ public id stored here
             url=request.url,
             image=image_path,
             display_order=display_order,
@@ -64,9 +58,10 @@ async def create_slider(request, db: AsyncSession):
         )
         db.add(slider)
 
-        # 4) Create translations (az + en)
-        db.add(SliderTranslation(slider_id=slider_id, lang_code="az", desc=request.az.desc))
-        db.add(SliderTranslation(slider_id=slider_id, lang_code="en", desc=request.en.desc))
+        await db.flush()  # ✅ now slider.id is available
+
+        db.add(SliderTranslation(slider_id=slider.id, lang_code="az", desc=request.az.desc))
+        db.add(SliderTranslation(slider_id=slider.id, lang_code="en", desc=request.en.desc))
 
         await db.commit()
 
@@ -74,7 +69,7 @@ async def create_slider(request, db: AsyncSession):
             content={
                 "status_code": 201,
                 "message": "Slider created successfully.",
-                "slider_id": slider_id,
+                "slider_id": slider.slider_id,
                 "image": image_path,
                 "display_order": display_order,
             },
@@ -83,8 +78,6 @@ async def create_slider(request, db: AsyncSession):
 
     except Exception as e:
         await db.rollback()
-
-        # ✅ cleanup file if db failed
         if file_path and os.path.exists(file_path):
             try:
                 os.remove(file_path)
@@ -100,6 +93,8 @@ async def create_slider(request, db: AsyncSession):
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
 
 
 async def get_sliders(
@@ -318,5 +313,109 @@ async def delete_slider(
         await db.rollback()
         return JSONResponse(
             content={"status_code": 500, "error": repr(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+async def update_slider(
+    slider_id: int,  
+    db: AsyncSession,
+    url: str | None = None,
+    az_desc: str | None = None,
+    en_desc: str | None = None,
+    image: UploadFile | None = None,
+):
+    file_path: str | None = None
+    try:
+        res = await db.execute(select(Slider).where(Slider.slider_id == slider_id))
+        slider = res.scalar_one_or_none()
+        if not slider:
+            return JSONResponse(
+                content={"status_code": 404, "error": "Slider not found"},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if url is not None:
+            slider.url = url
+
+        if image is not None:
+            upload_dir = "app/static/sliders"
+            os.makedirs(upload_dir, exist_ok=True)
+
+            ext = _safe_ext(getattr(image, "filename", None))
+            file_path = os.path.join(upload_dir, f"{slider.slider_id}.{ext}")
+
+            content = await image.read()
+            if not content:
+                return JSONResponse(
+                    content={"status_code": 400, "error": "Empty image file"},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            old_abs = os.path.join("app", slider.image) if slider.image else None
+            if old_abs and os.path.exists(old_abs) and os.path.abspath(old_abs) != os.path.abspath(file_path):
+                try:
+                    os.remove(old_abs)
+                except Exception:
+                    pass
+
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            slider.image = f"static/sliders/{slider.slider_id}.{ext}"
+
+        async def upsert_translation(lang: str, text: str | None):
+            if text is None:
+                return
+
+            tr_res = await db.execute(
+                select(SliderTranslation).where(
+                    SliderTranslation.slider_id == slider.id,   
+                    SliderTranslation.lang_code == lang,
+                )
+            )
+            tr = tr_res.scalar_one_or_none()
+            if tr:
+                tr.desc = text
+            else:
+                db.add(SliderTranslation(slider_id=slider.id, lang_code=lang, desc=text))
+
+        await upsert_translation("az", az_desc)
+        await upsert_translation("en", en_desc)
+
+        await db.commit()
+        await db.refresh(slider)
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Slider updated successfully.",
+                "slider": {
+                    "id": slider.id,
+                    "slider_id": slider.slider_id,
+                    "url": slider.url,
+                    "image": slider.image,
+                    "display_order": slider.display_order,
+                    "updated_at": slider.updated_at.isoformat() if slider.updated_at else None,
+                },
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        await db.rollback()
+
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+
+        return JSONResponse(
+            content={
+                "status_code": 500,
+                "error": repr(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc(),
+            },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

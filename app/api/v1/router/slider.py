@@ -10,6 +10,7 @@ from app.services.slider import (
     create_slider,
     reorder_slider,
     delete_slider,
+    update_slider
 )
 
 from app.api.v1.schema.slider import SliderCreate, ReOrderSlider
@@ -69,3 +70,22 @@ async def delete_slider_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     return await delete_slider(slider_id=slider_id, db=db)
+
+
+@router.put("/{slider_id}")
+async def edit_slider(
+    slider_id: int,
+    url: str | None = Form(None),
+    az_desc: str | None = Form(None),
+    en_desc: str | None = Form(None),
+    image: UploadFile | None = File(None),
+    db: AsyncSession = Depends(get_db),
+):
+    return await update_slider(
+        slider_id=slider_id,
+        db=db,
+        url=url,
+        az_desc=az_desc,
+        en_desc=en_desc,
+        image=image,
+    )
