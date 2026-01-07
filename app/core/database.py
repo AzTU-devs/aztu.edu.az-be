@@ -1,9 +1,9 @@
 import os
 import ssl
+from dotenv import load_dotenv
+from typing import AsyncGenerator
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from typing import AsyncGenerator
-from dotenv import load_dotenv
 
 load_dotenv()
 
