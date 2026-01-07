@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router.project import router as project_router
+from app.api.v1.router.slider import router as slider_router
 from fastapi.staticfiles import StaticFiles
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -30,6 +31,7 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(project_router, prefix="/api/project", tags=["Project"])
+app.include_router(slider_router, prefix="/api/slider", tags=["Slider"])
 
 @app.get("/")
 async def root():
