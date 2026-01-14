@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router.project import router as project_router
 from app.api.v1.router.slider import router as slider_router
