@@ -147,7 +147,8 @@ async def get_announcements(
             content={
                 "status_code": 200,
                 "message": "Announcements fetched successfully.",
-                "announcements": announcement_arr
+                "announcements": announcement_arr,
+                "total": total
             }, status_code=status.HTTP_200_OK
         )
     
@@ -295,4 +296,136 @@ async def activate_announcement(
                 "status_code": 500,
                 "error": str(e)
             }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+async def delete_announcement(
+    announcement_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        announcement_query = await db.execute(
+            select(Announcement)
+            .where(Announcement.announcement_id == announcement_id)
+        )
+
+        announcement = announcement_query.scalar_one_or_none()
+
+        if not announcement:
+            return JSONResponse(
+                content={
+                    "status_code": 404,
+                    "message": "Announcement deleted successfully."
+                }, status_code=status.HTTP_200_OK
+            )
+        
+        announcement_tr_az_query = await db.execute(
+            select(AnnouncementTranslation)
+            .where(
+                AnnouncementTranslation.announcement_id == announcement_id,
+                AnnouncementTranslation.lang_code == "az"
+            )
+        )
+
+        announcement_tr_az = announcement_tr_az_query.scalar_one_or_none()
+
+        announcement_tr_en_query = await db.execute(
+            select(AnnouncementTranslation)
+            .where(
+                AnnouncementTranslation.announcement_id == announcement_id,
+                AnnouncementTranslation.lang_code == "en"
+            )
+        )
+
+        announcement_tr_en = announcement_tr_en_query.scalar_one_or_none()
+        
+        await db.delete(announcement)
+        await db.delete(announcement_tr_az)
+        await db.delete(announcement_tr_en)
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Announcement deleted successfully."
+            }, status_code=status.HTTP_200_OK
+        )
+    
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status_code": 500,
+                "error": str(e)
+            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+async def reorder_announcement(
+    request: ReOrderAnnouncement,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        announcement_query = await db.execute(
+            select(Announcement)
+            .where(Announcement.announcement_id == request.announcement_id)
+        )
+
+        announcement = announcement_query.scalar_one_or_none()
+
+        if not announcement:
+            return JSONResponse(
+                content={
+                    "status_code": 404,
+                    "message": "Announcement deleted successfully."
+                }, status_code=status.HTTP_200_OK
+            )
+        
+        old_order = announcement.display_order
+        new_order = request.new_order
+
+        if new_order == old_order:
+            return JSONResponse(
+                content={
+                    "status_code": 200,
+                    "message": "No change"
+                }, status_code=200)
+
+        if new_order < old_order:
+            result = await db.execute(
+                select(Announcement).where(
+                    Announcement.display_order >= new_order,
+                    Announcement.display_order < old_order
+                )
+            )
+            projects_to_shift = result.scalars().all()
+            for p in projects_to_shift:
+                p.display_order += 1
+                db.add(p)
+        else:
+            result = await db.execute(
+                select(Announcement).where(
+                    Announcement.display_order <= new_order,
+                    Announcement.display_order > old_order
+                )
+            )
+            projects_to_shift = result.scalars().all()
+            for p in projects_to_shift:
+                p.display_order -= 1
+                db.add(p)
+
+        announcement.display_order = new_order
+        db.add(announcement)
+
+        await db.commit()
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Project reordered successfully"
+            }, status_code=200
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status_code": 500,
+                "error": str(e)
+            }, status_code=500
         )

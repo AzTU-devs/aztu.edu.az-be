@@ -1,7 +1,7 @@
 import os
 import random
 import traceback
-
+from fastapi import UploadFile
 from fastapi import Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, func, update, delete as sqlalchemy_delete

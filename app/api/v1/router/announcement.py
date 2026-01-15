@@ -1,12 +1,11 @@
+from fastapi import UploadFile
 from app.core.session import get_db
 from app.api.v1.schema.project import *
-from app.utils.language import get_language
 from app.services.announcement import *
-from fastapi import APIRouter, Depends, File, Form, Query
-from fastapi import Body
-from fastapi import UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.utils.language import get_language
 from app.api.v1.schema.announcement import *
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, File, Form, Query
 
 router = APIRouter()
 
@@ -36,6 +35,24 @@ async def get_announcement_details_enpoint(
         db=db
     )
 
+@router.post("/create")
+async def create_announcement_endpoint(
+    image: UploadFile = File(...),
+    az_title: str = Form(...),
+    az_html_content: str = Form(...),
+    en_title: str = Form(...),
+    en_html_content: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    return await create_announcement(
+        image=image,
+        az_title=az_title,
+        az_html_content=az_html_content,
+        en_title=en_title,
+        en_html_content=en_html_content,
+        db=db
+    )
+
 @router.post("/activate")
 async def activate_announcement_endpoint(
     announcement_id: int,
@@ -56,20 +73,22 @@ async def deactivate_announcement_endpoint(
         db=db
     )
 
-@router.post("/create")
-async def create_announcement_endpoint(
-    image: UploadFile = File(...),
-    az_title: str = Form(...),
-    az_html_content: str = Form(...),
-    en_title: str = Form(...),
-    en_html_content: str = Form(...),
+@router.post("/reorder")
+async def reorder_announcement_endpoint(
+    request: ReOrderAnnouncement,
     db: AsyncSession = Depends(get_db)
 ):
-    return await create_announcement(
-        image=image,
-        az_title=az_title,
-        az_html_content=az_html_content,
-        en_title=en_title,
-        en_html_content=en_html_content,
+    return await reorder_announcement(
+        request=request,
+        db=db
+    )
+
+@router.delete("/{announcement_id}/delete")
+async def delete_announcement_enpoint(
+    announcement_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    return await delete_announcement(
+        announcement_id=announcement_id,
         db=db
     )

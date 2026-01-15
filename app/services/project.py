@@ -10,6 +10,7 @@ from app.utils.language import get_language
 from app.models.project.project import Project
 from sqlalchemy.ext.asyncio import AsyncSession
 from asyncpg.exceptions import UndefinedTableError
+from sqlalchemy import delete as sqlalchemy_delete
 from app.models.project.project_tr import ProjectTranslation
 
 def project_id_generator():
@@ -164,6 +165,7 @@ async def reorder_project(
     try:
         result = await db.execute(select(Project).where(Project.project_id == request.project_id))
         project_to_move = result.scalar_one_or_none()
+        
         if not project_to_move:
             return JSONResponse(
                 content={
@@ -282,8 +284,6 @@ async def get_project_by_id(
                 "error": str(e)
             }, status_code=500
         )
-
-from sqlalchemy import delete as sqlalchemy_delete
 
 async def delete_project(
     project_id: str,
