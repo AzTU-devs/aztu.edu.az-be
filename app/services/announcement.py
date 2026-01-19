@@ -92,7 +92,76 @@ async def create_announcement(
             }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-async def get_announcements(
+async def get_announcements_admin(
+    start: int = Query(0, ge=0, description="Start index"),
+    end: int = Query(4, gt=0, description="End index"),
+    lang: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        total_query = await db.execute(select(func.count()).select_from(Announcement))
+        total = total_query.scalar() or 0
+
+        announcement_query = await db.execute(
+            select(Announcement)
+            .order_by(Announcement.display_order.asc())
+            .offset(start)
+            .limit(end - start)
+            .where(Announcement.is_active == True)
+        )
+
+        announcements = announcement_query.scalars().all()
+
+        if not announcements:
+            return JSONResponse(
+                content={
+                    "status_code": 204,
+                    "message": "No content."
+                }, status_code=status.HTTP_204_NO_CONTENT
+            )
+        
+        announcement_arr = []
+
+        for announcement in announcements:
+            translation_query = await db.execute(
+                select(AnnouncementTranslation)
+                .where(
+                    AnnouncementTranslation.announcement_id == announcement.announcement_id,
+                    AnnouncementTranslation.lang_code == lang
+                )
+            )
+
+            translation = translation_query.scalar_one_or_none()
+
+            announcement_obj = {
+                "id": announcement.announcement_id,
+                "display_order": announcement.display_order,
+                "title": translation.title,
+                "html_content": translation.html_content,
+                "is_active": announcement.is_active,
+                "created_at": announcement.created_at.isoformat()
+            }
+
+            announcement_arr.append(announcement_obj)
+        
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Announcements fetched successfully.",
+                "announcements": announcement_arr,
+                "total": total
+            }, status_code=status.HTTP_200_OK
+        )
+    
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status_code": 500,
+                "error": str(e)
+            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+async def get_announcements_user(
     start: int = Query(0, ge=0, description="Start index"),
     end: int = Query(4, gt=0, description="End index"),
     lang: str = Depends(get_language),

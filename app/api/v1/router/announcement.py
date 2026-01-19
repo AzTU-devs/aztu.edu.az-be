@@ -10,14 +10,28 @@ from app.api.v1.schema.announcement import *
 
 router = APIRouter()
 
-@router.get("/all")
+@router.get("/admin/all")
+async def get_announcements_endpoint_admin(
+    start: int = Query(0, ge=0, description="Start index"),
+    end: int = Query(4, gt=0, description="End index"),
+    lang: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_announcements_admin(
+        start=start,
+        end=end,
+        lang=lang,
+        db=db
+    )
+
+@router.get("/user/all")
 async def get_announcements_endpoint(
     start: int = Query(0, ge=0, description="Start index"),
     end: int = Query(4, gt=0, description="End index"),
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
-    return await get_announcements(
+    return await get_announcements_user(
         start=start,
         end=end,
         lang=lang,
