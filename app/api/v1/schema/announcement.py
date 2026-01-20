@@ -41,3 +41,7 @@ class CreateAnnouncement:
             html_content=en_html_content
         )
         return cls(image=image, az=az, en=en)
+
+class ReOrderAnnouncement(BaseModel):
+    announcement_id: int
+    new_order: int

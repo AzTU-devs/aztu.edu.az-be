@@ -53,26 +53,17 @@ async def create_slider_endpoint(
     )
     return await create_slider(request=request, db=db)
 
-
-
-
 @router.post("/reorder")
 async def reorder_slider_endpoint(
     request: ReOrderSlider,
     db: AsyncSession = Depends(get_db),
 ):
-    return await reorder_slider(request=request, db=db)
+    return await reorder_slider(
+        request=request,
+        db=db
+    )
 
-
-@router.delete("/{slider_id}/delete")
-async def delete_slider_endpoint(
-    slider_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    return await delete_slider(slider_id=slider_id, db=db)
-
-
-@router.put("/{slider_id}")
+@router.put("/{slider_id}/edit")
 async def edit_slider(
     slider_id: int,
     url: str | None = Form(None),
@@ -88,4 +79,14 @@ async def edit_slider(
         az_desc=az_desc,
         en_desc=en_desc,
         image=image,
+    )
+
+@router.delete("/{slider_id}/delete")
+async def delete_slider_endpoint(
+    slider_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    return await delete_slider(
+        slider_id=slider_id,
+        db=db
     )

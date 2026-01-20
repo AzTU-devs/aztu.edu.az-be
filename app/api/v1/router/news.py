@@ -1,11 +1,10 @@
+from fastapi import UploadFile
 from app.services.news import *
 from app.core.session import get_db
-from app.api.v1.schema.project import *
+from app.api.v1.schema.news import *
 from app.utils.language import get_language
-from fastapi import APIRouter, Depends, File, Form, Query
-from fastapi import Body
-from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, File, Form, Query
 
 router = APIRouter()
 
@@ -37,6 +36,18 @@ async def get_news_public_endpoint(
         category_id=category_id,
         start=start,
         end=end,
+        lang_code=lang_code,
+        db=db
+    )
+
+@router.get("/{news_id}")
+async def get_news_details_endpoint(
+    news_id: int,
+    lang_code: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_news_details(
+        news_id=news_id,
         lang_code=lang_code,
         db=db
     )
@@ -93,7 +104,17 @@ async def activate_news_endpoint(
         db=db
     )
 
-@router.delete("/delete")
+@router.post("/reorder")
+async def reorder_news_endpoint(
+    request: ReOrderNews,
+    db: AsyncSession = Depends(get_db)
+):
+    return await reorder_news(
+        request=request,
+        db=db
+    )
+
+@router.delete("/{news_id}/delete")
 async def delete_news_endpoint(
     news_id: int,
     db: AsyncSession = Depends(get_db)

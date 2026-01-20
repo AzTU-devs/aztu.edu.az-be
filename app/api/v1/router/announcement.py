@@ -24,7 +24,7 @@ async def get_announcements_endpoint_admin(
         db=db
     )
 
-@router.get("/user/all")
+@router.get("/public/all")
 async def get_announcements_endpoint(
     start: int = Query(0, ge=0, description="Start index"),
     end: int = Query(4, gt=0, description="End index"),
@@ -50,6 +50,24 @@ async def get_announcement_details_enpoint(
         db=db
     )
 
+@router.post("/create")
+async def create_announcement_endpoint(
+    image: UploadFile = File(...),
+    az_title: str = Form(...),
+    az_html_content: str = Form(...),
+    en_title: str = Form(...),
+    en_html_content: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    return await create_announcement(
+        image=image,
+        az_title=az_title,
+        az_html_content=az_html_content,
+        en_title=en_title,
+        en_html_content=en_html_content,
+        db=db
+    )
+
 @router.post("/activate")
 async def activate_announcement_endpoint(
     announcement_id: int,
@@ -70,20 +88,12 @@ async def deactivate_announcement_endpoint(
         db=db
     )
 
-@router.post("/create")
-async def create_announcement_endpoint(
-    image: UploadFile = File(...),
-    az_title: str = Form(...),
-    az_html_content: str = Form(...),
-    en_title: str = Form(...),
-    en_html_content: str = Form(...),
+@router.post("/reorder")
+async def reorder_announcement_endpoint(
+    request: ReOrderAnnouncement,
     db: AsyncSession = Depends(get_db)
 ):
-    return await create_announcement(
-        image=image,
-        az_title=az_title,
-        az_html_content=az_html_content,
-        en_title=en_title,
-        en_html_content=en_html_content,
+    return await reorder_announcement(
+        request=request,
         db=db
     )

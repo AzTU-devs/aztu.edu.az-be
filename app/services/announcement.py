@@ -107,7 +107,6 @@ async def get_announcements_admin(
             .order_by(Announcement.display_order.asc())
             .offset(start)
             .limit(end - start)
-            .where(Announcement.is_active == True)
         )
 
         announcements = announcement_query.scalars().all()
@@ -134,7 +133,7 @@ async def get_announcements_admin(
             translation = translation_query.scalar_one_or_none()
 
             announcement_obj = {
-                "id": announcement.announcement_id,
+                "announcement_id": announcement.announcement_id,
                 "display_order": announcement.display_order,
                 "title": translation.title,
                 "html_content": translation.html_content,
@@ -176,6 +175,7 @@ async def get_announcements_user(
             .order_by(Announcement.display_order.asc())
             .offset(start)
             .limit(end - start)
+            .where(Announcement.is_active == True)
         )
 
         announcements = announcement_query.scalars().all()
@@ -364,4 +364,72 @@ async def activate_announcement(
                 "status_code": 500,
                 "error": str(e)
             }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+async def reorder_announcement(
+    request: ReOrderAnnouncement,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        result = await db.execute(select(Announcement).where(Announcement.announcement_id == request.announcement_id))
+        project_to_move = result.scalar_one_or_none()
+        if not project_to_move:
+            return JSONResponse(
+                content={
+                    "status_code": 404,
+                    "error": "Project not found"
+                }, status_code=404
+            )
+
+        old_order = project_to_move.display_order
+        new_order = request.new_order
+
+        if new_order == old_order:
+            return JSONResponse(
+                content={
+                    "status_code": 200,
+                    "message": "No change"
+                }, status_code=200)
+
+        if new_order < old_order:
+            result = await db.execute(
+                select(Announcement).where(
+                    Announcement.display_order >= new_order,
+                    Announcement.display_order < old_order
+                )
+            )
+            projects_to_shift = result.scalars().all()
+            for p in projects_to_shift:
+                p.display_order += 1
+                db.add(p)
+        else:
+            result = await db.execute(
+                select(Announcement).where(
+                    Announcement.display_order <= new_order,
+                    Announcement.display_order > old_order
+                )
+            )
+            projects_to_shift = result.scalars().all()
+            for p in projects_to_shift:
+                p.display_order -= 1
+                db.add(p)
+
+        project_to_move.display_order = new_order
+        db.add(project_to_move)
+
+        await db.commit()
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Project reordered successfully"
+            }, status_code=status.HTTP_200_OK
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status_code": 500,
+                "error": str(e)
+            }, status_code=500
         )

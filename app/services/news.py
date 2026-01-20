@@ -5,16 +5,17 @@ from typing import List, Optional
 from app.core.session import get_db
 from sqlalchemy import select, func
 from app.core.session import get_db
+from app.api.v1.schema.news import *
 from app.models.news.news import News
 from fastapi.responses import JSONResponse
 from app.utils.language import get_language
-from app.api.v1.schema.announcement import *
 from sqlalchemy.ext.asyncio import AsyncSession
 from asyncpg.exceptions import UndefinedTableError
 from app.models.news.news_translation import NewsTranslation
 from app.models.news_gallery.news_gallery import NewsGallery
 from app.models.news_category.news_category import NewsCategory
 from fastapi import Depends, UploadFile, File, Form, status, Query
+from app.models.news_category.news_category_translation import NewsCategoryTranslation
 
 def news_id_generator():
     return random.randint(100000, 999999)
@@ -211,41 +212,6 @@ async def get_public_news(
 
             news_translation = news_translation_query.scalar_one_or_none()
 
-            cover_image_query = await db.execute(
-                select(NewsGallery)
-                .where(
-                    NewsGallery.news_id == news.news_id,
-                    NewsGallery.is_cover == True
-                )
-            )
-
-            fetched_cover_image = cover_image_query.scalar_one_or_none()
-
-            cover_image_obj = {
-                "id": fetched_cover_image.id,
-                "cover_image": fetched_cover_image.image
-            }
-
-            gallery_query = await db.execute(
-                select(NewsGallery)
-                .where(
-                    NewsGallery.news_id == news.news_id,
-                    NewsGallery.is_cover == False
-                )
-            )
-
-            gallery_images = gallery_query.scalars().all()
-
-            gallery_arr = []
-
-            for gallery_image in gallery_images:
-               gallery_image_obj = {
-                   "id": gallery_image.id,
-                   "image": gallery_image.image
-               }
-
-               gallery_arr.append(gallery_image_obj)
-
             news_obj = {
                 "news_id": news.news_id,
                 "cateogry_id": news.category_id,
@@ -253,8 +219,6 @@ async def get_public_news(
                 "is_active": news.is_active,
                 "title": news_translation.title,
                 "html_content": news_translation.html_content,
-                "cover_image": cover_image_obj,
-                "gallery": gallery_arr
             }
 
             news_arr.append(news_obj)
@@ -319,50 +283,13 @@ async def get_admin_news(
 
             news_translation = news_translation_query.scalar_one_or_none()
 
-            cover_image_query = await db.execute(
-                select(NewsGallery)
-                .where(
-                    NewsGallery.news_id == news.news_id,
-                    NewsGallery.is_cover == True
-                )
-            )
-
-            fetched_cover_image = cover_image_query.scalar_one_or_none()
-
-            cover_image_obj = {
-                "id": fetched_cover_image.id,
-                "cover_image": fetched_cover_image.image
-            }
-
-            gallery_query = await db.execute(
-                select(NewsGallery)
-                .where(
-                    NewsGallery.news_id == news.news_id,
-                    NewsGallery.is_cover == False
-                )
-            )
-
-            gallery_images = gallery_query.scalars().all()
-
-            gallery_arr = []
-
-            for gallery_image in gallery_images:
-               gallery_image_obj = {
-                   "id": gallery_image.id,
-                   "image": gallery_image.image
-               }
-
-               gallery_arr.append(gallery_image_obj)
-
             news_obj = {
                 "news_id": news.news_id,
                 "cateogry_id": news.category_id,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
                 "title": news_translation.title,
-                "html_content": news_translation.html_content,
-                "cover_image": cover_image_obj,
-                "gallery": gallery_arr
+                "created_at": news.created_at.isoformat() if news.created_at else None
             }
 
             news_arr.append(news_obj)
@@ -374,6 +301,115 @@ async def get_admin_news(
                 "news": news_arr,
                 "total": total
             }, status_code=status.HTTP_200_OK
+        )
+    
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status_code": 500,
+                "error": str(e)
+            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+async def get_news_details(
+    news_id: int,
+    lang_code: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        news_query = await db.execute(
+            select(News)
+            .where(News.news_id == news_id)
+        )
+
+        news = news_query.scalar_one_or_none()
+
+        if not news:
+            return JSONResponse(
+                content={
+                    "status_code": 404,
+                    "message": "News not found."
+                }, status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        news_translation_query_az = await db.execute(
+            select(NewsTranslation)
+            .where(
+                NewsTranslation.news_id == news_id,
+                NewsTranslation.lang_code == "az"
+            )
+        )
+
+        news_translation_az = news_translation_query_az.scalar_one_or_none()
+
+        news_translation_query_en = await db.execute(
+            select(NewsTranslation)
+            .where(
+                NewsTranslation.news_id == news_id,
+                NewsTranslation.lang_code == "en"
+            )
+        )
+
+        news_translation_en = news_translation_query_en.scalar_one_or_none()
+
+        category_query = await db.execute(
+            select(NewsCategoryTranslation)
+            .where(
+                NewsCategoryTranslation.category_id == news.category_id,
+                NewsCategoryTranslation.lang_code == lang_code
+            )
+        )
+
+        news_category = category_query.scalar_one_or_none()
+
+        cover_image_query = await db.execute(
+            select(NewsGallery)
+            .where(
+                NewsGallery.news_id == news_id,
+                NewsGallery.is_cover == True
+            )
+        )
+
+        cover_image = cover_image_query.scalar_one_or_none()
+
+        gallery_images_query = await db.execute(
+            select(NewsGallery)
+            .where(
+                NewsGallery.news_id == news_id,
+                NewsGallery.is_cover == False
+            )
+        )
+
+        gallery_images = gallery_images_query.scalars().all()
+
+
+        gallery_images_arr = []
+
+        for gallery_image in gallery_images:
+            gallery_image_obj = {
+                "image_id": gallery_image.id,
+                "image": gallery_image.image
+            }
+
+            gallery_images_arr.append(gallery_image_obj)
+        
+        news_obj = {
+            "news_id": news.news_id,
+            "az_title": news_translation_az.title,
+            "az_html_content": news_translation_az.html_content,
+            "en_title": news_translation_en.title,
+            "en_html_content": news_translation_en.html_content,
+            "category_id": news_category.title,
+            "cover_image": cover_image.image,
+            "gallery_images": gallery_images_arr
+        }
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "News details fetced successfully.",
+                "news": news_obj
+            }
         )
     
     except Exception as e:
@@ -524,6 +560,77 @@ async def get_news_gallery(
                 "error": str(e)
             }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+async def reorder_news(
+    request: ReOrderNews,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        result = await db.execute(select(News).where(News.news_id == request.news_id))
+
+        news_to_move = result.scalar_one_or_none()
+
+        if not news_to_move:
+            return JSONResponse(
+                content={
+                    "status_code": 404,
+                    "error": "Project not found"
+                }, status_code=404
+            )
+
+        old_order = news_to_move.display_order
+        new_order = request.new_order
+
+        if new_order == old_order:
+            return JSONResponse(
+                content={
+                    "status_code": 200,
+                    "message": "No change"
+                }, status_code=200)
+
+        if new_order < old_order:
+            result = await db.execute(
+                select(News).where(
+                    News.display_order >= new_order,
+                    News.display_order < old_order
+                )
+            )
+            projects_to_shift = result.scalars().all()
+            for p in projects_to_shift:
+                p.display_order += 1
+                db.add(p)
+        else:
+            result = await db.execute(
+                select(News).where(
+                    News.display_order <= new_order,
+                    News.display_order > old_order
+                )
+            )
+            projects_to_shift = result.scalars().all()
+            for p in projects_to_shift:
+                p.display_order -= 1
+                db.add(p)
+
+        news_to_move.display_order = new_order
+        db.add(news_to_move)
+
+        await db.commit()
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Project reordered successfully"
+            }, status_code=200
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status_code": 500,
+                "error": str(e)
+            }, status_code=500
+        )
+
 
 async def delete_news(
     news_id: int,
