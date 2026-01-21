@@ -91,8 +91,6 @@ async def create_news(
                 }, status_code=status.HTTP_404_NOT_FOUND
             )
         
-        news_id = news_id_generator()
-        
         new_news = News(
             news_id=news_id,
             category_id=category_id,
@@ -131,16 +129,18 @@ async def create_news(
         await db.refresh(new_news_translation_en)
         await db.refresh(new_news_cover_gallery)
 
-        for gallery_image in gallery_images:
-            upload_dir = "app/static/news/"
-            os.makedirs(upload_dir, exist_ok=True)
-            filename = cover_image.filename
+        for index, gallery_image in enumerate(gallery_images or [], start=1):
+            filename = gallery_image.filename
             ext = filename.split(".")[-1]
-            file_path = os.path.join(upload_dir, f"{news_id}.{ext}")
-            file_content = await cover_image.read()
+
+            gallery_filename = f"{news_id}-gallery-{index}.{ext}"
+            file_path = os.path.join(upload_dir, gallery_filename)
+
+            file_content = await gallery_image.read()
             with open(file_path, "wb") as f:
                 f.write(file_content)
-            image_path = f"static/news/{news_id}.{ext}"
+
+            image_path = f"static/news/{gallery_filename}"
 
             new_news_gallery = NewsGallery(
                 news_id=news_id,
@@ -148,17 +148,16 @@ async def create_news(
                 is_cover=False
             )
 
-
             db.add(new_news_gallery)
             await db.commit()
             await db.refresh(new_news_gallery)
 
-            return JSONResponse(
-                content={
-                    "status_code": 201,
-                    "message": "News created successfully."
-                }, status_code=status.HTTP_201_CREATED
-            )
+        return JSONResponse(
+            content={
+                "status_code": 201,
+                "message": "News created successfully."
+            }, status_code=status.HTTP_201_CREATED
+        )
     
     except Exception as e:
         return JSONResponse(
@@ -313,7 +312,6 @@ async def get_admin_news(
 
 async def get_news_details(
     news_id: int,
-    lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
     try:
@@ -356,7 +354,7 @@ async def get_news_details(
             select(NewsCategoryTranslation)
             .where(
                 NewsCategoryTranslation.category_id == news.category_id,
-                NewsCategoryTranslation.lang_code == lang_code
+                NewsCategoryTranslation.lang_code == "az"
             )
         )
 
@@ -517,7 +515,7 @@ async def get_news_gallery(
                 content={
                     "status_code": 404,
                     "message": "News not found."
-                }, status_code=status.HTTP_404_NOT_FOUND
+                }, status_code=status.HTTP_404_NOT_FOUND    
             )
         
         gallery_query = await db.execute(
@@ -630,7 +628,6 @@ async def reorder_news(
                 "error": str(e)
             }, status_code=500
         )
-
 
 async def delete_news(
     news_id: int,

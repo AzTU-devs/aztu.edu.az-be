@@ -43,12 +43,10 @@ async def get_news_public_endpoint(
 @router.get("/{news_id}")
 async def get_news_details_endpoint(
     news_id: int,
-    lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
     return await get_news_details(
         news_id=news_id,
-        lang_code=lang_code,
         db=db
     )
 
