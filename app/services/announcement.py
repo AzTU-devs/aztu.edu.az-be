@@ -51,7 +51,7 @@ async def create_announcement(
             announcement_id=announcement_id,
             image=image_path,
             display_order=display_order,
-            is_active=False,
+            is_active=True,
             created_at=datetime.utcnow()
         )
 
