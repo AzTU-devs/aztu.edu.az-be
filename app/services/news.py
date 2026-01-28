@@ -239,7 +239,7 @@ async def get_public_news(
                 "title": news_translation.title,
                 "html_content": news_translation.html_content,
                 "cover_image": cover_image.image,
-                "created_at": news.created_at
+                "created_at": news.created_at.isoformat() if news.created_at else None
             }
 
             news_arr.append(news_obj)
