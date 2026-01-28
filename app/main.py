@@ -22,7 +22,8 @@ app = FastAPI(
 
 origins = [
     "http://localhost:5173",
-    "https://aztu.edu.az"
+    "https://aztu.edu.az",
+    "http://aztu.karamshukurlu.site/"
 ]
 
 app.add_middleware(
