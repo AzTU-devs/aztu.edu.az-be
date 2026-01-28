@@ -211,13 +211,35 @@ async def get_public_news(
 
             news_translation = news_translation_query.scalar_one_or_none()
 
+            cover_query = await db.execute(
+                select(NewsGallery)
+                .where(
+                    NewsGallery.news_id == news.news_id,
+                    NewsGallery.is_cover == True
+                )
+            )
+
+            cover_image = cover_query.scalar_one_or_none()
+
+            category_query = await db.execute(
+                select(NewsCategoryTranslation)
+                .where(
+                    NewsCategoryTranslation.category_id == news.category_id,
+                    NewsCategoryTranslation.lang_code == lang_code
+                )
+            )
+
+            category = category_query.scalar_one_or_none()
+
             news_obj = {
                 "news_id": news.news_id,
-                "cateogry_id": news.category_id,
+                "cateogry_id": category.title,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
                 "title": news_translation.title,
                 "html_content": news_translation.html_content,
+                "cover_image": cover_image.image,
+                "created_at": news.created_at
             }
 
             news_arr.append(news_obj)

@@ -7,6 +7,7 @@ from app.api.v1.router.slider import router as slider_router
 from app.api.v1.router.project import router as project_router
 from app.api.v1.router.announcement import router as announcement_router
 from app.api.v1.router.news_category import router as news_category_router
+from app.api.v1.router.collaboration import router as collaboration_router
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
@@ -20,7 +21,8 @@ app = FastAPI(
 
 origins = [
     "http://localhost:5173",
-    "https://aztu.edu.az"
+    "https://aztu.edu.az",
+    "http://localhost:3000",
 ]
 
 app.add_middleware(
@@ -38,6 +40,7 @@ app.include_router(slider_router, prefix="/api/slider", tags=["Slider"])
 app.include_router(project_router, prefix="/api/project", tags=["Project"])
 app.include_router(announcement_router, prefix="/api/announcement", tags=["Announcement"])
 app.include_router(news_category_router, prefix="/api/news-category", tags=["News Category"])
+app.include_router(collaboration_router, prefix="/api/collaboration", tags=["Collaboration"])
 
 @app.get("/")
 async def root():
