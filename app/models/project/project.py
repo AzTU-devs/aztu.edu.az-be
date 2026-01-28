@@ -1,4 +1,3 @@
-from app.core.database import Base
 from sqlalchemy import (
     Column,
     Integer,
@@ -7,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     func
 )
+from app.core.database import Base
 from sqlalchemy.orm import relationship
 
 class Project(Base):

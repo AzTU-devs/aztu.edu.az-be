@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  api-popeyes:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-aztu-edu-az
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./app:/code/app
+    ports:
+      - "8002:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres-app
+
+  postgres-app:
+    image: postgres:15-bullseye
+    container_name: postgres-aztu-edu-az
+    restart: always
+    environment:
+      POSTGRES_USER: aztu_edu_az
+      POSTGRES_PASSWORD: Apijbnsa3n2
+      POSTGRES_DB: aztu_edu_az_db
+    ports:
+      - "5562:5432"
+    volumes:
+      - pgdb:/var/lib/postgresql/data
+
+volumes:
+  pgdb:
