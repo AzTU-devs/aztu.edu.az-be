@@ -24,6 +24,8 @@ origins = [
     "http://localhost:5173",
     "https://aztu.edu.az",
     "http://aztu.karamshukurlu.site/"
+    "localhost",
+    "localhost:3000"
 ]
 
 app.add_middleware(
