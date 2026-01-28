@@ -9,7 +9,7 @@ pull:
 
 # Restart containers (data itmir)
 restart:
-	cd $(APP_DIR) && docker-compose restart
+	cd $(APP_DIR) && docker compose restart
 
 # Pull + Restart (1 komanda)
 deploy: pull restart
@@ -17,8 +17,8 @@ deploy: pull restart
 
 # Status yoxla
 status:
-	cd $(APP_DIR) && docker-compose ps
+	cd $(APP_DIR) && docker compose ps
 
 # Loglara bax
 logs:
-	cd $(APP_DIR) && docker-compose logs -f --tail=100
+	cd $(APP_DIR) && docker compose logs -f --tail=100
