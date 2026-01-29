@@ -154,7 +154,7 @@ async def get_menus(
 
             for menu_item in menu_items:
                 menu_tr_query = await db.execute(
-                    select(MenuTranslation)
+                    select(MenuItemsTranslation)
                     .where(
                         MenuItemsTranslation.item_id == menu_item.item_id,
                         MenuItemsTranslation.lang_code == lang_code
@@ -206,76 +206,70 @@ async def add_menu_items(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        menu_query = await db.execute(
-            select(Menu)
-            .where(Menu.menu_id == request.menu_id)
+        # 1️⃣ Check menu exists
+        menu = await db.scalar(
+            select(Menu).where(Menu.menu_id == request.menu_id)
         )
-
-        menu = menu_query.scalar_one_or_none()
 
         if not menu:
             return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "message": "Menu not found"
-                }, status_code=status.HTTP_404_NOT_FOUND
+                content={"status_code": 404, "message": "Menu not found"},
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        
-        for item in request.items:
+
+        # 2️⃣ Get current items of THIS menu only
+        result = await db.execute(
+            select(MenuItems)
+            .where(MenuItems.menu_id == request.menu_id)
+            .order_by(MenuItems.display_order.asc())
+        )
+        existing_items = result.scalars().all()
+
+        # shift only this menu's items
+        for db_item in existing_items:
+            db_item.display_order = (db_item.display_order or 0) + 1
+
+        # 3️⃣ Add new items
+        for req_item in request.items:
             item_id = menu_item_id_generator()
 
-            try:
-                result = await db.execute(select(MenuItems))
-                existing_menu_items = result.scalars().all()
-                for item in existing_menu_items:
-                    item.display_order = (item.display_order or 0) + 1
-                    db.add(item)
-
-                display_order = 1
-            except UndefinedTableError:
-                display_order = 1
-
-            new_menu_item = MenuItems(
+            new_item = MenuItems(
                 menu_id=request.menu_id,
                 item_id=item_id,
-                url=item.url,
-                display_order=display_order,
+                url=req_item.url,
+                display_order=1,
                 created_at=datetime.utcnow()
             )
 
-            new_menu_item_tr_az = MenuItemsTranslation(
-                item_id=item_id,
-                lang_code="az",
-                title=item.az_title
-            )
+            db.add(new_item)
 
-            new_menu_item_tr_en = MenuItemsTranslation(
-                item_id=item_id,
-                lang_code="en",
-                title=item.en_title
-            )
+            db.add_all([
+                MenuItemsTranslation(
+                    item_id=item_id,
+                    lang_code="az",
+                    title=req_item.az_title
+                ),
+                MenuItemsTranslation(
+                    item_id=item_id,
+                    lang_code="en",
+                    title=req_item.en_title
+                )
+            ])
 
-            db.add(new_menu_item)
-            db.add(new_menu_item_tr_az)
-            db.add(new_menu_item_tr_en)
+        # 4️⃣ Single commit (atomic)
+        await db.commit()
 
-            await db.commit()
-
-            await db.refresh(new_menu_item)
-            await db.refresh(new_menu_item_tr_az)
-            await db.refresh(new_menu_item_tr_en)
-        
         return JSONResponse(
             content={
                 "status_code": 201,
                 "message": "Menu items added successfully."
-            }, status_code=status.HTTP_201_CREATED
+            },
+            status_code=status.HTTP_201_CREATED
         )
-    
+
     except Exception as e:
+        await db.rollback()
         return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            content={"status_code": 500, "error": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
