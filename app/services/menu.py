@@ -167,7 +167,7 @@ async def get_menus(
                     "item_id": menu_item.item_id,
                     "url": menu_item.url,
                     "display_order": menu_item.display_order,
-                    "tite": menu_item_tr.title,
+                    "title": menu_item_tr.title,
                     "created_at": menu_item.created_at.isoformat() if menu_item.created_at else None
                 }
 
@@ -187,7 +187,7 @@ async def get_menus(
         
         return JSONResponse(
             content={
-                "status_code": 201,
+                "status_code": 200,
                 "message": "Menu fetched successfully.",
                 "menus": menu_arr
             }, status_code=status.HTTP_201_CREATED
