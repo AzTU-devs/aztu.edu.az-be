@@ -1,5 +1,4 @@
 import os
-import ssl
 from dotenv import load_dotenv
 from typing import AsyncGenerator
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -21,11 +20,9 @@ clean_url = urlunparse(parsed._replace(query=new_query))
 
 async_database_url = clean_url.replace("postgresql://", "postgresql+asyncpg://")
 
-ssl_context = ssl.create_default_context()
-
 engine = create_async_engine(
     async_database_url,
-    connect_args={"ssl": ssl_context},
+    connect_args={"ssl": False},
     echo=True,
     future=True,
     pool_pre_ping=True,
