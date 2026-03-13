@@ -10,7 +10,7 @@ router = APIRouter()
 
 @router.get("/public/all")
 async def get_news_public_endpoint(
-    category_id: int,
+    category_id: Optional[int] = Query(None, description="Filter by category ID"),
     start: int = Query(0, ge=0, description="Start index"),
     end: int = Query(10, gt=0, description="End index"),
     lang_code: str = Depends(get_language),
@@ -26,16 +26,14 @@ async def get_news_public_endpoint(
 
 @router.get("/admin/all")
 async def get_news_public_endpoint(
-    category_id: int,
-    start: int = Query(0, ge=0, description="Start index"),
-    end: int = Query(10, gt=0, description="End index"),
+    news_data: NewsGetter = Depends(),  
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
     return await get_admin_news(
-        category_id=category_id,
-        start=start,
-        end=end,
+        category_id=news_data.category_id,
+        start=news_data.start,
+        end=news_data.end,
         lang_code=lang_code,
         db=db
     )
