@@ -168,7 +168,7 @@ async def create_news(
         )
 
 async def get_public_news(
-    category_id: int,
+    category_id: Optional[int] = Query(None, description="Filter by category ID"),
     start: int = Query(0, ge=0, description="Start index"),
     end: int = Query(10, gt=0, description="End index"),
     lang_code: str = Depends(get_language),
@@ -178,16 +178,17 @@ async def get_public_news(
         total_query = await db.execute(select(func.count()).select_from(News))
         total = total_query.scalar() or 0
 
-        news_query = await db.execute(
+        query = (
             select(News)
+            .where(News.is_active == True)
             .order_by(News.display_order.asc())
             .offset(start)
             .limit(end - start)
-            .where(
-                News.is_active == True,
-                News.category_id == category_id
-            )
         )
+        if category_id is not None:
+            query = query.where(News.category_id == category_id)
+
+        news_query = await db.execute(query)
 
         fetched_news = news_query.scalars().all()
 
@@ -240,7 +241,7 @@ async def get_public_news(
         )
 
 async def get_admin_news(
-    category_id: int,
+    category_id: Optional[int] = Query(None, description="Filter by category ID"),
     start: int = Query(0, ge=0, description="Start index"),
     end: int = Query(10, gt=0, description="End index"),
     lang_code: str = Depends(get_language),
@@ -250,15 +251,16 @@ async def get_admin_news(
         total_query = await db.execute(select(func.count()).select_from(News))
         total = total_query.scalar() or 0
 
-        news_query = await db.execute(
+        query = (
             select(News)
             .order_by(News.display_order.asc())
             .offset(start)
             .limit(end - start)
-            .where(
-                News.category_id == category_id
-            )
         )
+        if category_id is not None:
+            query = query.where(News.category_id == category_id)
+
+        news_query = await db.execute(query)
 
         fetched_news = news_query.scalars().all()
 
