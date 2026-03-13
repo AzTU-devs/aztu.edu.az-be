@@ -25,8 +25,7 @@ from app.models.news_category.news_category_translation import NewsCategoryTrans
 from app.models.news_gallery.news_gallery import NewsGallery  # noqa: F401
 from app.models.project.project import Project  # noqa: F401
 from app.models.project.project_tr import ProjectTranslation  # noqa: F401
-from app.models.slider.slider import Slider  # noqa: F401
-from app.models.slider.slider_tr import SliderTranslation  # noqa: F401
+from app.models.hero.hero import Hero  # noqa: F401
 
 load_dotenv()
 
