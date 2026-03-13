@@ -6,7 +6,7 @@ from fastapi import UploadFile, Form, Depends
 class ProjectTranslationBase(BaseModel):
     lang_code: str
     title: str
-    desc: str
+    description: str
     content_html: str
 
 class ProjectTranslationCreate(ProjectTranslationBase):
@@ -21,11 +21,11 @@ class ProjectTranslationCreateForm:
     def __init__(
         self,
         title: str = Form(...),
-        desc: str = Form(...),
+        description: str = Form(...),
         content_html: str = Form(...)
     ):
         self.title = title
-        self.desc = desc
+        self.description = description
         self.content_html = content_html
 
 
@@ -45,20 +45,20 @@ class ProjectCreate:
         cls,
         bg_image: UploadFile = Form(...),
         az_title: str = Form(...),
-        az_desc: str = Form(...),
+        az_description: str = Form(...),
         az_content_html: str = Form(...),
         en_title: str = Form(...),
-        en_desc: str = Form(...),
+        en_description: str = Form(...),
         en_content_html: str = Form(...)
     ):
         az = ProjectTranslationCreateForm(
             title=az_title,
-            desc=az_desc,
+            description=az_description,
             content_html=az_content_html
         )
         en = ProjectTranslationCreateForm(
             title=en_title,
-            desc=en_desc,
+            description=en_description,
             content_html=en_content_html
         )
         return cls(bg_image=bg_image, az=az, en=en)

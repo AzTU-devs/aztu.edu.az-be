@@ -9,6 +9,7 @@ from app.api.v1.router.announcement import router as announcement_router
 from app.api.v1.router.news_category import router as news_category_router
 from app.api.v1.router.faculty import router as faculty_router
 from app.api.v1.router.cafedra import router as cafedra_router
+from app.api.v1.router.menu import router as menu_router
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
@@ -46,6 +47,7 @@ app.include_router(announcement_router, prefix="/api/announcement", tags=["Annou
 app.include_router(news_category_router, prefix="/api/news-category", tags=["News Category"])
 app.include_router(faculty_router, prefix="/api/faculty", tags=["Faculty"])
 app.include_router(cafedra_router, prefix="/api/cafedra", tags=["Cafedra"])
+app.include_router(menu_router, prefix="/api/menu", tags=["Menu"])
 
 @app.get("/")
 async def root():

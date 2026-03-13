@@ -39,20 +39,20 @@ async def get_project_by_id_endpoint(
 async def create_project_endpoint(
     bg_image: UploadFile = File(...),
     az_title: str = Form(...),
-    az_desc: str = Form(...),
+    az_description: str = Form(...),
     az_content_html: str = Form(...),
     en_title: str = Form(...),
-    en_desc: str = Form(...),
+    en_description: str = Form(...),
     en_content_html: str = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
     project = ProjectCreate.as_form(
         bg_image=bg_image,
         az_title=az_title,
-        az_desc=az_desc,
+        az_description=az_description,
         az_content_html=az_content_html,
         en_title=en_title,
-        en_desc=en_desc,
+        en_description=en_description,
         en_content_html=en_content_html
     )
     return await create_project(request=project, db=db)

@@ -53,7 +53,7 @@ async def create_project(
             project_id=project_id,
             lang_code="az",
             title=request.az.title,
-            desc=request.az.desc,
+            description=request.az.description,
             html_content=request.az.content_html
         )
 
@@ -61,7 +61,7 @@ async def create_project(
             project_id=project_id,
             lang_code="en",
             title=request.en.title,
-            desc=request.en.desc,
+            description=request.en.description,
             html_content=request.en.content_html
         )
 
@@ -133,7 +133,7 @@ async def get_projects(
                 "project_id": project.project_id,
                 "display_order": project.display_order,
                 "title": translation.title,
-                "desc": translation.desc,
+                "description": translation.description,
                 "html_content": translation.html_content,
                 "created_at": project.created_at.isoformat() if project.created_at else None
             }
@@ -260,7 +260,7 @@ async def get_project_by_id(
             "id": project.id,
             "bg_image": project.bg_image,
             "title": translation.title,
-            "desc": translation.desc,
+            "description": translation.description,
             "html_content": translation.html_content,
             "display_order": project.display_order,
             "created_at": project.created_at.isoformat() if project.created_at else None,
