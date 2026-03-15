@@ -1,9 +1,11 @@
 import os
 import random
 from datetime import datetime
-from app.core.session import get_db
 from sqlalchemy import select, func
 from app.core.session import get_db
+from app.core.logger import get_logger
+
+logger = get_logger(__name__)
 from app.api.v1.schema.project import *
 from fastapi.responses import JSONResponse
 from app.utils.language import get_language
@@ -85,6 +87,7 @@ async def create_announcement(
         )
         
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -153,6 +156,7 @@ async def get_announcements_admin(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -221,6 +225,7 @@ async def get_announcements_user(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -277,6 +282,7 @@ async def get_announcement(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -285,47 +291,6 @@ async def get_announcement(
         )
 
 async def deactivate_announcement(
-    announcement_id: int,
-    db: AsyncSession = Depends(get_db)
-):
-    try:
-        announcement_query = await db.execute(
-            select(Announcement)
-            .where(Announcement.announcement_id == announcement_id)
-        )
-
-        announcement = announcement_query.scalar_one_or_none()
-
-        if not announcement:
-            return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "message": "Announcement not found."
-                }, status_code=status.HTTP_404_NOT_FOUND
-            )
-        
-        announcement.is_active = True
-
-        await db.commit()
-
-        await db.refresh(announcement)
-
-        return JSONResponse(
-            content={
-                "status_code": 200,
-                "message": "Announcement deactivated successfully."
-            }, status_code=status.HTTP_200_OK
-        )
-    
-    except Exception as e:
-        return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-async def activate_announcement(
     announcement_id: int,
     db: AsyncSession = Depends(get_db)
 ):
@@ -357,8 +322,51 @@ async def activate_announcement(
                 "message": "Announcement deactivated successfully."
             }, status_code=status.HTTP_200_OK
         )
-    
+
     except Exception as e:
+        logger.exception("500 Internal Server Error")
+        return JSONResponse(
+            content={
+                "status_code": 500,
+                "error": str(e)
+            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+async def activate_announcement(
+    announcement_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        announcement_query = await db.execute(
+            select(Announcement)
+            .where(Announcement.announcement_id == announcement_id)
+        )
+
+        announcement = announcement_query.scalar_one_or_none()
+
+        if not announcement:
+            return JSONResponse(
+                content={
+                    "status_code": 404,
+                    "message": "Announcement not found."
+                }, status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        announcement.is_active = True
+
+        await db.commit()
+
+        await db.refresh(announcement)
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Announcement activated successfully."
+            }, status_code=status.HTTP_200_OK
+        )
+
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -372,16 +380,16 @@ async def reorder_announcement(
 ):
     try:
         result = await db.execute(select(Announcement).where(Announcement.announcement_id == request.announcement_id))
-        project_to_move = result.scalar_one_or_none()
-        if not project_to_move:
+        announcement_to_move = result.scalar_one_or_none()
+        if not announcement_to_move:
             return JSONResponse(
                 content={
                     "status_code": 404,
-                    "error": "Project not found"
+                    "error": "Announcement not found"
                 }, status_code=404
             )
 
-        old_order = project_to_move.display_order
+        old_order = announcement_to_move.display_order
         new_order = request.new_order
 
         if new_order == old_order:
@@ -398,10 +406,10 @@ async def reorder_announcement(
                     Announcement.display_order < old_order
                 )
             )
-            projects_to_shift = result.scalars().all()
-            for p in projects_to_shift:
-                p.display_order += 1
-                db.add(p)
+            announcements_to_shift = result.scalars().all()
+            for a in announcements_to_shift:
+                a.display_order += 1
+                db.add(a)
         else:
             result = await db.execute(
                 select(Announcement).where(
@@ -409,24 +417,25 @@ async def reorder_announcement(
                     Announcement.display_order > old_order
                 )
             )
-            projects_to_shift = result.scalars().all()
-            for p in projects_to_shift:
-                p.display_order -= 1
-                db.add(p)
+            announcements_to_shift = result.scalars().all()
+            for a in announcements_to_shift:
+                a.display_order -= 1
+                db.add(a)
 
-        project_to_move.display_order = new_order
-        db.add(project_to_move)
+        announcement_to_move.display_order = new_order
+        db.add(announcement_to_move)
 
         await db.commit()
 
         return JSONResponse(
             content={
                 "status_code": 200,
-                "message": "Project reordered successfully"
+                "message": "Announcement reordered successfully"
             }, status_code=status.HTTP_200_OK
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,

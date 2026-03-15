@@ -22,7 +22,7 @@ async_database_url = clean_url.replace("postgresql://", "postgresql+asyncpg://")
 
 engine = create_async_engine(
     async_database_url,
-    connect_args={"ssl": False},
+    connect_args={"ssl": "require"},
     echo=True,
     future=True,
     pool_pre_ping=True,

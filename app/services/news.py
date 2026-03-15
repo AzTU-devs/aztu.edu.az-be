@@ -2,9 +2,11 @@ import os
 import random
 from datetime import datetime
 from typing import List, Optional
-from app.core.session import get_db
 from sqlalchemy import select, func
 from app.core.session import get_db
+from app.core.logger import get_logger
+
+logger = get_logger(__name__)
 from app.api.v1.schema.news import *
 from app.models.news.news import News
 from fastapi.responses import JSONResponse
@@ -54,6 +56,7 @@ async def create_news(
         
         news_query_az = await db.execute(
             select(News)
+            .join(NewsTranslation, NewsTranslation.news_id == News.news_id)
             .where(
                 NewsTranslation.title == az_title,
                 NewsTranslation.lang_code == "az"
@@ -62,6 +65,7 @@ async def create_news(
 
         news_query_en = await db.execute(
             select(News)
+            .join(NewsTranslation, NewsTranslation.news_id == News.news_id)
             .where(
                 NewsTranslation.title == en_title,
                 NewsTranslation.lang_code == "en"
@@ -160,6 +164,7 @@ async def create_news(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -214,7 +219,7 @@ async def get_public_news(
 
             news_obj = {
                 "news_id": news.news_id,
-                "cateogry_id": news.category_id,
+                "category_id": news.category_id,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
                 "title": news_translation.title,
@@ -233,6 +238,7 @@ async def get_public_news(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -286,7 +292,7 @@ async def get_admin_news(
 
             news_obj = {
                 "news_id": news.news_id,
-                "cateogry_id": news.category_id,
+                "category_id": news.category_id,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
                 "title": news_translation.title,
@@ -305,6 +311,7 @@ async def get_admin_news(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -407,12 +414,13 @@ async def get_news_details(
         return JSONResponse(
             content={
                 "status_code": 200,
-                "message": "News details fetced successfully.",
+                "message": "News details fetched successfully.",
                 "news": news_obj
             }
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -453,6 +461,7 @@ async def deactivate_news(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -493,6 +502,7 @@ async def activate_news(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -548,12 +558,13 @@ async def get_news_gallery(
         return JSONResponse(
             content={
                 "status_code": 200,
-                "message": "News gallery fetched successfull.",
+                "message": "News gallery fetched successfully.",
                 "gallery_images": gallery_images_arr
             }, status_code=status.HTTP_200_OK
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -574,7 +585,7 @@ async def reorder_news(
             return JSONResponse(
                 content={
                     "status_code": 404,
-                    "error": "Project not found"
+                    "error": "News not found"
                 }, status_code=404
             )
 
@@ -619,11 +630,12 @@ async def reorder_news(
         return JSONResponse(
             content={
                 "status_code": 200,
-                "message": "Project reordered successfully"
+                "message": "News reordered successfully"
             }, status_code=200
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -651,30 +663,24 @@ async def delete_news(
                 }, status_code=status.HTTP_404_NOT_FOUND
             )
         
-        news_translation_az_query = await db.execute(
-            select(NewsTranslation)
-            .where(
-                NewsTranslation.news_id == news_id,
-                NewsTranslation.lang_code == "az"
-            )
+        gallery_query = await db.execute(
+            select(NewsGallery).where(NewsGallery.news_id == news_id)
         )
+        gallery_images = gallery_query.scalars().all()
+        for gallery_image in gallery_images:
+            file_path = f"app/{gallery_image.image}"
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            await db.delete(gallery_image)
 
-        news_translation_en_query = await db.execute(
-            select(NewsTranslation)
-            .where(
-                NewsTranslation.news_id == news_id,
-                NewsTranslation.lang_code == "en"
-            )
+        translations_query = await db.execute(
+            select(NewsTranslation).where(NewsTranslation.news_id == news_id)
         )
-
-
-        news_translation_az = news_translation_az_query.scalar_one_or_none()
-        news_translation_en = news_translation_en_query.scalar_one_or_none()
+        translations = translations_query.scalars().all()
+        for translation in translations:
+            await db.delete(translation)
 
         await db.delete(news)
-        await db.delete(news_translation_az)
-        await db.delete(news_translation_en)
-
         await db.commit()
 
         return JSONResponse(
@@ -685,6 +691,7 @@ async def delete_news(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,

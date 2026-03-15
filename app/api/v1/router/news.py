@@ -25,8 +25,8 @@ async def get_news_public_endpoint(
     )
 
 @router.get("/admin/all")
-async def get_news_public_endpoint(
-    news_data: NewsGetter = Depends(),  
+async def get_news_admin_endpoint(
+    news_data: NewsGetter = Depends(),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
@@ -38,22 +38,22 @@ async def get_news_public_endpoint(
         db=db
     )
 
-@router.get("/{news_id}")
-async def get_news_details_endpoint(
-    news_id: int,
-    db: AsyncSession = Depends(get_db)
-):
-    return await get_news_details(
-        news_id=news_id,
-        db=db
-    )
-
 @router.get("/gallery")
 async def get_news_gallery_endpoint(
     news_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     return await get_news_gallery(
+        news_id=news_id,
+        db=db
+    )
+
+@router.get("/{news_id}")
+async def get_news_details_endpoint(
+    news_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_news_details(
         news_id=news_id,
         db=db
     )

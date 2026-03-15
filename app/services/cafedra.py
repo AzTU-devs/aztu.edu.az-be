@@ -9,6 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.session import get_db
 from app.utils.language import get_language
+from app.core.logger import get_logger
+
+logger = get_logger(__name__)
 from app.api.v1.schema.cafedra import CreateCafedra, UpdateCafedra
 from app.models.faculties.faculties import Faculty
 from app.models.cafedras.cafedras import Cafedra
@@ -101,6 +104,7 @@ async def create_cafedra(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
             content={
@@ -171,6 +175,7 @@ async def get_cafedras(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -228,6 +233,7 @@ async def get_cafedra(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -317,6 +323,7 @@ async def update_cafedra(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
             content={
@@ -364,6 +371,7 @@ async def delete_cafedra(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
             content={

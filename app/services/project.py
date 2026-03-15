@@ -1,8 +1,11 @@
 import os
 import random
 from datetime import datetime
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete as sqlalchemy_delete
 from app.core.session import get_db
+from app.core.logger import get_logger
+
+logger = get_logger(__name__)
 from app.api.v1.schema.project import *
 from fastapi import Depends, status, Query
 from fastapi.responses import JSONResponse
@@ -81,6 +84,7 @@ async def create_project(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -150,6 +154,7 @@ async def get_projects(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -218,6 +223,7 @@ async def reorder_project(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -276,14 +282,13 @@ async def get_project_by_id(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
                 "error": str(e)
             }, status_code=500
         )
-
-from sqlalchemy import delete as sqlalchemy_delete
 
 async def delete_project(
     project_id: str,
@@ -314,6 +319,7 @@ async def delete_project(
             }, status_code=status.HTTP_200_OK
         )
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,

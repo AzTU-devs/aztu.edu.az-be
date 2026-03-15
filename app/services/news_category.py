@@ -2,9 +2,11 @@ import os
 import random
 from datetime import datetime
 from typing import List, Optional
-from app.core.session import get_db
 from sqlalchemy import select, func
 from app.core.session import get_db
+from app.core.logger import get_logger
+
+logger = get_logger(__name__)
 from app.models.news.news import News
 from fastapi.responses import JSONResponse
 from app.utils.language import get_language
@@ -28,6 +30,7 @@ async def create_news_category(
     try:
         category_az_query = await db.execute(
             select(NewsCategory)
+            .join(NewsCategoryTranslation, NewsCategoryTranslation.category_id == NewsCategory.category_id)
             .where(
                 NewsCategoryTranslation.lang_code == "az",
                 NewsCategoryTranslation.title == az_title
@@ -36,6 +39,7 @@ async def create_news_category(
 
         category_en_query = await db.execute(
             select(NewsCategory)
+            .join(NewsCategoryTranslation, NewsCategoryTranslation.category_id == NewsCategory.category_id)
             .where(
                 NewsCategoryTranslation.lang_code == "en",
                 NewsCategoryTranslation.title == en_title
@@ -82,11 +86,12 @@ async def create_news_category(
         return JSONResponse(
             content={
                 "status_code": 201,
-                "message": "News cateogry created successfully."
+                "message": "News category created successfully."
             }, status_code=status.HTTP_201_CREATED
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -141,6 +146,7 @@ async def get_news_categories(
         )
     
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,

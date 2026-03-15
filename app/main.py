@@ -1,7 +1,11 @@
 import os
-from fastapi import FastAPI
+import time
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.logger import get_logger
+
+logger = get_logger("aztu.api")
 from app.api.v1.router.news import router as news_router
 from app.api.v1.router.hero import router as hero_router
 from app.api.v1.router.project import router as project_router
@@ -24,7 +28,7 @@ app = FastAPI(
 origins = [
     "http://localhost:5173",
     "https://aztu.edu.az",
-    "http://aztu.karamshukurlu.site/"
+    "http://aztu.karamshukurlu.site/",
     "localhost",
     "localhost:3000"
 ]
@@ -37,6 +41,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+@app.middleware("http")
+async def log_500_responses(request: Request, call_next):
+    start = time.monotonic()
+    response = await call_next(request)
+    elapsed_ms = (time.monotonic() - start) * 1000
+    if response.status_code >= 500:
+        logger.error(
+            "500 | %s %s | %.1fms",
+            request.method,
+            request.url.path,
+            elapsed_ms,
+        )
+    return response
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 

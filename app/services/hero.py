@@ -7,6 +7,9 @@ from app.models.hero.hero import Hero
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, UploadFile, File, Form, status, Query
+from app.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def hero_id_generator():
@@ -50,6 +53,7 @@ async def create_hero(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -86,6 +90,7 @@ async def get_hero(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -131,6 +136,7 @@ async def get_admin_hero(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -183,6 +189,7 @@ async def update_hero(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -223,6 +230,7 @@ async def activate_hero(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -263,6 +271,7 @@ async def deactivate_hero(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -300,6 +309,7 @@ async def delete_hero(
         )
 
     except Exception as e:
+        logger.exception("500 Internal Server Error")
         return JSONResponse(
             content={
                 "status_code": 500,
