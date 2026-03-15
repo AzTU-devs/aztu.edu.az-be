@@ -289,3 +289,23 @@ CREATE TABLE menu_quick_section_item_translations (
     lang_code VARCHAR(5)   NOT NULL,
     label     VARCHAR(200) NOT NULL
 );
+
+CREATE TABLE collaboration (
+    id               SERIAL PRIMARY KEY,
+    collaboration_id INTEGER   NOT NULL,
+    logo             TEXT      NOT NULL,
+    website_url      TEXT,
+    display_order    INTEGER   NOT NULL,
+    is_active        BOOLEAN   NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT uq_collaboration_collaboration_id UNIQUE (collaboration_id)
+);
+
+CREATE TABLE collaboration_translation (
+    id               SERIAL PRIMARY KEY,
+    collaboration_id INTEGER      NOT NULL REFERENCES collaboration(collaboration_id) ON DELETE CASCADE,
+    lang_code        VARCHAR(2)   NOT NULL,
+    name             VARCHAR(255) NOT NULL,
+    CONSTRAINT uq_collaboration_translation_id_lang UNIQUE (collaboration_id, lang_code)
+);
