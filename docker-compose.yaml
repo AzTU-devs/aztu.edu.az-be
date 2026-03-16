@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: api-aztu-edu-az
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --no-access-log --proxy-headers --forwarded-allow-ips "*"
     volumes:
       - ./app:/code/app
     ports:
@@ -21,11 +21,9 @@ services:
     container_name: postgres-aztu-edu-az
     restart: always
     environment:
-      POSTGRES_USER: aztu_edu_az
-      POSTGRES_PASSWORD: Apijbnsa3n2
-      POSTGRES_DB: aztu_edu_az_db
-    ports:
-      - "5562:5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdb:/var/lib/postgresql/data
 
