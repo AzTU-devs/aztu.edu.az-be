@@ -7,5 +7,5 @@ class NewsCategory(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     category_id = Column(Integer, nullable=False, unique=True)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))

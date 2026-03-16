@@ -10,5 +10,5 @@ class News(Base):
     category_id = Column(Integer, nullable=False)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))

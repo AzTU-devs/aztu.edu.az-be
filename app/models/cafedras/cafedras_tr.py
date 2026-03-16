@@ -16,7 +16,7 @@ class CafedraTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
 
     cafedra = relationship("Cafedra", back_populates="translations")

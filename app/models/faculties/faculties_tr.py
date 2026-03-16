@@ -11,5 +11,5 @@ class FacultyTr(Base):
     faculty_name = Column(String(255), nullable=False)
     faculty_code = Column(String(50), nullable=False)
     lang_code = Column(String(10), nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))

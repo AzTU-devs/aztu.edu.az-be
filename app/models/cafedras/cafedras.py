@@ -16,8 +16,8 @@ class Cafedra(Base):
         nullable=False,
     )
     cafedra_code = Column(String(50), nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
 
     faculty = relationship("Faculty", back_populates="cafedras")
     translations = relationship(

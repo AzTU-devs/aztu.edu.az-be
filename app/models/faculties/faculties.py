@@ -8,8 +8,8 @@ class Faculty(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     faculty_code = Column(String(50), unique=True, nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
 
     cafedras = relationship(
         "Cafedra",
