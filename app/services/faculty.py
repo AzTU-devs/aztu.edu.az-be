@@ -1,5 +1,5 @@
-import random
-from datetime import datetime
+import secrets
+from datetime import datetime, timezone
 
 from fastapi import Depends, Query, status
 from fastapi.responses import JSONResponse
@@ -18,7 +18,7 @@ from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty
 
 
 def faculty_code_generator() -> str:
-    return str(random.randint(100000, 999999))
+    return str(secrets.randbelow(900000) + 100000)
 
 
 async def create_faculty(
@@ -47,21 +47,21 @@ async def create_faculty(
 
         faculty = Faculty(
             faculty_code=faculty_code,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         faculty_tr_az = FacultyTr(
             faculty_code=faculty_code,
             lang_code="az",
             faculty_name=request.az.faculty_name,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         faculty_tr_en = FacultyTr(
             faculty_code=faculty_code,
             lang_code="en",
             faculty_name=request.en.faculty_name,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         db.add(faculty)
@@ -92,7 +92,7 @@ async def create_faculty(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -161,7 +161,7 @@ async def get_faculties(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -218,7 +218,7 @@ async def get_faculty(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -253,7 +253,7 @@ async def update_faculty(
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         async def upsert_translation(lang: str, name: str | None):
             if name is None:
@@ -310,7 +310,7 @@ async def update_faculty(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -358,7 +358,7 @@ async def delete_faculty(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

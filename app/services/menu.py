@@ -133,7 +133,7 @@ async def get_header_menu(lang_code: str, db: AsyncSession):
     except Exception as e:
         logger.exception("500 Internal Server Error")
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -276,7 +276,7 @@ async def get_footer_menu(lang_code: str, db: AsyncSession):
     except Exception as e:
         logger.exception("500 Internal Server Error")
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -397,7 +397,7 @@ async def get_quick_menu(lang_code: str, db: AsyncSession):
     except Exception as e:
         logger.exception("500 Internal Server Error")
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -445,7 +445,7 @@ async def create_header_section(request: CreateHeaderSection, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -501,7 +501,7 @@ async def update_header_section(section_id: int, request: UpdateHeaderSection, d
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -527,7 +527,7 @@ async def delete_header_section(section_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -572,7 +572,7 @@ async def create_header_item(request: CreateHeaderItem, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -620,7 +620,7 @@ async def update_header_item(item_id: int, request: UpdateHeaderItem, db: AsyncS
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -646,7 +646,7 @@ async def delete_header_item(item_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -691,7 +691,7 @@ async def create_header_sub_item(request: CreateHeaderSubItem, db: AsyncSession)
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -739,7 +739,7 @@ async def update_header_sub_item(sub_item_id: int, request: UpdateHeaderSubItem,
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -765,7 +765,7 @@ async def delete_header_sub_item(sub_item_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -797,7 +797,7 @@ async def create_footer_column(request: CreateFooterColumn, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -843,7 +843,7 @@ async def update_footer_column(column_id: int, request: UpdateFooterColumn, db: 
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -869,7 +869,7 @@ async def delete_footer_column(column_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -914,7 +914,7 @@ async def create_footer_link(request: CreateFooterLink, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -962,7 +962,7 @@ async def update_footer_link(link_id: int, request: UpdateFooterLink, db: AsyncS
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -988,7 +988,7 @@ async def delete_footer_link(link_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1016,7 +1016,7 @@ async def create_partner_logo(request: CreatePartnerLogo, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1051,7 +1051,7 @@ async def update_partner_logo(logo_id: int, request: UpdatePartnerLogo, db: Asyn
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1077,7 +1077,7 @@ async def delete_partner_logo(logo_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1113,7 +1113,7 @@ async def create_quick_icon(request: CreateQuickIcon, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1163,7 +1163,7 @@ async def update_quick_icon(icon_id: int, request: UpdateQuickIcon, db: AsyncSes
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1189,7 +1189,7 @@ async def delete_quick_icon(icon_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1222,7 +1222,7 @@ async def create_social_link(request: CreateSocialLink, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1263,7 +1263,7 @@ async def update_social_link(link_id: int, request: UpdateSocialLink, db: AsyncS
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1289,7 +1289,7 @@ async def delete_social_link(link_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1329,7 +1329,7 @@ async def create_contact(request: CreateContact, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1382,7 +1382,7 @@ async def update_contact(contact_id: int, request: UpdateContact, db: AsyncSessi
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1408,7 +1408,7 @@ async def delete_contact(contact_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1440,7 +1440,7 @@ async def create_quick_left_item(request: CreateQuickLeftItem, db: AsyncSession)
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1488,7 +1488,7 @@ async def update_quick_left_item(item_id: int, request: UpdateQuickLeftItem, db:
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1514,7 +1514,7 @@ async def delete_quick_left_item(item_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1558,7 +1558,7 @@ async def create_quick_section(request: CreateQuickSection, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1604,7 +1604,7 @@ async def update_quick_section(section_id: int, request: UpdateQuickSection, db:
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1630,7 +1630,7 @@ async def delete_quick_section(section_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1675,7 +1675,7 @@ async def create_quick_section_item(request: CreateQuickSectionItem, db: AsyncSe
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1723,7 +1723,7 @@ async def update_quick_section_item(item_id: int, request: UpdateQuickSectionIte
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -1749,6 +1749,6 @@ async def delete_quick_section_item(item_id: int, db: AsyncSession):
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 500, "error": str(e)},
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

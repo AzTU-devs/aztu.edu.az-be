@@ -2,6 +2,8 @@ from app.services.project import *
 from app.core.session import get_db
 from app.api.v1.schema.project import *
 from app.utils.language import get_language
+from app.core.auth_dependency import require_admin
+from app.models.admin.admin_user import AdminUser
 from fastapi import APIRouter, Depends, File, Form, Query
 from fastapi import Body
 from fastapi import UploadFile
@@ -45,6 +47,7 @@ async def create_project_endpoint(
     en_description: str = Form(...),
     en_content_html: str = Form(...),
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     project = ProjectCreate.as_form(
         bg_image=bg_image,
@@ -62,6 +65,7 @@ async def create_project_endpoint(
 async def reorder_project_endpoint(
     request: ReOrderProject,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await reorder_project(
         request=request,
@@ -72,6 +76,7 @@ async def reorder_project_endpoint(
 async def delete_project_endpoint(
     project_id: str,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_project(
         project_id=project_id,

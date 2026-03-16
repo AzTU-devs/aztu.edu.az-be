@@ -1,5 +1,5 @@
-import random
-from datetime import datetime
+import secrets
+from datetime import datetime, timezone
 
 from fastapi import Depends, Query, status
 from fastapi.responses import JSONResponse
@@ -19,7 +19,7 @@ from app.models.cafedras.cafedras_tr import CafedraTr
 
 
 def cafedra_code_generator() -> str:
-    return str(random.randint(100000, 999999))
+    return str(secrets.randbelow(900000) + 100000)
 
 
 async def create_cafedra(
@@ -59,7 +59,7 @@ async def create_cafedra(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         cafedra = Cafedra(
             faculty_code=request.faculty_code,
@@ -109,7 +109,7 @@ async def create_cafedra(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -179,7 +179,7 @@ async def get_cafedras(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -237,7 +237,7 @@ async def get_cafedra(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -272,7 +272,7 @@ async def update_cafedra(
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         async def upsert_translation(lang: str, name: str | None):
             if name is None:
@@ -328,7 +328,7 @@ async def update_cafedra(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -376,7 +376,7 @@ async def delete_cafedra(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e),
+                "error": "Internal server error",
             },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

@@ -2,6 +2,8 @@ from app.core.session import get_db
 from app.api.v1.schema.project import *
 from app.services.news_category import *
 from app.utils.language import get_language
+from app.core.auth_dependency import require_admin
+from app.models.admin.admin_user import AdminUser
 from app.api.v1.schema.announcement import *
 from fastapi import APIRouter, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +24,8 @@ async def get_news_categories_endpoint(
 async def create_new_category_endpoint(
     az_title: str = Form(...),
     en_title: str = Form(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_news_category(
         az_title=az_title,

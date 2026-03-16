@@ -1,6 +1,5 @@
-import os
-import random
-from datetime import datetime
+import secrets
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy import select, func
 from app.core.session import get_db
@@ -11,6 +10,8 @@ from app.api.v1.schema.news import *
 from app.models.news.news import News
 from fastapi.responses import JSONResponse
 from app.utils.language import get_language
+from app.utils.file_upload import save_upload, safe_delete_file, ALLOWED_IMAGE_MIMES
+from app.utils.html_sanitizer import sanitize_html
 from sqlalchemy.ext.asyncio import AsyncSession
 from asyncpg.exceptions import UndefinedTableError
 from app.models.news.news_translation import NewsTranslation
@@ -19,8 +20,11 @@ from app.models.news_category.news_category import NewsCategory
 from fastapi import Depends, UploadFile, File, Form, status, Query
 from app.models.news_category.news_category_translation import NewsCategoryTranslation
 
-def news_id_generator():
-    return random.randint(100000, 999999)
+
+def news_id_generator() -> int:
+    # Cryptographically random ID — replaces insecure random.randint
+    return secrets.randbelow(900000) + 100000
+
 
 async def create_news(
     az_title: str = Form(...),
@@ -32,28 +36,28 @@ async def create_news(
     category_id: int = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
+    saved_files: list[str] = []  # Track all saved files for cleanup on failure
     try:
         news_id = news_id_generator()
-        upload_dir = "app/static/news/"
-        os.makedirs(upload_dir, exist_ok=True)
-        filename = cover_image.filename
-        ext = filename.split(".")[-1]
-        file_path = os.path.join(upload_dir, f"{news_id}.{ext}")
-        file_content = await cover_image.read()
-        with open(file_path, "wb") as f:
-            f.write(file_content)
-        image_path = f"static/news/{news_id}.{ext}"
+
+        # Sanitize HTML content before storing (prevents XSS)
+        az_html_content = sanitize_html(az_html_content)
+        en_html_content = sanitize_html(en_html_content)
+
+        # Safe file upload — validates MIME from actual bytes, random filename
+        image_path = await save_upload(cover_image, "news", ALLOWED_IMAGE_MIMES)
+        saved_files.append(image_path)
 
         try:
             result = await db.execute(select(News))
-            existing_announcements = result.scalars().all()
-            for announcement in existing_announcements:
-                announcement.display_order = (announcement.display_order or 0) + 1
-                db.add(announcement)
+            existing_news = result.scalars().all()
+            for n in existing_news:
+                n.display_order = (n.display_order or 0) + 1
+                db.add(n)
             display_order = 1
         except UndefinedTableError:
             display_order = 1
-        
+
         news_query_az = await db.execute(
             select(News)
             .join(NewsTranslation, NewsTranslation.news_id == News.news_id)
@@ -62,7 +66,6 @@ async def create_news(
                 NewsTranslation.lang_code == "az"
             )
         )
-
         news_query_en = await db.execute(
             select(News)
             .join(NewsTranslation, NewsTranslation.news_id == News.news_id)
@@ -72,110 +75,66 @@ async def create_news(
             )
         )
 
-        if (news_query_az.scalar_one_or_none() or news_query_en.scalar_one_or_none()):
+        if news_query_az.scalar_one_or_none() or news_query_en.scalar_one_or_none():
+            for f in saved_files:
+                safe_delete_file(f)
             return JSONResponse(
-                content={
-                    "status_code": 409,
-                    "message": "News title already exists."
-                }, status_code=status.HTTP_409_CONFLICT
+                content={"status_code": 409, "message": "News title already exists."},
+                status_code=status.HTTP_409_CONFLICT
             )
-        
+
         category_query = await db.execute(
-            select(NewsCategory)
-            .where(NewsCategory.category_id == category_id)
+            select(NewsCategory).where(NewsCategory.category_id == category_id)
         )
-
-        news_category = category_query.scalar_one_or_none()
-
-        if not news_category:
+        if not category_query.scalar_one_or_none():
+            for f in saved_files:
+                safe_delete_file(f)
             return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "message": "News category not found."
-                }, status_code=status.HTTP_404_NOT_FOUND
+                content={"status_code": 404, "message": "News category not found."},
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        
+
         new_news = News(
             news_id=news_id,
             category_id=category_id,
             display_order=display_order,
             is_active=True,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
-
-        new_news_translation_az = NewsTranslation(
-            news_id=news_id,
-            lang_code="az",
-            title=az_title,
-            html_content=az_html_content
-        )
-
-        new_news_translation_en = NewsTranslation(
-            news_id=news_id,
-            lang_code="en",
-            title=en_title,
-            html_content=en_html_content
-        )
-
-        new_news_cover_gallery = NewsGallery(
-            news_id=news_id,
-            image=image_path,
-            is_cover=True
-        )
-
         db.add(new_news)
-        db.add(new_news_translation_az)
-        db.add(new_news_translation_en)
-        db.add(new_news_cover_gallery)
+        db.add(NewsTranslation(news_id=news_id, lang_code="az", title=az_title, html_content=az_html_content))
+        db.add(NewsTranslation(news_id=news_id, lang_code="en", title=en_title, html_content=en_html_content))
+        db.add(NewsGallery(news_id=news_id, image=image_path, is_cover=True))
+
+        # Gallery images — all added in the same transaction before committing once
+        for gallery_image in (gallery_images or []):
+            gallery_path = await save_upload(gallery_image, "news", ALLOWED_IMAGE_MIMES)
+            saved_files.append(gallery_path)
+            db.add(NewsGallery(news_id=news_id, image=gallery_path, is_cover=False))
+
+        # Single commit for the entire operation — atomic
         await db.commit()
-        await db.refresh(new_news)
-        await db.refresh(new_news_translation_az)
-        await db.refresh(new_news_translation_en)
-        await db.refresh(new_news_cover_gallery)
-
-        for index, gallery_image in enumerate(gallery_images or [], start=1):
-            filename = gallery_image.filename
-            ext = filename.split(".")[-1]
-
-            gallery_filename = f"{news_id}-gallery-{index}.{ext}"
-            file_path = os.path.join(upload_dir, gallery_filename)
-
-            file_content = await gallery_image.read()
-            with open(file_path, "wb") as f:
-                f.write(file_content)
-
-            image_path = f"static/news/{gallery_filename}"
-
-            new_news_gallery = NewsGallery(
-                news_id=news_id,
-                image=image_path,
-                is_cover=False
-            )
-
-            db.add(new_news_gallery)
-            await db.commit()
-            await db.refresh(new_news_gallery)
 
         return JSONResponse(
-            content={
-                "status_code": 201,
-                "message": "News created successfully."
-            }, status_code=status.HTTP_201_CREATED
+            content={"status_code": 201, "message": "News created successfully."},
+            status_code=status.HTTP_201_CREATED
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
+
+    except Exception:
+        await db.rollback()
+        for f in saved_files:
+            safe_delete_file(f)
+        logger.exception("Failed to create news")
         return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 async def get_public_news(
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
     start: int = Query(0, ge=0, description="Start index"),
-    end: int = Query(10, gt=0, description="End index"),
+    end: int = Query(10, gt=0, le=100, description="End index (max 100)"),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
@@ -185,7 +144,7 @@ async def get_public_news(
 
         query = (
             select(News)
-            .where(News.is_active == True)
+            .where(News.is_active == True)  # noqa: E712
             .order_by(News.display_order.asc())
             .offset(start)
             .limit(end - start)
@@ -193,63 +152,46 @@ async def get_public_news(
         if category_id is not None:
             query = query.where(News.category_id == category_id)
 
-        news_query = await db.execute(query)
-
-        fetched_news = news_query.scalars().all()
+        fetched_news = (await db.execute(query)).scalars().all()
 
         if not fetched_news:
-            return JSONResponse(
-                content={
-                    "status_code": 204
-                }, status_code=status.HTTP_204_NO_CONTENT
-            )
-        
-        news_arr = []
+            return JSONResponse(content={"status_code": 204}, status_code=status.HTTP_204_NO_CONTENT)
 
+        news_arr = []
         for news in fetched_news:
-            news_translation_query = await db.execute(
-                select(NewsTranslation)
-                .where(
+            tr = (await db.execute(
+                select(NewsTranslation).where(
                     NewsTranslation.news_id == news.news_id,
                     NewsTranslation.lang_code == lang_code
                 )
-            )
+            )).scalar_one_or_none()
 
-            news_translation = news_translation_query.scalar_one_or_none()
-
-            news_obj = {
+            news_arr.append({
                 "news_id": news.news_id,
                 "category_id": news.category_id,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
-                "title": news_translation.title,
-                "html_content": news_translation.html_content,
-            }
+                "title": tr.title if tr else None,
+                "html_content": tr.html_content if tr else None,
+            })
 
-            news_arr.append(news_obj)
-        
         return JSONResponse(
-            content={
-                "status_code": 200,
-                "message": "News fetched successfully.",
-                "news": news_arr,
-                "total": total
-            }, status_code=status.HTTP_200_OK
+            content={"status_code": 200, "message": "News fetched successfully.", "news": news_arr, "total": total},
+            status_code=status.HTTP_200_OK
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
+
+    except Exception:
+        logger.exception("Failed to fetch public news")
         return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 async def get_admin_news(
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
     start: int = Query(0, ge=0, description="Start index"),
-    end: int = Query(10, gt=0, description="End index"),
+    end: int = Query(10, gt=0, le=100, description="End index (max 100)"),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
@@ -266,435 +208,267 @@ async def get_admin_news(
         if category_id is not None:
             query = query.where(News.category_id == category_id)
 
-        news_query = await db.execute(query)
-
-        fetched_news = news_query.scalars().all()
+        fetched_news = (await db.execute(query)).scalars().all()
 
         if not fetched_news:
-            return JSONResponse(
-                content={
-                    "status_code": 204
-                }, status_code=status.HTTP_204_NO_CONTENT
-            )
-        
-        news_arr = []
+            return JSONResponse(content={"status_code": 204}, status_code=status.HTTP_204_NO_CONTENT)
 
+        news_arr = []
         for news in fetched_news:
-            news_translation_query = await db.execute(
-                select(NewsTranslation)
-                .where(
+            tr = (await db.execute(
+                select(NewsTranslation).where(
                     NewsTranslation.news_id == news.news_id,
                     NewsTranslation.lang_code == lang_code
                 )
-            )
+            )).scalar_one_or_none()
 
-            news_translation = news_translation_query.scalar_one_or_none()
-
-            news_obj = {
+            news_arr.append({
                 "news_id": news.news_id,
                 "category_id": news.category_id,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
-                "title": news_translation.title,
-                "created_at": news.created_at.isoformat() if news.created_at else None
-            }
+                "title": tr.title if tr else None,
+                "created_at": news.created_at.isoformat() if news.created_at else None,
+            })
 
-            news_arr.append(news_obj)
-        
         return JSONResponse(
-            content={
-                "status_code": 200,
-                "message": "News fetched successfully.",
-                "news": news_arr,
-                "total": total
-            }, status_code=status.HTTP_200_OK
+            content={"status_code": 200, "message": "News fetched successfully.", "news": news_arr, "total": total},
+            status_code=status.HTTP_200_OK
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
+
+    except Exception:
+        logger.exception("Failed to fetch admin news")
         return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 async def get_news_details(
     news_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        news_query = await db.execute(
-            select(News)
-            .where(News.news_id == news_id)
-        )
-
-        news = news_query.scalar_one_or_none()
+        news = (await db.execute(select(News).where(News.news_id == news_id))).scalar_one_or_none()
 
         if not news:
             return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "message": "News not found."
-                }, status_code=status.HTTP_404_NOT_FOUND
+                content={"status_code": 404, "message": "News not found."},
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        
-        news_translation_query_az = await db.execute(
-            select(NewsTranslation)
-            .where(
-                NewsTranslation.news_id == news_id,
-                NewsTranslation.lang_code == "az"
-            )
-        )
 
-        news_translation_az = news_translation_query_az.scalar_one_or_none()
+        tr_az = (await db.execute(
+            select(NewsTranslation).where(NewsTranslation.news_id == news_id, NewsTranslation.lang_code == "az")
+        )).scalar_one_or_none()
 
-        news_translation_query_en = await db.execute(
-            select(NewsTranslation)
-            .where(
-                NewsTranslation.news_id == news_id,
-                NewsTranslation.lang_code == "en"
-            )
-        )
+        tr_en = (await db.execute(
+            select(NewsTranslation).where(NewsTranslation.news_id == news_id, NewsTranslation.lang_code == "en")
+        )).scalar_one_or_none()
 
-        news_translation_en = news_translation_query_en.scalar_one_or_none()
-
-        category_query = await db.execute(
-            select(NewsCategoryTranslation)
-            .where(
+        category = (await db.execute(
+            select(NewsCategoryTranslation).where(
                 NewsCategoryTranslation.category_id == news.category_id,
                 NewsCategoryTranslation.lang_code == "az"
             )
-        )
+        )).scalar_one_or_none()
 
-        news_category = category_query.scalar_one_or_none()
+        cover = (await db.execute(
+            select(NewsGallery).where(NewsGallery.news_id == news_id, NewsGallery.is_cover == True)  # noqa: E712
+        )).scalar_one_or_none()
 
-        cover_image_query = await db.execute(
-            select(NewsGallery)
-            .where(
-                NewsGallery.news_id == news_id,
-                NewsGallery.is_cover == True
-            )
-        )
-
-        cover_image = cover_image_query.scalar_one_or_none()
-
-        gallery_images_query = await db.execute(
-            select(NewsGallery)
-            .where(
-                NewsGallery.news_id == news_id,
-                NewsGallery.is_cover == False
-            )
-        )
-
-        gallery_images = gallery_images_query.scalars().all()
-
-
-        gallery_images_arr = []
-
-        for gallery_image in gallery_images:
-            gallery_image_obj = {
-                "image_id": gallery_image.id,
-                "image": gallery_image.image
-            }
-
-            gallery_images_arr.append(gallery_image_obj)
-        
-        news_obj = {
-            "news_id": news.news_id,
-            "az_title": news_translation_az.title,
-            "az_html_content": news_translation_az.html_content,
-            "en_title": news_translation_en.title,
-            "en_html_content": news_translation_en.html_content,
-            "category_id": news_category.title,
-            "cover_image": cover_image.image,
-            "gallery_images": gallery_images_arr
-        }
+        gallery = (await db.execute(
+            select(NewsGallery).where(NewsGallery.news_id == news_id, NewsGallery.is_cover == False)  # noqa: E712
+        )).scalars().all()
 
         return JSONResponse(
             content={
                 "status_code": 200,
                 "message": "News details fetched successfully.",
-                "news": news_obj
+                "news": {
+                    "news_id": news.news_id,
+                    "az_title": tr_az.title if tr_az else None,
+                    "az_html_content": tr_az.html_content if tr_az else None,
+                    "en_title": tr_en.title if tr_en else None,
+                    "en_html_content": tr_en.html_content if tr_en else None,
+                    "category_id": category.title if category else None,
+                    "cover_image": cover.image if cover else None,
+                    "gallery_images": [{"image_id": g.id, "image": g.image} for g in gallery],
+                }
             }
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
+
+    except Exception:
+        logger.exception("Failed to fetch news details")
         return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 async def deactivate_news(
     news_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        news_query = await db.execute(
-            select(News)
-            .where(News.news_id == news_id)
-        )
-
-        news = news_query.scalar_one_or_none()
-
+        news = (await db.execute(select(News).where(News.news_id == news_id))).scalar_one_or_none()
         if not news:
             return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "message": "News not found."
-                }, status_code=status.HTTP_404_NOT_FOUND
+                content={"status_code": 404, "message": "News not found."},
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        
         news.is_active = False
-
         await db.commit()
-        await db.refresh(news)
+        return JSONResponse(content={"status_code": 200, "message": "News deactivated successfully."})
 
+    except Exception:
+        logger.exception("Failed to deactivate news")
         return JSONResponse(
-            content={
-                "status_code": 200,
-                "message": "News deactivated successfully."
-            }, status_code=status.HTTP_200_OK
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
-        return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+
 
 async def activate_news(
     news_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        news_query = await db.execute(
-            select(News)
-            .where(News.news_id == news_id)
-        )
-
-        news = news_query.scalar_one_or_none()
-
+        news = (await db.execute(select(News).where(News.news_id == news_id))).scalar_one_or_none()
         if not news:
             return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "message": "News not found."
-                }, status_code=status.HTTP_404_NOT_FOUND
+                content={"status_code": 404, "message": "News not found."},
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        
         news.is_active = True
-
         await db.commit()
-        await db.refresh(news)
+        return JSONResponse(content={"status_code": 200, "message": "News activated successfully."})
 
+    except Exception:
+        logger.exception("Failed to activate news")
         return JSONResponse(
-            content={
-                "status_code": 200,
-                "message": "News activated successfully."
-            }, status_code=status.HTTP_200_OK
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
-        return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+
 
 async def get_news_gallery(
     news_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        news_query = await db.execute(
-            select(News)
-            .where(News.news_id == news_id)
-        )
-
-        news = news_query.scalar_one_or_none()
-
-        if not news:
+        if not (await db.execute(select(News).where(News.news_id == news_id))).scalar_one_or_none():
             return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "message": "News not found."
-                }, status_code=status.HTTP_404_NOT_FOUND    
+                content={"status_code": 404, "message": "News not found."},
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        
-        gallery_query = await db.execute(
-            select(NewsGallery)
-            .where(NewsGallery.news_id == news_id)
-        )
 
-        gallery_images = gallery_query.scalars().all()
+        gallery = (await db.execute(
+            select(NewsGallery).where(NewsGallery.news_id == news_id)
+        )).scalars().all()
 
-        if not gallery_images:
-            return JSONResponse(
-                content={
-                    "status_code": 204
-                }, status_code=status.HTTP_204_NO_CONTENT
-            )
-        
-        gallery_images_arr = []
+        if not gallery:
+            return JSONResponse(content={"status_code": 204}, status_code=status.HTTP_204_NO_CONTENT)
 
-        for gallery_image in gallery_images:
-            gallery_image_obj = {
-                "id": gallery_image.id,
-                "news_id": gallery_image.news_id,
-                "image": gallery_image.image
-            }
-
-            gallery_images_arr.append(gallery_image_obj)
-        
         return JSONResponse(
             content={
                 "status_code": 200,
                 "message": "News gallery fetched successfully.",
-                "gallery_images": gallery_images_arr
-            }, status_code=status.HTTP_200_OK
+                "gallery_images": [{"id": g.id, "news_id": g.news_id, "image": g.image} for g in gallery],
+            }
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
+
+    except Exception:
+        logger.exception("Failed to fetch news gallery")
         return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 async def reorder_news(
     request: ReOrderNews,
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        result = await db.execute(select(News).where(News.news_id == request.news_id))
-
-        news_to_move = result.scalar_one_or_none()
-
+        news_to_move = (await db.execute(select(News).where(News.news_id == request.news_id))).scalar_one_or_none()
         if not news_to_move:
-            return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "error": "News not found"
-                }, status_code=404
-            )
+            return JSONResponse(content={"status_code": 404, "error": "News not found"}, status_code=404)
 
         old_order = news_to_move.display_order
         new_order = request.new_order
 
         if new_order == old_order:
-            return JSONResponse(
-                content={
-                    "status_code": 200,
-                    "message": "No change"
-                }, status_code=200)
+            return JSONResponse(content={"status_code": 200, "message": "No change"}, status_code=200)
 
         if new_order < old_order:
-            result = await db.execute(
-                select(News).where(
-                    News.display_order >= new_order,
-                    News.display_order < old_order
-                )
-            )
-            projects_to_shift = result.scalars().all()
-            for p in projects_to_shift:
-                p.display_order += 1
-                db.add(p)
+            rows = (await db.execute(
+                select(News).where(News.display_order >= new_order, News.display_order < old_order)
+            )).scalars().all()
+            for r in rows:
+                r.display_order += 1
+                db.add(r)
         else:
-            result = await db.execute(
-                select(News).where(
-                    News.display_order <= new_order,
-                    News.display_order > old_order
-                )
-            )
-            projects_to_shift = result.scalars().all()
-            for p in projects_to_shift:
-                p.display_order -= 1
-                db.add(p)
+            rows = (await db.execute(
+                select(News).where(News.display_order <= new_order, News.display_order > old_order)
+            )).scalars().all()
+            for r in rows:
+                r.display_order -= 1
+                db.add(r)
 
         news_to_move.display_order = new_order
         db.add(news_to_move)
-
         await db.commit()
 
+        return JSONResponse(content={"status_code": 200, "message": "News reordered successfully"})
+
+    except Exception:
+        logger.exception("Failed to reorder news")
         return JSONResponse(
-            content={
-                "status_code": 200,
-                "message": "News reordered successfully"
-            }, status_code=200
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
-        return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=500
-        )
 
 async def delete_news(
     news_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        news_query = await db.execute(
-            select(News)
-            .where(News.news_id == news_id)
-        )
-
-        news = news_query.scalar_one_or_none()
-
+        news = (await db.execute(select(News).where(News.news_id == news_id))).scalar_one_or_none()
         if not news:
             return JSONResponse(
-                content={
-                    "status_code": 404,
-                    "message": "News not found."
-                }, status_code=status.HTTP_404_NOT_FOUND
+                content={"status_code": 404, "message": "News not found."},
+                status_code=status.HTTP_404_NOT_FOUND
             )
-        
-        gallery_query = await db.execute(
-            select(NewsGallery).where(NewsGallery.news_id == news_id)
-        )
-        gallery_images = gallery_query.scalars().all()
-        for gallery_image in gallery_images:
-            file_path = f"app/{gallery_image.image}"
-            if os.path.exists(file_path):
-                os.remove(file_path)
-            await db.delete(gallery_image)
 
-        translations_query = await db.execute(
+        gallery = (await db.execute(
+            select(NewsGallery).where(NewsGallery.news_id == news_id)
+        )).scalars().all()
+
+        # Collect file paths before deleting records
+        file_paths = [g.image for g in gallery]
+
+        for g in gallery:
+            await db.delete(g)
+
+        translations = (await db.execute(
             select(NewsTranslation).where(NewsTranslation.news_id == news_id)
-        )
-        translations = translations_query.scalars().all()
-        for translation in translations:
-            await db.delete(translation)
+        )).scalars().all()
+        for tr in translations:
+            await db.delete(tr)
 
         await db.delete(news)
         await db.commit()
 
+        # Delete files after successful DB commit — safe_delete_file prevents path traversal
+        for path in file_paths:
+            safe_delete_file(path)
+
+        return JSONResponse(content={"status_code": 200, "message": "News deleted successfully."})
+
+    except Exception:
+        logger.exception("Failed to delete news")
         return JSONResponse(
-            content={
-                "status_code": 200,
-                "message": "News deleted successfully."
-            }, status_code=status.HTTP_200_OK
-        )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
-        return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": str(e)
-            }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

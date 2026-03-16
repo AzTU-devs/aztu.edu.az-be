@@ -2,6 +2,8 @@ from app.services.collaboration import *
 from app.core.session import get_db
 from app.api.v1.schema.collaboration import *
 from app.utils.language import get_language
+from app.core.auth_dependency import require_admin
+from app.models.admin.admin_user import AdminUser
 from fastapi import APIRouter, Depends, File, Form, Query
 from fastapi import UploadFile
 from typing import Optional
@@ -36,6 +38,7 @@ async def create_collaboration_endpoint(
     az_name: str = Form(...),
     en_name: str = Form(...),
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     request = CollaborationCreate.as_form(
         logo=logo,
@@ -54,6 +57,7 @@ async def update_collaboration_endpoint(
     az_name: str = Form(...),
     en_name: str = Form(...),
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     request = CollaborationUpdate.as_form(
         logo=logo,
@@ -68,6 +72,7 @@ async def update_collaboration_endpoint(
 async def reorder_collaboration_endpoint(
     request: ReOrderCollaboration,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await reorder_collaboration(request=request, db=db)
 
@@ -76,5 +81,6 @@ async def reorder_collaboration_endpoint(
 async def delete_collaboration_endpoint(
     collaboration_id: int,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_collaboration(collaboration_id=collaboration_id, db=db)

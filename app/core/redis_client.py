@@ -1,12 +1,25 @@
+import logging
 import redis.asyncio as redis
+from app.core.config import settings
 
-redis_client = None
+logger = logging.getLogger("aztu.redis")
 
-async def get_redis():
-    global redis_client
-    if not redis_client:
-        redis_client = redis.from_url(
-            "redis://localhost:6379",
-            decode_responses=True
+_redis_client: redis.Redis | None = None
+
+
+async def get_redis() -> redis.Redis:
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.from_url(
+            settings.REDIS_URL,
+            password=settings.REDIS_PASSWORD,
+            decode_responses=True,
+            max_connections=20,
         )
-    return redis_client
+        try:
+            await _redis_client.ping()
+        except Exception as exc:
+            logger.error("Redis connection failed: %s", exc)
+            _redis_client = None
+            raise
+    return _redis_client

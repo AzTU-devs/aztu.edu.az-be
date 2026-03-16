@@ -1,6 +1,5 @@
-import os
-import random
-from datetime import datetime
+import secrets
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy import select, func
 from app.core.session import get_db
@@ -19,8 +18,8 @@ from app.models.news_gallery.news_gallery import NewsGallery
 from app.models.news_category.news_category import NewsCategory
 from app.models.news_category.news_category_translation import NewsCategoryTranslation
 
-def news_category_id_generator():
-    return random.randint(100000, 999999)
+def news_category_id_generator() -> int:
+    return secrets.randbelow(900000) + 100000
 
 async def create_news_category(
     az_title: str = Form(...),
@@ -58,7 +57,7 @@ async def create_news_category(
         
         new_category = NewsCategory(
             category_id=category_id,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
 
         new_category_translation_az = NewsCategoryTranslation(
@@ -95,7 +94,7 @@ async def create_news_category(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e)
+                "error": "Internal server error"
             }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -150,6 +149,6 @@ async def get_news_categories(
         return JSONResponse(
             content={
                 "status_code": 500,
-                "error": str(e)
+                "error": "Internal server error"
             }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

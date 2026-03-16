@@ -1,32 +1,29 @@
-import os
-from dotenv import load_dotenv
 from typing import AsyncGenerator
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from app.core.config import settings
 
-load_dotenv()
+# Strip sslmode/channel_binding from URL — passed via connect_args instead
+_parsed = urlparse(settings.DATABASE_URL)
+_query_params = parse_qs(_parsed.query)
+_query_params.pop("sslmode", None)
+_query_params.pop("channel_binding", None)
+_clean_url = urlunparse(_parsed._replace(query=urlencode(_query_params, doseq=True)))
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set.")
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-
-parsed = urlparse(DATABASE_URL)
-query_params = parse_qs(parsed.query)
-query_params.pop("sslmode", None)
-query_params.pop("channel_binding", None)
-new_query = urlencode(query_params, doseq=True)
-clean_url = urlunparse(parsed._replace(query=new_query))
-
-async_database_url = clean_url.replace("postgresql://", "postgresql+asyncpg://")
+async_database_url = _clean_url.replace("postgresql://", "postgresql+asyncpg://")
 
 engine = create_async_engine(
     async_database_url,
     connect_args={"ssl": "require"},
-    echo=True,
+    # Only log SQL in development — never in production (avoids leaking query params)
+    echo=settings.ENVIRONMENT == "development",
     future=True,
     pool_pre_ping=True,
     pool_recycle=300,
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    pool_timeout=settings.DB_POOL_TIMEOUT,
 )
 
 AsyncSessionLocal = sessionmaker(
@@ -37,8 +34,10 @@ AsyncSessionLocal = sessionmaker(
     autocommit=False,
 )
 
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
+
 
 Base = declarative_base()

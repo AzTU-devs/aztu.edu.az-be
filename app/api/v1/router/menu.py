@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.session import get_db
 from app.utils.language import get_language
+from app.core.auth_dependency import require_admin
 from app.api.v1.schema.menu import (
     CreateHeaderSection, UpdateHeaderSection,
     CreateHeaderItem, UpdateHeaderItem,
@@ -34,6 +35,9 @@ from app.services.menu import (
 )
 
 router = APIRouter()
+
+# All mutation endpoints share a single auth dependency via this sub-router
+admin_router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 # ─────────────────────────────────────────────────────────────
@@ -68,7 +72,7 @@ async def get_quick_menu_endpoint(
 # CRUD  —  Header Section
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/header/section")
+@admin_router.post("/header/section")
 async def create_header_section_endpoint(
     request: CreateHeaderSection,
     db: AsyncSession = Depends(get_db),
@@ -76,7 +80,7 @@ async def create_header_section_endpoint(
     return await create_header_section(request=request, db=db)
 
 
-@router.put("/header/section/{section_id}")
+@admin_router.put("/header/section/{section_id}")
 async def update_header_section_endpoint(
     section_id: int,
     request: UpdateHeaderSection,
@@ -85,7 +89,7 @@ async def update_header_section_endpoint(
     return await update_header_section(section_id=section_id, request=request, db=db)
 
 
-@router.delete("/header/section/{section_id}")
+@admin_router.delete("/header/section/{section_id}")
 async def delete_header_section_endpoint(
     section_id: int,
     db: AsyncSession = Depends(get_db),
@@ -97,7 +101,7 @@ async def delete_header_section_endpoint(
 # CRUD  —  Header Item
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/header/item")
+@admin_router.post("/header/item")
 async def create_header_item_endpoint(
     request: CreateHeaderItem,
     db: AsyncSession = Depends(get_db),
@@ -105,7 +109,7 @@ async def create_header_item_endpoint(
     return await create_header_item(request=request, db=db)
 
 
-@router.put("/header/item/{item_id}")
+@admin_router.put("/header/item/{item_id}")
 async def update_header_item_endpoint(
     item_id: int,
     request: UpdateHeaderItem,
@@ -114,7 +118,7 @@ async def update_header_item_endpoint(
     return await update_header_item(item_id=item_id, request=request, db=db)
 
 
-@router.delete("/header/item/{item_id}")
+@admin_router.delete("/header/item/{item_id}")
 async def delete_header_item_endpoint(
     item_id: int,
     db: AsyncSession = Depends(get_db),
@@ -126,7 +130,7 @@ async def delete_header_item_endpoint(
 # CRUD  —  Header Sub-Item
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/header/sub-item")
+@admin_router.post("/header/sub-item")
 async def create_header_sub_item_endpoint(
     request: CreateHeaderSubItem,
     db: AsyncSession = Depends(get_db),
@@ -134,7 +138,7 @@ async def create_header_sub_item_endpoint(
     return await create_header_sub_item(request=request, db=db)
 
 
-@router.put("/header/sub-item/{sub_item_id}")
+@admin_router.put("/header/sub-item/{sub_item_id}")
 async def update_header_sub_item_endpoint(
     sub_item_id: int,
     request: UpdateHeaderSubItem,
@@ -143,7 +147,7 @@ async def update_header_sub_item_endpoint(
     return await update_header_sub_item(sub_item_id=sub_item_id, request=request, db=db)
 
 
-@router.delete("/header/sub-item/{sub_item_id}")
+@admin_router.delete("/header/sub-item/{sub_item_id}")
 async def delete_header_sub_item_endpoint(
     sub_item_id: int,
     db: AsyncSession = Depends(get_db),
@@ -155,7 +159,7 @@ async def delete_header_sub_item_endpoint(
 # CRUD  —  Footer Column
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/footer/column")
+@admin_router.post("/footer/column")
 async def create_footer_column_endpoint(
     request: CreateFooterColumn,
     db: AsyncSession = Depends(get_db),
@@ -163,7 +167,7 @@ async def create_footer_column_endpoint(
     return await create_footer_column(request=request, db=db)
 
 
-@router.put("/footer/column/{column_id}")
+@admin_router.put("/footer/column/{column_id}")
 async def update_footer_column_endpoint(
     column_id: int,
     request: UpdateFooterColumn,
@@ -172,7 +176,7 @@ async def update_footer_column_endpoint(
     return await update_footer_column(column_id=column_id, request=request, db=db)
 
 
-@router.delete("/footer/column/{column_id}")
+@admin_router.delete("/footer/column/{column_id}")
 async def delete_footer_column_endpoint(
     column_id: int,
     db: AsyncSession = Depends(get_db),
@@ -184,7 +188,7 @@ async def delete_footer_column_endpoint(
 # CRUD  —  Footer Link
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/footer/link")
+@admin_router.post("/footer/link")
 async def create_footer_link_endpoint(
     request: CreateFooterLink,
     db: AsyncSession = Depends(get_db),
@@ -192,7 +196,7 @@ async def create_footer_link_endpoint(
     return await create_footer_link(request=request, db=db)
 
 
-@router.put("/footer/link/{link_id}")
+@admin_router.put("/footer/link/{link_id}")
 async def update_footer_link_endpoint(
     link_id: int,
     request: UpdateFooterLink,
@@ -201,7 +205,7 @@ async def update_footer_link_endpoint(
     return await update_footer_link(link_id=link_id, request=request, db=db)
 
 
-@router.delete("/footer/link/{link_id}")
+@admin_router.delete("/footer/link/{link_id}")
 async def delete_footer_link_endpoint(
     link_id: int,
     db: AsyncSession = Depends(get_db),
@@ -213,7 +217,7 @@ async def delete_footer_link_endpoint(
 # CRUD  —  Partner Logo
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/footer/partner-logo")
+@admin_router.post("/footer/partner-logo")
 async def create_partner_logo_endpoint(
     request: CreatePartnerLogo,
     db: AsyncSession = Depends(get_db),
@@ -221,7 +225,7 @@ async def create_partner_logo_endpoint(
     return await create_partner_logo(request=request, db=db)
 
 
-@router.put("/footer/partner-logo/{logo_id}")
+@admin_router.put("/footer/partner-logo/{logo_id}")
 async def update_partner_logo_endpoint(
     logo_id: int,
     request: UpdatePartnerLogo,
@@ -230,7 +234,7 @@ async def update_partner_logo_endpoint(
     return await update_partner_logo(logo_id=logo_id, request=request, db=db)
 
 
-@router.delete("/footer/partner-logo/{logo_id}")
+@admin_router.delete("/footer/partner-logo/{logo_id}")
 async def delete_partner_logo_endpoint(
     logo_id: int,
     db: AsyncSession = Depends(get_db),
@@ -242,7 +246,7 @@ async def delete_partner_logo_endpoint(
 # CRUD  —  Footer Quick Icon
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/footer/quick-icon")
+@admin_router.post("/footer/quick-icon")
 async def create_quick_icon_endpoint(
     request: CreateQuickIcon,
     db: AsyncSession = Depends(get_db),
@@ -250,7 +254,7 @@ async def create_quick_icon_endpoint(
     return await create_quick_icon(request=request, db=db)
 
 
-@router.put("/footer/quick-icon/{icon_id}")
+@admin_router.put("/footer/quick-icon/{icon_id}")
 async def update_quick_icon_endpoint(
     icon_id: int,
     request: UpdateQuickIcon,
@@ -259,7 +263,7 @@ async def update_quick_icon_endpoint(
     return await update_quick_icon(icon_id=icon_id, request=request, db=db)
 
 
-@router.delete("/footer/quick-icon/{icon_id}")
+@admin_router.delete("/footer/quick-icon/{icon_id}")
 async def delete_quick_icon_endpoint(
     icon_id: int,
     db: AsyncSession = Depends(get_db),
@@ -271,7 +275,7 @@ async def delete_quick_icon_endpoint(
 # CRUD  —  Social Link
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/social-link")
+@admin_router.post("/social-link")
 async def create_social_link_endpoint(
     request: CreateSocialLink,
     db: AsyncSession = Depends(get_db),
@@ -279,7 +283,7 @@ async def create_social_link_endpoint(
     return await create_social_link(request=request, db=db)
 
 
-@router.put("/social-link/{link_id}")
+@admin_router.put("/social-link/{link_id}")
 async def update_social_link_endpoint(
     link_id: int,
     request: UpdateSocialLink,
@@ -288,7 +292,7 @@ async def update_social_link_endpoint(
     return await update_social_link(link_id=link_id, request=request, db=db)
 
 
-@router.delete("/social-link/{link_id}")
+@admin_router.delete("/social-link/{link_id}")
 async def delete_social_link_endpoint(
     link_id: int,
     db: AsyncSession = Depends(get_db),
@@ -300,7 +304,7 @@ async def delete_social_link_endpoint(
 # CRUD  —  Contact
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/contact")
+@admin_router.post("/contact")
 async def create_contact_endpoint(
     request: CreateContact,
     db: AsyncSession = Depends(get_db),
@@ -308,7 +312,7 @@ async def create_contact_endpoint(
     return await create_contact(request=request, db=db)
 
 
-@router.put("/contact/{contact_id}")
+@admin_router.put("/contact/{contact_id}")
 async def update_contact_endpoint(
     contact_id: int,
     request: UpdateContact,
@@ -317,7 +321,7 @@ async def update_contact_endpoint(
     return await update_contact(contact_id=contact_id, request=request, db=db)
 
 
-@router.delete("/contact/{contact_id}")
+@admin_router.delete("/contact/{contact_id}")
 async def delete_contact_endpoint(
     contact_id: int,
     db: AsyncSession = Depends(get_db),
@@ -329,7 +333,7 @@ async def delete_contact_endpoint(
 # CRUD  —  Quick Left Item
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/quick/left-item")
+@admin_router.post("/quick/left-item")
 async def create_quick_left_item_endpoint(
     request: CreateQuickLeftItem,
     db: AsyncSession = Depends(get_db),
@@ -337,7 +341,7 @@ async def create_quick_left_item_endpoint(
     return await create_quick_left_item(request=request, db=db)
 
 
-@router.put("/quick/left-item/{item_id}")
+@admin_router.put("/quick/left-item/{item_id}")
 async def update_quick_left_item_endpoint(
     item_id: int,
     request: UpdateQuickLeftItem,
@@ -346,7 +350,7 @@ async def update_quick_left_item_endpoint(
     return await update_quick_left_item(item_id=item_id, request=request, db=db)
 
 
-@router.delete("/quick/left-item/{item_id}")
+@admin_router.delete("/quick/left-item/{item_id}")
 async def delete_quick_left_item_endpoint(
     item_id: int,
     db: AsyncSession = Depends(get_db),
@@ -358,7 +362,7 @@ async def delete_quick_left_item_endpoint(
 # CRUD  —  Quick Section
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/quick/section")
+@admin_router.post("/quick/section")
 async def create_quick_section_endpoint(
     request: CreateQuickSection,
     db: AsyncSession = Depends(get_db),
@@ -366,7 +370,7 @@ async def create_quick_section_endpoint(
     return await create_quick_section(request=request, db=db)
 
 
-@router.put("/quick/section/{section_id}")
+@admin_router.put("/quick/section/{section_id}")
 async def update_quick_section_endpoint(
     section_id: int,
     request: UpdateQuickSection,
@@ -375,7 +379,7 @@ async def update_quick_section_endpoint(
     return await update_quick_section(section_id=section_id, request=request, db=db)
 
 
-@router.delete("/quick/section/{section_id}")
+@admin_router.delete("/quick/section/{section_id}")
 async def delete_quick_section_endpoint(
     section_id: int,
     db: AsyncSession = Depends(get_db),
@@ -387,7 +391,7 @@ async def delete_quick_section_endpoint(
 # CRUD  —  Quick Section Item
 # ─────────────────────────────────────────────────────────────
 
-@router.post("/quick/section-item")
+@admin_router.post("/quick/section-item")
 async def create_quick_section_item_endpoint(
     request: CreateQuickSectionItem,
     db: AsyncSession = Depends(get_db),
@@ -395,7 +399,7 @@ async def create_quick_section_item_endpoint(
     return await create_quick_section_item(request=request, db=db)
 
 
-@router.put("/quick/section-item/{item_id}")
+@admin_router.put("/quick/section-item/{item_id}")
 async def update_quick_section_item_endpoint(
     item_id: int,
     request: UpdateQuickSectionItem,
@@ -404,9 +408,13 @@ async def update_quick_section_item_endpoint(
     return await update_quick_section_item(item_id=item_id, request=request, db=db)
 
 
-@router.delete("/quick/section-item/{item_id}")
+@admin_router.delete("/quick/section-item/{item_id}")
 async def delete_quick_section_item_endpoint(
     item_id: int,
     db: AsyncSession = Depends(get_db),
 ):
     return await delete_quick_section_item(item_id=item_id, db=db)
+
+
+# Merge admin mutations into the public router so main.py only imports `router`
+router.include_router(admin_router)

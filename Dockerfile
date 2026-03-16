@@ -9,6 +9,7 @@ WORKDIR /code
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
+    libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ./requirements.txt /code/requirements.txt
@@ -20,4 +21,4 @@ COPY ./alembic /code/alembic
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--no-access-log"]

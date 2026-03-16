@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.session import get_db
 from app.utils.language import get_language
+from app.core.auth_dependency import require_admin
+from app.models.admin.admin_user import AdminUser
 from app.api.v1.schema.cafedra import CreateCafedra, UpdateCafedra
 from app.services.cafedra import (
     create_cafedra,
@@ -22,6 +24,7 @@ async def get_cafedras_endpoint_admin(
     faculty_code: str | None = Query(None),
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await get_cafedras(
         start=start,
@@ -66,6 +69,7 @@ async def get_cafedra_details_endpoint(
 async def create_cafedra_endpoint(
     request: CreateCafedra = Depends(CreateCafedra.as_form),
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_cafedra(
         request=request,
@@ -78,6 +82,7 @@ async def update_cafedra_endpoint(
     cafedra_code: str,
     request: UpdateCafedra = Depends(UpdateCafedra.as_form),
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await update_cafedra(
         cafedra_code=cafedra_code,
@@ -90,6 +95,7 @@ async def update_cafedra_endpoint(
 async def delete_cafedra_endpoint(
     cafedra_code: str,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_cafedra(
         cafedra_code=cafedra_code,
