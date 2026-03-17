@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, Cookie
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -72,7 +72,7 @@ async def login(
 
     # Store hashed refresh token for rotation/revocation
     user.refresh_token_hash = hash_password(refresh_token)
-    user.last_login_at = datetime.now(timezone.utc)
+    user.last_login_at = datetime.utcnow()
     await db.commit()
 
     logger.info(
@@ -148,7 +148,7 @@ async def refresh(
     new_refresh_token = create_refresh_token(user.username)
 
     user.refresh_token_hash = hash_password(new_refresh_token)
-    user.updated_at = datetime.now(timezone.utc)
+    user.updated_at = datetime.utcnow()
     await db.commit()
 
     response.set_cookie(
