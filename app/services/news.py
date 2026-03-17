@@ -168,9 +168,8 @@ async def get_public_news(
 
             cover = (await db.execute(
                 select(NewsGallery).where(
-                    NewsGallery.news_id == news.news_id,
-                    NewsGallery.is_cover == True  # noqa: E712
-                )
+                    NewsGallery.news_id == news.news_id
+                ).order_by(NewsGallery.id).limit(1)
             )).scalar_one_or_none()
 
             news_arr.append({
