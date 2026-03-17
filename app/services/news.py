@@ -145,7 +145,7 @@ async def get_public_news(
         query = (
             select(News)
             .where(News.is_active == True)  # noqa: E712
-            .order_by(News.display_order.asc())
+            .order_by(News.created_at.desc())
             .offset(start)
             .limit(end - start)
         )
