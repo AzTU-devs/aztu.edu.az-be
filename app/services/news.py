@@ -280,7 +280,7 @@ async def get_news_details(
         )).scalar_one_or_none()
 
         cover = (await db.execute(
-            select(NewsGallery).where(NewsGallery.news_id == news_id, NewsGallery.is_cover == True)  # noqa: E712
+            select(NewsGallery).where(NewsGallery.news_id == news_id).order_by(NewsGallery.id).limit(1)
         )).scalar_one_or_none()
 
         gallery = (await db.execute(
@@ -310,7 +310,6 @@ async def get_news_details(
             content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
 
 async def deactivate_news(
     news_id: int,
