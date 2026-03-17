@@ -88,7 +88,7 @@ async def get_announcements_admin(
         total = (await db.execute(select(func.count()).select_from(Announcement))).scalar() or 0
 
         announcements = (await db.execute(
-            select(Announcement).order_by(Announcement.display_order.asc()).offset(start).limit(end - start)
+            select(Announcement).order_by(Announcement.published_date.desc().nullslast()).offset(start).limit(end - start)
         )).scalars().all()
 
         if not announcements:
@@ -136,7 +136,7 @@ async def get_announcements_user(
         announcements = (await db.execute(
             select(Announcement)
             .where(Announcement.is_active == True)  # noqa: E712
-            .order_by(Announcement.display_order.asc())
+            .order_by(Announcement.published_date.desc().nullslast())
             .offset(start).limit(end - start)
         )).scalars().all()
 
