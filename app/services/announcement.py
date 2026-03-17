@@ -49,12 +49,14 @@ async def create_announcement(
         except UndefinedTableError:
             display_order = 1
 
+        now = datetime.now(timezone.utc)
         db.add(Announcement(
             announcement_id=announcement_id,
             image=image_path,
             display_order=display_order,
             is_active=True,
-            created_at=datetime.now(timezone.utc)
+            created_at=now,
+            published_date=now.date()
         ))
         db.add(AnnouncementTranslation(announcement_id=announcement_id, lang_code="az", title=az_title, html_content=az_html_content))
         db.add(AnnouncementTranslation(announcement_id=announcement_id, lang_code="en", title=en_title, html_content=en_html_content))
@@ -107,6 +109,7 @@ async def get_announcements_admin(
                 "html_content": tr.html_content if tr else None,
                 "is_active": a.is_active,
                 "created_at": a.created_at.isoformat() if a.created_at else None,
+                "published_date": a.published_date.isoformat() if a.published_date else None,
             })
 
         return JSONResponse(
@@ -155,6 +158,7 @@ async def get_announcements_user(
                 "html_content": tr.html_content if tr else None,
                 "is_active": a.is_active,
                 "created_at": a.created_at.isoformat() if a.created_at else None,
+                "published_date": a.published_date.isoformat() if a.published_date else None,
             })
 
         return JSONResponse(
@@ -196,6 +200,8 @@ async def get_announcement(
                 "image": a.image,
                 "display_order": a.display_order,
                 "is_active": a.is_active,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+                "published_date": a.published_date.isoformat() if a.published_date else None,
             }
         })
 
