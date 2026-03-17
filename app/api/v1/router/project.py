@@ -27,7 +27,7 @@ async def get_projects_endpoint(
 
 @router.get("/{project_id}")
 async def get_project_by_id_endpoint(
-    project_id: str,
+    project_id: int,
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
@@ -74,7 +74,7 @@ async def reorder_project_endpoint(
 
 @router.delete("/{project_id}/delete")
 async def delete_project_endpoint(
-    project_id: str,
+    project_id: int,
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):

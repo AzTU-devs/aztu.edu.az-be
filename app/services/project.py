@@ -156,7 +156,7 @@ async def reorder_project(
 
 
 async def get_project_by_id(
-    project_id: str,
+    project_id: int,
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
@@ -190,7 +190,7 @@ async def get_project_by_id(
 
 
 async def delete_project(
-    project_id: str,
+    project_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     try:
