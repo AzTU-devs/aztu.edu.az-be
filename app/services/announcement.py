@@ -101,7 +101,7 @@ async def get_announcements_admin(
                     AnnouncementTranslation.announcement_id == a.announcement_id,
                     AnnouncementTranslation.lang_code == lang
                 )
-            )).scalar_one_or_none()
+            )).scalars().first()
             announcement_arr.append({
                 "announcement_id": a.announcement_id,
                 "display_order": a.display_order,
@@ -150,7 +150,7 @@ async def get_announcements_user(
                     AnnouncementTranslation.announcement_id == a.announcement_id,
                     AnnouncementTranslation.lang_code == lang
                 )
-            )).scalar_one_or_none()
+            )).scalars().first()
             announcement_arr.append({
                 "id": a.announcement_id,
                 "display_order": a.display_order,
@@ -179,7 +179,7 @@ async def get_announcement(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == announcement_id))).scalar_one_or_none()
+        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == announcement_id))).scalars().first()
         if not a:
             return JSONResponse(content={"status_code": 404, "message": "Announcement not found."}, status_code=status.HTTP_404_NOT_FOUND)
 
@@ -188,7 +188,7 @@ async def get_announcement(
                 AnnouncementTranslation.announcement_id == announcement_id,
                 AnnouncementTranslation.lang_code == lang_code
             )
-        )).scalar_one_or_none()
+        )).scalars().first()
 
         return JSONResponse(content={
             "status_code": 200,
@@ -218,7 +218,7 @@ async def deactivate_announcement(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == announcement_id))).scalar_one_or_none()
+        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == announcement_id))).scalars().first()
         if not a:
             return JSONResponse(content={"status_code": 404, "message": "Announcement not found."}, status_code=status.HTTP_404_NOT_FOUND)
         a.is_active = False
@@ -234,7 +234,7 @@ async def activate_announcement(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == announcement_id))).scalar_one_or_none()
+        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == announcement_id))).scalars().first()
         if not a:
             return JSONResponse(content={"status_code": 404, "message": "Announcement not found."}, status_code=status.HTTP_404_NOT_FOUND)
         a.is_active = True
@@ -250,7 +250,7 @@ async def reorder_announcement(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == request.announcement_id))).scalar_one_or_none()
+        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == request.announcement_id))).scalars().first()
         if not a:
             return JSONResponse(content={"status_code": 404, "error": "Announcement not found"}, status_code=404)
 
