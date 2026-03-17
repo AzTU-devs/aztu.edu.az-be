@@ -166,6 +166,13 @@ async def get_public_news(
                 )
             )).scalar_one_or_none()
 
+            cover = (await db.execute(
+                select(NewsGallery).where(
+                    NewsGallery.news_id == news.news_id,
+                    NewsGallery.is_cover == True  # noqa: E712
+                )
+            )).scalar_one_or_none()
+
             news_arr.append({
                 "news_id": news.news_id,
                 "category_id": news.category_id,
@@ -173,6 +180,8 @@ async def get_public_news(
                 "is_active": news.is_active,
                 "title": tr.title if tr else None,
                 "html_content": tr.html_content if tr else None,
+                "cover_image": cover.image if cover else None,
+                "created_at": news.created_at.isoformat() if news.created_at else None,
             })
 
         return JSONResponse(
@@ -186,7 +195,6 @@ async def get_public_news(
             content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
 
 async def get_admin_news(
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
