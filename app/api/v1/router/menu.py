@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends
+from typing import Optional
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.session import get_db
 from app.utils.language import get_language
 from app.core.auth_dependency import require_admin
+from app.utils.file_upload import save_upload, ALLOWED_IMAGE_MIMES
 from app.api.v1.schema.menu import (
-    CreateHeaderSection, UpdateHeaderSection,
     CreateHeaderItem, UpdateHeaderItem,
     CreateHeaderSubItem, UpdateHeaderSubItem,
     CreateFooterColumn, UpdateFooterColumn,
@@ -74,19 +75,58 @@ async def get_quick_menu_endpoint(
 
 @admin_router.post("/header/section")
 async def create_header_section_endpoint(
-    request: CreateHeaderSection,
+    section_key: str = Form(...),
+    display_order: int = Form(...),
+    direct_url: Optional[str] = Form(None),
+    label_az: str = Form(...),
+    label_en: str = Form(...),
+    base_path_az: str = Form(...),
+    base_path_en: str = Form(...),
+    image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    return await create_header_section(request=request, db=db)
+    relative_path = await save_upload(image, "menu/headers", ALLOWED_IMAGE_MIMES)
+    image_url = f"https://aztu.edu.az/{relative_path}"
+    return await create_header_section(
+        section_key=section_key,
+        image_url=image_url,
+        display_order=display_order,
+        direct_url=direct_url or None,
+        label_az=label_az,
+        label_en=label_en,
+        base_path_az=base_path_az,
+        base_path_en=base_path_en,
+        db=db,
+    )
 
 
 @admin_router.put("/header/section/{section_id}")
 async def update_header_section_endpoint(
     section_id: int,
-    request: UpdateHeaderSection,
+    display_order: Optional[int] = Form(None),
+    direct_url: Optional[str] = Form(None),
+    label_az: Optional[str] = Form(None),
+    label_en: Optional[str] = Form(None),
+    base_path_az: Optional[str] = Form(None),
+    base_path_en: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
     db: AsyncSession = Depends(get_db),
 ):
-    return await update_header_section(section_id=section_id, request=request, db=db)
+    image_url = None
+    if image and image.filename:
+        relative_path = await save_upload(image, "menu/headers", ALLOWED_IMAGE_MIMES)
+        image_url = f"https://aztu.edu.az/{relative_path}"
+    return await update_header_section(
+        section_id=section_id,
+        image_url=image_url,
+        display_order=display_order,
+        direct_url=direct_url,
+        label_az=label_az,
+        label_en=label_en,
+        base_path_az=base_path_az,
+        base_path_en=base_path_en,
+        db=db,
+    )
 
 
 @admin_router.delete("/header/section/{section_id}")

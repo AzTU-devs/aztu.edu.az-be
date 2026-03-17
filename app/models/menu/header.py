@@ -8,6 +8,7 @@ class MenuHeaderSection(Base):
     id = Column(Integer, primary_key=True, index=True)
     section_key = Column(String(50), unique=True, nullable=False)
     image_url = Column(Text, nullable=False)
+    direct_url = Column(Text, nullable=True)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
 
@@ -27,6 +28,7 @@ class MenuHeaderItem(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     section_id = Column(Integer, ForeignKey("menu_header_sections.id", ondelete="CASCADE"), nullable=False)
+    item_type = Column(String(20), nullable=False, server_default="link")  # 'link' | 'subheader'
     slug = Column(String(200), nullable=True)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)

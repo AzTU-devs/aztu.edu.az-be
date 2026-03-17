@@ -1,8 +1,10 @@
+from typing import Optional
 from sqlalchemy import select, delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import status
 from fastapi.responses import JSONResponse
 from app.core.logger import get_logger
+from app.utils.file_upload import safe_delete_file
 
 logger = get_logger(__name__)
 
@@ -25,7 +27,6 @@ from app.models.menu.quick import (
     MenuQuickSectionItem, MenuQuickSectionItemTranslation,
 )
 from app.api.v1.schema.menu import (
-    CreateHeaderSection, UpdateHeaderSection,
     CreateHeaderItem, UpdateHeaderItem,
     CreateHeaderSubItem, UpdateHeaderSubItem,
     CreateFooterColumn, UpdateFooterColumn,
@@ -110,19 +111,23 @@ async def get_header_menu(lang_code: str, db: AsyncSession):
                     sub_item_tr = sub_item_tr_result.scalar_one_or_none()
                     if not sub_item_tr:
                         continue
-                    sub_items_arr.append({"title": sub_item_tr.title, "slug": sub_item.slug})
+                    sub_items_arr.append({"id": sub_item.id, "title": sub_item_tr.title, "slug": sub_item.slug})
 
                 items_arr.append({
+                    "id": item.id,
                     "title": item_tr.title,
+                    "item_type": item.item_type,
                     "slug": item.slug,
                     "sub_items": sub_items_arr,
                 })
 
             sections_arr.append({
+                "id": section.id,
                 "key": section.section_key,
                 "label": section_tr.label,
                 "base_path": section_tr.base_path,
                 "image_url": section.image_url,
+                "direct_url": section.direct_url,
                 "items": items_arr,
             })
 
@@ -406,12 +411,20 @@ async def get_quick_menu(lang_code: str, db: AsyncSession):
 # CRUD  —  Header Section
 # ─────────────────────────────────────────────────────────────
 
-async def create_header_section(request: CreateHeaderSection, db: AsyncSession):
+async def create_header_section(
+    section_key: str,
+    image_url: str,
+    display_order: int,
+    direct_url: Optional[str],
+    label_az: str,
+    label_en: str,
+    base_path_az: str,
+    base_path_en: str,
+    db: AsyncSession,
+):
     try:
         existing = await db.execute(
-            select(MenuHeaderSection).where(
-                MenuHeaderSection.section_key == request.section_key
-            )
+            select(MenuHeaderSection).where(MenuHeaderSection.section_key == section_key)
         )
         if existing.scalar_one_or_none():
             return JSONResponse(
@@ -420,19 +433,23 @@ async def create_header_section(request: CreateHeaderSection, db: AsyncSession):
             )
 
         section = MenuHeaderSection(
-            section_key=request.section_key,
-            image_url=request.image_url,
-            display_order=request.display_order,
+            section_key=section_key,
+            image_url=image_url,
+            direct_url=direct_url,
+            display_order=display_order,
         )
         db.add(section)
         await db.flush()
 
-        for lang, value in (("az", request.label.az), ("en", request.label.en)):
+        for lang, label_val, base_path_val in (
+            ("az", label_az, base_path_az),
+            ("en", label_en, base_path_en),
+        ):
             db.add(MenuHeaderSectionTranslation(
                 section_id=section.id,
                 lang_code=lang,
-                label=value,
-                base_path=getattr(request.base_path, lang),
+                label=label_val,
+                base_path=base_path_val,
             ))
 
         await db.commit()
@@ -450,7 +467,17 @@ async def create_header_section(request: CreateHeaderSection, db: AsyncSession):
         )
 
 
-async def update_header_section(section_id: int, request: UpdateHeaderSection, db: AsyncSession):
+async def update_header_section(
+    section_id: int,
+    image_url: Optional[str],
+    display_order: Optional[int],
+    direct_url: Optional[str],
+    label_az: Optional[str],
+    label_en: Optional[str],
+    base_path_az: Optional[str],
+    base_path_en: Optional[str],
+    db: AsyncSession,
+):
     try:
         result = await db.execute(
             select(MenuHeaderSection).where(MenuHeaderSection.id == section_id)
@@ -462,14 +489,25 @@ async def update_header_section(section_id: int, request: UpdateHeaderSection, d
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        if request.image_url is not None:
-            section.image_url = request.image_url
-        if request.display_order is not None:
-            section.display_order = request.display_order
+        if image_url is not None:
+            # Delete old image file before replacing
+            old_relative = section.image_url.replace("https://aztu.edu.az/", "", 1)
+            safe_delete_file(old_relative)
+            section.image_url = image_url
+
+        if display_order is not None:
+            section.display_order = display_order
+
+        # direct_url: None = no change, "" = clear, non-empty = set
+        if direct_url is not None:
+            section.direct_url = direct_url if direct_url != "" else None
+
+        label_vals = {"az": label_az, "en": label_en}
+        base_path_vals = {"az": base_path_az, "en": base_path_en}
 
         for lang in LANGS:
-            label_val = getattr(request.label, lang, None) if request.label else None
-            base_path_val = getattr(request.base_path, lang, None) if request.base_path else None
+            label_val = label_vals[lang]
+            base_path_val = base_path_vals[lang]
             if label_val is None and base_path_val is None:
                 continue
             tr_result = await db.execute(
@@ -541,14 +579,30 @@ async def create_header_item(request: CreateHeaderItem, db: AsyncSession):
         section_check = await db.execute(
             select(MenuHeaderSection).where(MenuHeaderSection.id == request.section_id)
         )
-        if not section_check.scalar_one_or_none():
+        section = section_check.scalar_one_or_none()
+        if not section:
             return JSONResponse(
                 content={"status_code": 404, "message": "Section not found."},
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
+        if section.direct_url:
+            return JSONResponse(
+                content={"status_code": 400, "message": "Cannot add items to a section with a direct URL."},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        item_type = request.item_type if request.item_type in ("link", "subheader") else "link"
+
+        if item_type == "link" and not request.slug:
+            return JSONResponse(
+                content={"status_code": 400, "message": "Link-type items must have a slug/endpoint."},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         item = MenuHeaderItem(
             section_id=request.section_id,
+            item_type=item_type,
             slug=request.slug,
             display_order=request.display_order,
         )
@@ -589,6 +643,8 @@ async def update_header_item(item_id: int, request: UpdateHeaderItem, db: AsyncS
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
+        if request.item_type is not None and request.item_type in ("link", "subheader"):
+            item.item_type = request.item_type
         if request.slug is not None:
             item.slug = request.slug
         if request.display_order is not None:
@@ -660,10 +716,17 @@ async def create_header_sub_item(request: CreateHeaderSubItem, db: AsyncSession)
         item_check = await db.execute(
             select(MenuHeaderItem).where(MenuHeaderItem.id == request.item_id)
         )
-        if not item_check.scalar_one_or_none():
+        parent_item = item_check.scalar_one_or_none()
+        if not parent_item:
             return JSONResponse(
                 content={"status_code": 404, "message": "Item not found."},
                 status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if parent_item.item_type == "link":
+            return JSONResponse(
+                content={"status_code": 400, "message": "Cannot add sub-items to a link-type item."},
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
 
         sub_item = MenuHeaderSubItem(

@@ -16,14 +16,14 @@ class OptionalTranslationInput(BaseModel):
 
 class CreateHeaderSection(BaseModel):
     section_key: str
-    image_url: str
+    direct_url: Optional[str] = None
     display_order: int
     label: TranslationInput
     base_path: TranslationInput
 
 
 class UpdateHeaderSection(BaseModel):
-    image_url: Optional[str] = None
+    direct_url: Optional[str] = None
     display_order: Optional[int] = None
     label: Optional[OptionalTranslationInput] = None
     base_path: Optional[OptionalTranslationInput] = None
@@ -33,12 +33,14 @@ class UpdateHeaderSection(BaseModel):
 
 class CreateHeaderItem(BaseModel):
     section_id: int
+    item_type: str = "link"  # 'link' | 'subheader'
     slug: Optional[str] = None
     display_order: int
     title: TranslationInput
 
 
 class UpdateHeaderItem(BaseModel):
+    item_type: Optional[str] = None
     slug: Optional[str] = None
     display_order: Optional[int] = None
     title: Optional[OptionalTranslationInput] = None
