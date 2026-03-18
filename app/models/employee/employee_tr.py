@@ -16,7 +16,21 @@ class EmployeeTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+
+    # Translatable name fields
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
+    full_name = Column(String(255), nullable=True)
+
+    # Translatable title/position fields
+    academic_degree = Column(String(100), nullable=True)
+    academic_title = Column(String(100), nullable=True)
+    position = Column(String(255), nullable=True)
+
+    # Translatable text fields
+    scientific_interests = Column(Text, nullable=True)
     biography = Column(Text, nullable=True)
+
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True), nullable=True)
 

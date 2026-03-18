@@ -7,27 +7,33 @@ from fastapi import Form, UploadFile, File, HTTPException, status
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 PHONE_RE = re.compile(r"^\+?[0-9\s\-\(\)]{7,20}$")
 
+CONTACT_REQUIRED_FIELDS = ("email", "phone", "building", "floor", "room")
 
-def _validate_email(value: str | None) -> str | None:
-    if value and not EMAIL_RE.match(value):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid email address.",
-        )
+
+def _err(field: str, msg: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail={"errors": {field: [msg]}},
+    )
+
+
+def _validate_email(value: str) -> str:
+    if not EMAIL_RE.match(value):
+        raise _err("contact.email", "Invalid email address.")
     return value
 
 
-def _validate_phone(value: str | None) -> str | None:
-    if value and not PHONE_RE.match(value):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid phone number format.",
-        )
-    return value
+def _normalize_phone(value: str) -> str:
+    digits = re.sub(r"[\s\-\(\)]", "", value)
+    if not PHONE_RE.match(value):
+        raise _err("contact.phone", "Invalid phone number format. Expected 7-20 digits, optionally with +, spaces, dashes, parentheses.")
+    return digits
 
 
-def _parse_json_field(raw: str | None, field_name: str) -> list:
+def _parse_json_list(raw: str | None, field_name: str, required: bool = False) -> list:
     if not raw:
+        if required:
+            raise _err(field_name, f"'{field_name}' is required and must be a non-empty JSON array.")
         return []
     try:
         parsed = json.loads(raw)
@@ -35,132 +41,182 @@ def _parse_json_field(raw: str | None, field_name: str) -> list:
             raise ValueError
         return parsed
     except (json.JSONDecodeError, ValueError):
+        raise _err(field_name, f"'{field_name}' must be a valid JSON array string.")
+
+
+def _parse_json_object(raw: str | None, field_name: str, required: bool = False) -> dict | None:
+    if not raw:
+        if required:
+            raise _err(field_name, f"'{field_name}' is required and must be a JSON object.")
+        return None
+    try:
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            raise ValueError
+        return parsed
+    except (json.JSONDecodeError, ValueError):
+        raise _err(field_name, f"'{field_name}' must be a valid JSON object string.")
+
+
+def _validate_contact(obj: dict) -> dict:
+    errors: dict[str, list[str]] = {}
+    for field in CONTACT_REQUIRED_FIELDS:
+        if not obj.get(field):
+            errors[f"contact.{field}"] = [f"contact.{field} is required."]
+    if errors:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"'{field_name}' must be a valid JSON array string.",
+            detail={"errors": errors},
         )
+    _validate_email(obj["email"])
+    obj["phone"] = _normalize_phone(obj["phone"])
+    return obj
+
+
+def _validate_office_hours(items: list) -> list:
+    if not items:
+        raise _err("office_hours", "At least 1 office hour entry is required.")
+    return items
+
+
+def _validate_education(items: list) -> list:
+    if not items:
+        raise _err("education", "At least 1 education entry is required.")
+    return items
 
 
 class CreateEmployee:
     """
     Multipart/form-data schema for creating an employee.
 
-    Nested arrays (education, courses, office_hours) are sent as JSON strings:
-      education='[{"degree_level":"PhD","institution":"AzTU","specialization":"CS","graduation_year":2010}]'
-      courses='[{"course_name":"Data Structures","education_level":"bachelor"}]'
+    Translated fields use az_/en_ prefix.
+    Nested objects/arrays are sent as JSON strings:
+      contact='{"email":"...","phone":"...","building":"...","floor":"...","room":"..."}'
+      research='{"scopus_url":"...","orcid_url":"..."}'
       office_hours='[{"day_of_week":"Monday","start_time":"09:00","end_time":"11:00"}]'
+      education='[{"degree_level":"PhD","institution_az":"...","institution_en":"...","specialization_az":"...","specialization_en":"...","graduation_year":2015}]'
+      courses='[{"course_name_az":"...","course_name_en":"...","education_level":"bachelor"}]'
     """
 
     def __init__(
         self,
-        first_name: str,
-        last_name: str,
-        az_biography: Optional[str],
+        # Required base
+        profile_image: UploadFile,
+        faculty_code: str,
+        # Required az names
+        first_name_az: str,
+        last_name_az: str,
+        # Optional en names
+        first_name_en: Optional[str],
+        last_name_en: Optional[str],
+        # Optional translated fields
+        az_academic_degree: Optional[str],
+        en_academic_degree: Optional[str],
+        az_academic_title: Optional[str],
+        en_academic_title: Optional[str],
+        az_position: Optional[str],
+        en_position: Optional[str],
+        az_scientific_interests: Optional[str],
+        en_scientific_interests: Optional[str],
+        # Required az biography
+        az_biography: str,
         en_biography: Optional[str],
-        profile_image: Optional[UploadFile],
-        academic_degree: Optional[str],
-        academic_title: Optional[str],
-        position: Optional[str],
-        faculty_code: Optional[str],
+        # Optional
         cafedra_code: Optional[str],
-        email: Optional[str],
-        phone: Optional[str],
-        building: Optional[str],
-        floor: Optional[str],
-        room: Optional[str],
-        scopus_url: Optional[str],
-        google_scholar_url: Optional[str],
-        orcid_url: Optional[str],
-        researchgate_url: Optional[str],
-        academia_url: Optional[str],
-        scientific_interests: Optional[str],
-        publications: Optional[str],
-        education: list,
-        courses: list,
+        # Required nested (parsed from JSON strings)
+        contact: dict,
         office_hours: list,
+        education: list,
+        # Optional nested
+        research: Optional[dict],
+        courses: list,
     ):
-        self.first_name = first_name
-        self.last_name = last_name
-        self.full_name = f"{first_name} {last_name}"
+        self.profile_image = profile_image
+        self.faculty_code = faculty_code
+        self.first_name_az = first_name_az
+        self.last_name_az = last_name_az
+        self.first_name_en = first_name_en
+        self.last_name_en = last_name_en
+        self.az_academic_degree = az_academic_degree
+        self.en_academic_degree = en_academic_degree
+        self.az_academic_title = az_academic_title
+        self.en_academic_title = en_academic_title
+        self.az_position = az_position
+        self.en_position = en_position
+        self.az_scientific_interests = az_scientific_interests
+        self.en_scientific_interests = en_scientific_interests
         self.az_biography = az_biography
         self.en_biography = en_biography
-        self.profile_image = profile_image
-        self.academic_degree = academic_degree
-        self.academic_title = academic_title
-        self.position = position
-        self.faculty_code = faculty_code
         self.cafedra_code = cafedra_code
-        self.email = email
-        self.phone = phone
-        self.building = building
-        self.floor = floor
-        self.room = room
-        self.scopus_url = scopus_url
-        self.google_scholar_url = google_scholar_url
-        self.orcid_url = orcid_url
-        self.researchgate_url = researchgate_url
-        self.academia_url = academia_url
-        self.scientific_interests = scientific_interests
-        self.publications = publications
-        self.education = education
-        self.courses = courses
+        self.contact = contact
         self.office_hours = office_hours
+        self.education = education
+        self.research = research
+        self.courses = courses
 
     @classmethod
     def as_form(
         cls,
-        first_name: str = Form(...),
-        last_name: str = Form(...),
-        az_biography: Optional[str] = Form(None),
+        # Required
+        profile_image: UploadFile = File(...),
+        faculty_code: str = Form(...),
+        first_name_az: str = Form(...),
+        last_name_az: str = Form(...),
+        az_biography: str = Form(...),
+        contact: str = Form(...),
+        office_hours: str = Form(...),
+        education: str = Form(...),
+        # Optional
+        first_name_en: Optional[str] = Form(None),
+        last_name_en: Optional[str] = Form(None),
+        az_academic_degree: Optional[str] = Form(None),
+        en_academic_degree: Optional[str] = Form(None),
+        az_academic_title: Optional[str] = Form(None),
+        en_academic_title: Optional[str] = Form(None),
+        az_position: Optional[str] = Form(None),
+        en_position: Optional[str] = Form(None),
+        az_scientific_interests: Optional[str] = Form(None),
+        en_scientific_interests: Optional[str] = Form(None),
         en_biography: Optional[str] = Form(None),
-        profile_image: Optional[UploadFile] = File(None),
-        academic_degree: Optional[str] = Form(None),
-        academic_title: Optional[str] = Form(None),
-        position: Optional[str] = Form(None),
-        faculty_code: Optional[str] = Form(None),
         cafedra_code: Optional[str] = Form(None),
-        email: Optional[str] = Form(None),
-        phone: Optional[str] = Form(None),
-        building: Optional[str] = Form(None),
-        floor: Optional[str] = Form(None),
-        room: Optional[str] = Form(None),
-        scopus_url: Optional[str] = Form(None),
-        google_scholar_url: Optional[str] = Form(None),
-        orcid_url: Optional[str] = Form(None),
-        researchgate_url: Optional[str] = Form(None),
-        academia_url: Optional[str] = Form(None),
-        scientific_interests: Optional[str] = Form(None),
-        publications: Optional[str] = Form(None),
-        education: Optional[str] = Form(None),
+        research: Optional[str] = Form(None),
         courses: Optional[str] = Form(None),
-        office_hours: Optional[str] = Form(None),
     ):
+        contact_obj = _parse_json_object(contact, "contact", required=True)
+        _validate_contact(contact_obj)
+
+        oh_list = _parse_json_list(office_hours, "office_hours", required=True)
+        _validate_office_hours(oh_list)
+
+        edu_list = _parse_json_list(education, "education", required=True)
+        _validate_education(edu_list)
+
+        research_obj = _parse_json_object(research, "research", required=False)
+        courses_list = _parse_json_list(courses, "courses", required=False)
+
         return cls(
-            first_name=first_name,
-            last_name=last_name,
+            profile_image=profile_image,
+            faculty_code=faculty_code,
+            first_name_az=first_name_az,
+            last_name_az=last_name_az,
+            first_name_en=first_name_en,
+            last_name_en=last_name_en,
+            az_academic_degree=az_academic_degree,
+            en_academic_degree=en_academic_degree,
+            az_academic_title=az_academic_title,
+            en_academic_title=en_academic_title,
+            az_position=az_position,
+            en_position=en_position,
+            az_scientific_interests=az_scientific_interests,
+            en_scientific_interests=en_scientific_interests,
             az_biography=az_biography,
             en_biography=en_biography,
-            profile_image=profile_image,
-            academic_degree=academic_degree,
-            academic_title=academic_title,
-            position=position,
-            faculty_code=faculty_code,
             cafedra_code=cafedra_code,
-            email=_validate_email(email),
-            phone=_validate_phone(phone),
-            building=building,
-            floor=floor,
-            room=room,
-            scopus_url=scopus_url,
-            google_scholar_url=google_scholar_url,
-            orcid_url=orcid_url,
-            researchgate_url=researchgate_url,
-            academia_url=academia_url,
-            scientific_interests=scientific_interests,
-            publications=publications,
-            education=_parse_json_field(education, "education"),
-            courses=_parse_json_field(courses, "courses"),
-            office_hours=_parse_json_field(office_hours, "office_hours"),
+            contact=contact_obj,
+            office_hours=oh_list,
+            education=edu_list,
+            research=research_obj,
+            courses=courses_list,
         )
 
 
@@ -172,111 +228,118 @@ class UpdateEmployee:
 
     def __init__(
         self,
-        first_name: Optional[str],
-        last_name: Optional[str],
-        az_biography: Optional[str],
-        en_biography: Optional[str],
         profile_image: Optional[UploadFile],
-        academic_degree: Optional[str],
-        academic_title: Optional[str],
-        position: Optional[str],
         faculty_code: Optional[str],
         cafedra_code: Optional[str],
-        email: Optional[str],
-        phone: Optional[str],
-        building: Optional[str],
-        floor: Optional[str],
-        room: Optional[str],
-        scopus_url: Optional[str],
-        google_scholar_url: Optional[str],
-        orcid_url: Optional[str],
-        researchgate_url: Optional[str],
-        academia_url: Optional[str],
-        scientific_interests: Optional[str],
-        publications: Optional[str],
+        first_name_az: Optional[str],
+        last_name_az: Optional[str],
+        first_name_en: Optional[str],
+        last_name_en: Optional[str],
+        az_academic_degree: Optional[str],
+        en_academic_degree: Optional[str],
+        az_academic_title: Optional[str],
+        en_academic_title: Optional[str],
+        az_position: Optional[str],
+        en_position: Optional[str],
+        az_scientific_interests: Optional[str],
+        en_scientific_interests: Optional[str],
+        az_biography: Optional[str],
+        en_biography: Optional[str],
+        contact: Optional[dict],
+        research: Optional[dict],
+        office_hours: Optional[list],
         education: Optional[list],
         courses: Optional[list],
-        office_hours: Optional[list],
     ):
-        self.first_name = first_name
-        self.last_name = last_name
-        self.az_biography = az_biography
-        self.en_biography = en_biography
         self.profile_image = profile_image
-        self.academic_degree = academic_degree
-        self.academic_title = academic_title
-        self.position = position
         self.faculty_code = faculty_code
         self.cafedra_code = cafedra_code
-        self.email = email
-        self.phone = phone
-        self.building = building
-        self.floor = floor
-        self.room = room
-        self.scopus_url = scopus_url
-        self.google_scholar_url = google_scholar_url
-        self.orcid_url = orcid_url
-        self.researchgate_url = researchgate_url
-        self.academia_url = academia_url
-        self.scientific_interests = scientific_interests
-        self.publications = publications
+        self.first_name_az = first_name_az
+        self.last_name_az = last_name_az
+        self.first_name_en = first_name_en
+        self.last_name_en = last_name_en
+        self.az_academic_degree = az_academic_degree
+        self.en_academic_degree = en_academic_degree
+        self.az_academic_title = az_academic_title
+        self.en_academic_title = en_academic_title
+        self.az_position = az_position
+        self.en_position = en_position
+        self.az_scientific_interests = az_scientific_interests
+        self.en_scientific_interests = en_scientific_interests
+        self.az_biography = az_biography
+        self.en_biography = en_biography
+        self.contact = contact
+        self.research = research
+        self.office_hours = office_hours
         self.education = education
         self.courses = courses
-        self.office_hours = office_hours
 
     @classmethod
     def as_form(
         cls,
-        first_name: Optional[str] = Form(None),
-        last_name: Optional[str] = Form(None),
-        az_biography: Optional[str] = Form(None),
-        en_biography: Optional[str] = Form(None),
         profile_image: Optional[UploadFile] = File(None),
-        academic_degree: Optional[str] = Form(None),
-        academic_title: Optional[str] = Form(None),
-        position: Optional[str] = Form(None),
         faculty_code: Optional[str] = Form(None),
         cafedra_code: Optional[str] = Form(None),
-        email: Optional[str] = Form(None),
-        phone: Optional[str] = Form(None),
-        building: Optional[str] = Form(None),
-        floor: Optional[str] = Form(None),
-        room: Optional[str] = Form(None),
-        scopus_url: Optional[str] = Form(None),
-        google_scholar_url: Optional[str] = Form(None),
-        orcid_url: Optional[str] = Form(None),
-        researchgate_url: Optional[str] = Form(None),
-        academia_url: Optional[str] = Form(None),
-        scientific_interests: Optional[str] = Form(None),
-        publications: Optional[str] = Form(None),
+        first_name_az: Optional[str] = Form(None),
+        last_name_az: Optional[str] = Form(None),
+        first_name_en: Optional[str] = Form(None),
+        last_name_en: Optional[str] = Form(None),
+        az_academic_degree: Optional[str] = Form(None),
+        en_academic_degree: Optional[str] = Form(None),
+        az_academic_title: Optional[str] = Form(None),
+        en_academic_title: Optional[str] = Form(None),
+        az_position: Optional[str] = Form(None),
+        en_position: Optional[str] = Form(None),
+        az_scientific_interests: Optional[str] = Form(None),
+        en_scientific_interests: Optional[str] = Form(None),
+        az_biography: Optional[str] = Form(None),
+        en_biography: Optional[str] = Form(None),
+        contact: Optional[str] = Form(None),
+        research: Optional[str] = Form(None),
+        office_hours: Optional[str] = Form(None),
         education: Optional[str] = Form(None),
         courses: Optional[str] = Form(None),
-        office_hours: Optional[str] = Form(None),
     ):
+        contact_obj = None
+        if contact is not None:
+            contact_obj = _parse_json_object(contact, "contact", required=True)
+            _validate_contact(contact_obj)
+
+        research_obj = _parse_json_object(research, "research", required=False) if research is not None else None
+
+        oh_list = None
+        if office_hours is not None:
+            oh_list = _parse_json_list(office_hours, "office_hours", required=True)
+            _validate_office_hours(oh_list)
+
+        edu_list = None
+        if education is not None:
+            edu_list = _parse_json_list(education, "education", required=True)
+            _validate_education(edu_list)
+
+        courses_list = _parse_json_list(courses, "courses") if courses is not None else None
+
         return cls(
-            first_name=first_name,
-            last_name=last_name,
-            az_biography=az_biography,
-            en_biography=en_biography,
             profile_image=profile_image,
-            academic_degree=academic_degree,
-            academic_title=academic_title,
-            position=position,
             faculty_code=faculty_code,
             cafedra_code=cafedra_code,
-            email=_validate_email(email),
-            phone=_validate_phone(phone),
-            building=building,
-            floor=floor,
-            room=room,
-            scopus_url=scopus_url,
-            google_scholar_url=google_scholar_url,
-            orcid_url=orcid_url,
-            researchgate_url=researchgate_url,
-            academia_url=academia_url,
-            scientific_interests=scientific_interests,
-            publications=publications,
-            education=_parse_json_field(education, "education") if education is not None else None,
-            courses=_parse_json_field(courses, "courses") if courses is not None else None,
-            office_hours=_parse_json_field(office_hours, "office_hours") if office_hours is not None else None,
+            first_name_az=first_name_az,
+            last_name_az=last_name_az,
+            first_name_en=first_name_en,
+            last_name_en=last_name_en,
+            az_academic_degree=az_academic_degree,
+            en_academic_degree=en_academic_degree,
+            az_academic_title=az_academic_title,
+            en_academic_title=en_academic_title,
+            az_position=az_position,
+            en_position=en_position,
+            az_scientific_interests=az_scientific_interests,
+            en_scientific_interests=en_scientific_interests,
+            az_biography=az_biography,
+            en_biography=en_biography,
+            contact=contact_obj,
+            research=research_obj,
+            office_hours=oh_list,
+            education=edu_list,
+            courses=courses_list,
         )

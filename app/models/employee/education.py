@@ -20,8 +20,12 @@ class Education(Base):
         nullable=False,
     )
     degree_level = Column(Enum(DegreeLevel, name="degree_level_enum"), nullable=False)
-    institution = Column(String(255), nullable=False)
-    specialization = Column(String(255), nullable=True)
     graduation_year = Column(Integer, nullable=True)
 
     employee = relationship("Employee", back_populates="educations")
+    translations = relationship(
+        "EducationTr",
+        back_populates="education",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

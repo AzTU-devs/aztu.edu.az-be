@@ -47,6 +47,23 @@ async def create_faculty(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # Case-insensitive uniqueness check on faculty name
+        for lang_code, name in [("az", request.az.faculty_name), ("en", request.en.faculty_name)]:
+            dup_q = await db.execute(
+                select(FacultyTr).where(
+                    func.lower(FacultyTr.faculty_name) == func.lower(name),
+                    FacultyTr.lang_code == lang_code,
+                )
+            )
+            if dup_q.scalar_one_or_none():
+                return JSONResponse(
+                    content={
+                        "status_code": 422,
+                        "errors": {"faculty_name": [f"Faculty name '{name}' ({lang_code}) already exists (case-insensitive)."]},
+                    },
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+
         faculty = Faculty(
             faculty_code=faculty_code,
             created_at=datetime.now(timezone.utc),
@@ -296,6 +313,16 @@ async def update_faculty(
         async def upsert_translation(lang: str, name: str | None):
             if name is None:
                 return
+            # Case-insensitive duplicate check (exclude current faculty)
+            dup_q = await db.execute(
+                select(FacultyTr).where(
+                    func.lower(FacultyTr.faculty_name) == func.lower(name),
+                    FacultyTr.lang_code == lang,
+                    FacultyTr.faculty_code != faculty_code,
+                )
+            )
+            if dup_q.scalar_one_or_none():
+                raise ValueError(f"Faculty name '{name}' ({lang}) already exists (case-insensitive).")
             tr_query = await db.execute(
                 select(FacultyTr).where(
                     FacultyTr.faculty_code == faculty_code,
@@ -342,6 +369,12 @@ async def update_faculty(
             status_code=status.HTTP_200_OK,
         )
 
+    except ValueError as e:
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 422, "errors": {"faculty_name": [str(e)]}},
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
     except Exception as e:
         logger.exception("500 Internal Server Error")
         await db.rollback()

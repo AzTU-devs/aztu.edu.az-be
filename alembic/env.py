@@ -28,9 +28,13 @@ from app.models.project.project_tr import ProjectTranslation  # noqa: F401
 from app.models.hero.hero import Hero  # noqa: F401
 from app.models.employee.employee import Employee  # noqa: F401
 from app.models.employee.employee_tr import EmployeeTr  # noqa: F401
+from app.models.employee.contact import Contact  # noqa: F401
+from app.models.employee.research import Research  # noqa: F401
 from app.models.employee.office_hour import OfficeHour  # noqa: F401
 from app.models.employee.education import Education  # noqa: F401
+from app.models.employee.education_tr import EducationTr  # noqa: F401
 from app.models.employee.teaching_course import TeachingCourse  # noqa: F401
+from app.models.employee.teaching_course_tr import TeachingCourseTr  # noqa: F401
 
 load_dotenv()
 

@@ -18,7 +18,12 @@ class TeachingCourse(Base):
         ForeignKey("employees.employee_code", ondelete="CASCADE"),
         nullable=False,
     )
-    course_name = Column(String(255), nullable=False)
     education_level = Column(Enum(EducationLevel, name="education_level_enum"), nullable=False)
 
     employee = relationship("Employee", back_populates="courses")
+    translations = relationship(
+        "TeachingCourseTr",
+        back_populates="course",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
