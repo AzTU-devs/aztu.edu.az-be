@@ -14,6 +14,8 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 from app.models.faculties.faculties import Faculty
 from app.models.faculties.faculties_tr import FacultyTr
+from app.models.cafedras.cafedras import Cafedra
+from app.models.cafedras.cafedras_tr import CafedraTr
 from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty
 
 
@@ -135,13 +137,24 @@ async def get_faculties(
             )
             tr = tr_query.scalar_one_or_none()
 
+            count_query = await db.execute(
+                select(func.count()).select_from(Cafedra).where(
+                    Cafedra.faculty_code == faculty.faculty_code
+                )
+            )
+            cafedra_count = count_query.scalar() or 0
+
             faculties_arr.append(
                 {
                     "id": faculty.id,
                     "faculty_code": faculty.faculty_code,
                     "faculty_name": tr.faculty_name if tr else None,
+                    "cafedra_count": cafedra_count,
                     "created_at": faculty.created_at.isoformat()
                     if faculty.created_at
+                    else None,
+                    "updated_at": faculty.updated_at.isoformat()
+                    if faculty.updated_at
                     else None,
                 }
             )
@@ -195,6 +208,27 @@ async def get_faculty(
         )
         tr = tr_query.scalar_one_or_none()
 
+        cafedras_query = await db.execute(
+            select(Cafedra).where(Cafedra.faculty_code == faculty.faculty_code).order_by(Cafedra.id.asc())
+        )
+        cafedras = cafedras_query.scalars().all()
+
+        cafedras_arr = []
+        for cafedra in cafedras:
+            ctr_query = await db.execute(
+                select(CafedraTr).where(
+                    CafedraTr.cafedra_code == cafedra.cafedra_code,
+                    CafedraTr.lang_code == lang_code,
+                )
+            )
+            ctr = ctr_query.scalar_one_or_none()
+            cafedras_arr.append({
+                "cafedra_code": cafedra.cafedra_code,
+                "cafedra_name": ctr.cafedra_name if ctr else None,
+                "created_at": cafedra.created_at.isoformat() if cafedra.created_at else None,
+                "updated_at": cafedra.updated_at.isoformat() if cafedra.updated_at else None,
+            })
+
         faculty_obj = {
             "id": faculty.id,
             "faculty_code": faculty.faculty_code,
@@ -202,6 +236,10 @@ async def get_faculty(
             "created_at": faculty.created_at.isoformat()
             if faculty.created_at
             else None,
+            "updated_at": faculty.updated_at.isoformat()
+            if faculty.updated_at
+            else None,
+            "cafedras": cafedras_arr,
         }
 
         return JSONResponse(

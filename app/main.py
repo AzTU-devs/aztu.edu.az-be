@@ -28,6 +28,7 @@ from app.api.v1.router.cafedra import router as cafedra_router
 from app.api.v1.router.menu import router as menu_router
 from app.api.v1.router.collaboration import router as collaboration_router
 from app.api.v1.router.auth import router as auth_router
+from app.api.v1.router.employee import router as employee_router
 
 
 @asynccontextmanager
@@ -111,6 +112,7 @@ app.include_router(faculty_router,       prefix="/api/faculty",       tags=["Fac
 app.include_router(cafedra_router,       prefix="/api/cafedra",       tags=["Cafedra"])
 app.include_router(menu_router,          prefix="/api/menu",          tags=["Menu"])
 app.include_router(collaboration_router, prefix="/api/collaboration", tags=["Collaboration"])
+app.include_router(employee_router,    prefix="/api/employee",    tags=["Employee"])
 
 
 @app.get("/", include_in_schema=False)
