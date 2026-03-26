@@ -4,7 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
@@ -115,9 +115,11 @@ app.include_router(collaboration_router, prefix="/api/collaboration", tags=["Col
 app.include_router(employee_router,    prefix="/api/employee",    tags=["Employee"])
 
 
-@app.get("/", include_in_schema=False)
+@app.get("/", include_in_schema=False, response_class=HTMLResponse)
 async def root():
-    return {"message": "AzTU University API"}
+    index_path = os.path.join(_static_dir, "index.html")
+    with open(index_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
 
 
 @app.get("/health", include_in_schema=False)
