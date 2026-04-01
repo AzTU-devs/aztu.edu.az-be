@@ -42,10 +42,9 @@ app = FastAPI(
     description="Backend API for AzTU website (news, announcements, hero, etc.)",
     version="1.0.0",
     lifespan=lifespan,
-    # Disable interactive docs in production — exposes full API surface
-    docs_url="/docs" if settings.ENVIRONMENT == "development" else None,
-    redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
-    openapi_url="/openapi.json" if settings.ENVIRONMENT == "development" else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 # ── Rate limiting ──────────────────────────────────────────────────────────────
