@@ -1,49 +1,110 @@
-from fastapi import Depends, Form
+from pydantic import BaseModel, EmailStr, Field
 
 
-class CreateFacultyForm:
-    def __init__(
-        self,
-        faculty_name: str = Form(...),
-    ):
-        self.faculty_name = faculty_name
+class LanguageBlock(BaseModel):
+    faculty_name: str = Field(...)
+    about_text: str | None = None
 
 
-class CreateFaculty:
-    def __init__(
-        self,
-        az: CreateFacultyForm = Depends(),
-        en: CreateFacultyForm = Depends(),
-    ):
-        self.az = az
-        self.en = en
-
-    @classmethod
-    def as_form(
-        cls,
-        az_name: str = Form(...),
-        en_name: str = Form(...),
-    ):
-        az = CreateFacultyForm(faculty_name=az_name)
-        en = CreateFacultyForm(faculty_name=en_name)
-        return cls(az=az, en=en)
+class DirectorWorkingHour(BaseModel):
+    day: str = Field(...)
+    time_range: str = Field(...)
 
 
-class UpdateFaculty:
-    def __init__(
-        self,
-        az: CreateFacultyForm = Depends(),
-        en: CreateFacultyForm = Depends(),
-    ):
-        self.az = az
-        self.en = en
+class DirectorScientificEvent(BaseModel):
+    event_title: str = Field(...)
+    event_description: str | None = None
 
-    @classmethod
-    def as_form(
-        cls,
-        az_name: str | None = Form(None),
-        en_name: str | None = Form(None),
-    ):
-        az = CreateFacultyForm(faculty_name=az_name) if az_name is not None else None
-        en = CreateFacultyForm(faculty_name=en_name) if en_name is not None else None
-        return cls(az=az, en=en)
+
+class DirectorEducation(BaseModel):
+    degree: str = Field(...)
+    university: str = Field(...)
+    start_year: str | None = None
+    end_year: str | None = None
+
+
+class FacultyDirectorPayload(BaseModel):
+    first_name: str = Field(...)
+    last_name: str = Field(...)
+    father_name: str | None = None
+    scientific_degree: str | None = None
+    scientific_title: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    room_number: str | None = None
+    profile_image: str | None = None
+    working_hours: list[DirectorWorkingHour] | None = None
+    scientific_events: list[DirectorScientificEvent] | None = None
+    educations: list[DirectorEducation] | None = None
+
+
+class SectionTranslation(BaseModel):
+    title: str = Field(...)
+    description: str | None = None
+
+
+class SectionItem(BaseModel):
+    az: SectionTranslation
+    en: SectionTranslation
+
+
+class DeputyDean(BaseModel):
+    first_name: str = Field(...)
+    last_name: str = Field(...)
+    father_name: str | None = None
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    duty: str | None = None
+    profile_image: str | None = None
+
+
+class ScientificCouncilMember(BaseModel):
+    first_name: str = Field(...)
+    last_name: str = Field(...)
+    father_name: str | None = None
+    duty: str = Field(...)
+
+
+class Worker(BaseModel):
+    first_name: str = Field(...)
+    last_name: str = Field(...)
+    father_name: str | None = None
+    duty: str = Field(...)
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+    email: EmailStr | None = None
+
+
+class CreateFaculty(BaseModel):
+    az: LanguageBlock
+    en: LanguageBlock
+    director: FacultyDirectorPayload | None = None
+    laboratories: list[SectionItem] | None = None
+    research_works: list[SectionItem] | None = None
+    partner_companies: list[SectionItem] | None = None
+    objectives: list[SectionItem] | None = None
+    duties: list[SectionItem] | None = None
+    projects: list[SectionItem] | None = None
+    deputy_deans: list[DeputyDean] | None = None
+    scientific_council: list[ScientificCouncilMember] | None = None
+    workers: list[Worker] | None = None
+
+
+class UpdateFaculty(BaseModel):
+    az: LanguageBlock | None = None
+    en: LanguageBlock | None = None
+    director: FacultyDirectorPayload | None = None
+    laboratories: list[SectionItem] | None = None
+    research_works: list[SectionItem] | None = None
+    partner_companies: list[SectionItem] | None = None
+    objectives: list[SectionItem] | None = None
+    duties: list[SectionItem] | None = None
+    projects: list[SectionItem] | None = None
+    deputy_deans: list[DeputyDean] | None = None
+    scientific_council: list[ScientificCouncilMember] | None = None
+    workers: list[Worker] | None = None
+
+    class Config:
+        extra = "ignore"

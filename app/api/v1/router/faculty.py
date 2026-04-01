@@ -57,7 +57,7 @@ async def get_faculty_details_endpoint(
 
 @router.post("/create")
 async def create_faculty_endpoint(
-    request: CreateFaculty = Depends(CreateFaculty.as_form),
+    request: CreateFaculty,
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
@@ -70,7 +70,7 @@ async def create_faculty_endpoint(
 @router.put("/{faculty_code}")
 async def update_faculty_endpoint(
     faculty_code: str,
-    request: UpdateFaculty = Depends(UpdateFaculty.as_form),
+    request: UpdateFaculty,
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):

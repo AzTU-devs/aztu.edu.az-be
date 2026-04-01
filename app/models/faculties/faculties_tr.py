@@ -1,5 +1,6 @@
 from app.core.database import Base
-from sqlalchemy import Column, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
+
 
 class FacultyTr(Base):
     __tablename__ = "faculties_tr"
@@ -9,6 +10,7 @@ class FacultyTr(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     faculty_name = Column(String(255), nullable=False)
+    about_text = Column(Text)
     faculty_code = Column(String(50), nullable=False)
     lang_code = Column(String(10), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)

@@ -35,6 +35,25 @@ from app.models.employee.education import Education  # noqa: F401
 from app.models.employee.education_tr import EducationTr  # noqa: F401
 from app.models.employee.teaching_course import TeachingCourse  # noqa: F401
 from app.models.employee.teaching_course_tr import TeachingCourseTr  # noqa: F401
+from app.models.faculties.faculties import Faculty  # noqa: F401
+from app.models.faculties.faculties_tr import FacultyTr  # noqa: F401
+from app.models.faculties.faculty_director import FacultyDirector  # noqa: F401
+from app.models.faculties.faculty_director_relations import FacultyDirectorWorkingHour, FacultyDirectorScientificEvent, FacultyDirectorEducation  # noqa: F401
+from app.models.faculties.faculty_section import (
+    FacultyLaboratory,
+    FacultyLaboratoryTr,
+    FacultyResearchWork,
+    FacultyResearchWorkTr,
+    FacultyPartnerCompany,
+    FacultyPartnerCompanyTr,
+    FacultyObjective,
+    FacultyObjectiveTr,
+    FacultyDuty,
+    FacultyDutyTr,
+    FacultyProject,
+    FacultyProjectTr,
+)  # noqa: F401
+from app.models.faculties.faculty_personnel import FacultyDeputyDean, FacultyCouncilMember, FacultyWorker  # noqa: F401
 
 load_dotenv()
 
