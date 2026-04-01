@@ -26,7 +26,7 @@ admin_router = APIRouter(dependencies=[Depends(require_admin)])
 # GET  —  public
 # ─────────────────────────────────────────────────────────────
 
-@router.get("")
+@router.get("/")
 async def get_header_menu_endpoint(
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
@@ -38,7 +38,7 @@ async def get_header_menu_endpoint(
 # CRUD  —  MenuHeader (main title + image)
 # ─────────────────────────────────────────────────────────────
 
-@admin_router.post("")
+@admin_router.post("/")
 async def create_header_endpoint(
     title_az: str = Form(...),
     title_en: str = Form(...),
