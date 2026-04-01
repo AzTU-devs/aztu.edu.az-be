@@ -7,8 +7,6 @@ from app.utils.language import get_language
 from app.core.auth_dependency import require_admin
 from app.utils.file_upload import save_upload, ALLOWED_IMAGE_MIMES
 from app.api.v1.schema.menu import (
-    CreateHeaderItem, UpdateHeaderItem,
-    CreateHeaderSubItem, UpdateHeaderSubItem,
     CreateFooterColumn, UpdateFooterColumn,
     CreateFooterLink, UpdateFooterLink,
     CreatePartnerLogo, UpdatePartnerLogo,
@@ -20,10 +18,7 @@ from app.api.v1.schema.menu import (
     CreateQuickSectionItem, UpdateQuickSectionItem,
 )
 from app.services.menu import (
-    get_header_menu, get_footer_menu, get_quick_menu,
-    create_header_section, update_header_section, delete_header_section,
-    create_header_item, update_header_item, delete_header_item,
-    create_header_sub_item, update_header_sub_item, delete_header_sub_item,
+    get_footer_menu, get_quick_menu,
     create_footer_column, update_footer_column, delete_footer_column,
     create_footer_link, update_footer_link, delete_footer_link,
     create_partner_logo, update_partner_logo, delete_partner_logo,
@@ -45,14 +40,6 @@ admin_router = APIRouter(dependencies=[Depends(require_admin)])
 # GET  —  public read endpoints
 # ─────────────────────────────────────────────────────────────
 
-@router.get("/header")
-async def get_header_menu_endpoint(
-    lang_code: str = Depends(get_language),
-    db: AsyncSession = Depends(get_db),
-):
-    return await get_header_menu(lang_code=lang_code, db=db)
-
-
 @router.get("/footer")
 async def get_footer_menu_endpoint(
     lang_code: str = Depends(get_language),
@@ -67,132 +54,6 @@ async def get_quick_menu_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_quick_menu(lang_code=lang_code, db=db)
-
-
-# ─────────────────────────────────────────────────────────────
-# CRUD  —  Header Section
-# ─────────────────────────────────────────────────────────────
-
-@admin_router.post("/header/section")
-async def create_header_section_endpoint(
-    section_key: str = Form(...),
-    display_order: int = Form(...),
-    direct_url: Optional[str] = Form(None),
-    label_az: str = Form(...),
-    label_en: str = Form(...),
-    base_path_az: str = Form(...),
-    base_path_en: str = Form(...),
-    image: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-):
-    relative_path = await save_upload(image, "menu/headers", ALLOWED_IMAGE_MIMES)
-    image_url = f"https://aztu.edu.az/{relative_path}"
-    return await create_header_section(
-        section_key=section_key,
-        image_url=image_url,
-        display_order=display_order,
-        direct_url=direct_url or None,
-        label_az=label_az,
-        label_en=label_en,
-        base_path_az=base_path_az,
-        base_path_en=base_path_en,
-        db=db,
-    )
-
-
-@admin_router.put("/header/section/{section_id}")
-async def update_header_section_endpoint(
-    section_id: int,
-    display_order: Optional[int] = Form(None),
-    direct_url: Optional[str] = Form(None),
-    label_az: Optional[str] = Form(None),
-    label_en: Optional[str] = Form(None),
-    base_path_az: Optional[str] = Form(None),
-    base_path_en: Optional[str] = Form(None),
-    image: Optional[UploadFile] = File(None),
-    db: AsyncSession = Depends(get_db),
-):
-    image_url = None
-    if image and image.filename:
-        relative_path = await save_upload(image, "menu/headers", ALLOWED_IMAGE_MIMES)
-        image_url = f"https://aztu.edu.az/{relative_path}"
-    return await update_header_section(
-        section_id=section_id,
-        image_url=image_url,
-        display_order=display_order,
-        direct_url=direct_url,
-        label_az=label_az,
-        label_en=label_en,
-        base_path_az=base_path_az,
-        base_path_en=base_path_en,
-        db=db,
-    )
-
-
-@admin_router.delete("/header/section/{section_id}")
-async def delete_header_section_endpoint(
-    section_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    return await delete_header_section(section_id=section_id, db=db)
-
-
-# ─────────────────────────────────────────────────────────────
-# CRUD  —  Header Item
-# ─────────────────────────────────────────────────────────────
-
-@admin_router.post("/header/item")
-async def create_header_item_endpoint(
-    request: CreateHeaderItem,
-    db: AsyncSession = Depends(get_db),
-):
-    return await create_header_item(request=request, db=db)
-
-
-@admin_router.put("/header/item/{item_id}")
-async def update_header_item_endpoint(
-    item_id: int,
-    request: UpdateHeaderItem,
-    db: AsyncSession = Depends(get_db),
-):
-    return await update_header_item(item_id=item_id, request=request, db=db)
-
-
-@admin_router.delete("/header/item/{item_id}")
-async def delete_header_item_endpoint(
-    item_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    return await delete_header_item(item_id=item_id, db=db)
-
-
-# ─────────────────────────────────────────────────────────────
-# CRUD  —  Header Sub-Item
-# ─────────────────────────────────────────────────────────────
-
-@admin_router.post("/header/sub-item")
-async def create_header_sub_item_endpoint(
-    request: CreateHeaderSubItem,
-    db: AsyncSession = Depends(get_db),
-):
-    return await create_header_sub_item(request=request, db=db)
-
-
-@admin_router.put("/header/sub-item/{sub_item_id}")
-async def update_header_sub_item_endpoint(
-    sub_item_id: int,
-    request: UpdateHeaderSubItem,
-    db: AsyncSession = Depends(get_db),
-):
-    return await update_header_sub_item(sub_item_id=sub_item_id, request=request, db=db)
-
-
-@admin_router.delete("/header/sub-item/{sub_item_id}")
-async def delete_header_sub_item_endpoint(
-    sub_item_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    return await delete_header_sub_item(sub_item_id=sub_item_id, db=db)
 
 
 # ─────────────────────────────────────────────────────────────

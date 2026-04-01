@@ -12,53 +12,40 @@ class OptionalTranslationInput(BaseModel):
     en: Optional[str] = None
 
 
-# ── Header Section ────────────────────────────────────────────
-
-class CreateHeaderSection(BaseModel):
-    section_key: str
-    direct_url: Optional[str] = None
-    display_order: int
-    label: TranslationInput
-    base_path: TranslationInput
-
-
-class UpdateHeaderSection(BaseModel):
-    direct_url: Optional[str] = None
-    display_order: Optional[int] = None
-    label: Optional[OptionalTranslationInput] = None
-    base_path: Optional[OptionalTranslationInput] = None
-
-
-# ── Header Item ───────────────────────────────────────────────
+# ── Header Item (first-level dropdown) ───────────────────────
 
 class CreateHeaderItem(BaseModel):
-    section_id: int
-    item_type: str = "link"  # 'link' | 'subheader'
-    slug: Optional[str] = None
+    header_id: int
+    title_az: str
+    title_en: str
+    direct_url: Optional[str] = None   # set → leaf node, no sub-items allowed
     display_order: int
-    title: TranslationInput
 
 
 class UpdateHeaderItem(BaseModel):
-    item_type: Optional[str] = None
-    slug: Optional[str] = None
+    title_az: Optional[str] = None
+    title_en: Optional[str] = None
+    direct_url: Optional[str] = None   # "" to clear
     display_order: Optional[int] = None
-    title: Optional[OptionalTranslationInput] = None
+    is_active: Optional[bool] = None
 
 
-# ── Header Sub-Item ───────────────────────────────────────────
+# ── Header Sub-Item (second-level leaf) ──────────────────────
 
 class CreateHeaderSubItem(BaseModel):
     item_id: int
-    slug: str
+    title_az: str
+    title_en: str
+    direct_url: str                    # always required – leaf node
     display_order: int
-    title: TranslationInput
 
 
 class UpdateHeaderSubItem(BaseModel):
-    slug: Optional[str] = None
+    title_az: Optional[str] = None
+    title_en: Optional[str] = None
+    direct_url: Optional[str] = None
     display_order: Optional[int] = None
-    title: Optional[OptionalTranslationInput] = None
+    is_active: Optional[bool] = None
 
 
 # ── Footer Column ─────────────────────────────────────────────
