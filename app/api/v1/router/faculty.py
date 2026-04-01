@@ -1,12 +1,23 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.session import get_db
 from app.utils.language import get_language
 from app.core.auth_dependency import require_admin
 from app.models.admin.admin_user import AdminUser
-from app.services.faculty import create_faculty, get_faculties, get_faculty, update_faculty, delete_faculty
-from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty
+from app.services.faculty import (
+    create_faculty,
+    get_faculties,
+    get_faculty,
+    update_faculty,
+    delete_faculty,
+    upload_director_profile_image,
+    get_directions_of_action,
+    create_direction_of_action,
+    update_direction_of_action,
+    delete_direction_of_action,
+)
+from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction
 
 router = APIRouter()
 
@@ -89,5 +100,74 @@ async def delete_faculty_endpoint(
 ):
     return await delete_faculty(
         faculty_code=faculty_code,
+        db=db,
+    )
+
+
+@router.put("/{faculty_code}/director/image")
+async def upload_director_image_endpoint(
+    faculty_code: str,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await upload_director_profile_image(
+        faculty_code=faculty_code,
+        image=image,
+        db=db,
+    )
+
+
+@router.get("/{faculty_code}/directions-of-action")
+async def get_directions_of_action_endpoint(
+    faculty_code: str,
+    lang: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_directions_of_action(
+        faculty_code=faculty_code,
+        lang_code=lang,
+        db=db,
+    )
+
+
+@router.post("/{faculty_code}/directions-of-action")
+async def create_direction_of_action_endpoint(
+    faculty_code: str,
+    request: CreateDirectionOfAction,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_direction_of_action(
+        faculty_code=faculty_code,
+        request=request,
+        db=db,
+    )
+
+
+@router.put("/{faculty_code}/directions-of-action/{direction_id}")
+async def update_direction_of_action_endpoint(
+    faculty_code: str,
+    direction_id: int,
+    request: UpdateDirectionOfAction,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_direction_of_action(
+        direction_id=direction_id,
+        request=request,
+        db=db,
+    )
+
+
+@router.delete("/{faculty_code}/directions-of-action/{direction_id}")
+async def delete_direction_of_action_endpoint(
+    faculty_code: str,
+    direction_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_direction_of_action(
+        direction_id=direction_id,
         db=db,
     )

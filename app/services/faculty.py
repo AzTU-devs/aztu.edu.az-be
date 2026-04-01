@@ -2,12 +2,13 @@ import secrets
 from datetime import datetime, timezone
 from typing import Any, Type
 
-from fastapi import Depends, status
+from fastapi import Depends, File, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty
+from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction
+from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
 from app.core.logger import get_logger
 from app.core.session import get_db
 from app.models.cafedras.cafedras import Cafedra
@@ -37,6 +38,8 @@ from app.models.faculties.faculty_section import (
     FacultyProjectTr,
     FacultyResearchWork,
     FacultyResearchWorkTr,
+    FacultyDirectionOfAction,
+    FacultyDirectionOfActionTr,
 )
 from app.utils.language import get_language
 
@@ -151,6 +154,7 @@ async def _create_director(faculty_code: str, director_data: Any, now: datetime,
         father_name=director_data.father_name,
         scientific_degree=director_data.scientific_degree,
         scientific_title=director_data.scientific_title,
+        bio=director_data.bio,
         email=director_data.email,
         phone=director_data.phone,
         room_number=director_data.room_number,
@@ -337,6 +341,7 @@ async def _serialize_director(director: FacultyDirector, db: AsyncSession):
         "father_name": director.father_name,
         "scientific_degree": director.scientific_degree,
         "scientific_title": director.scientific_title,
+        "bio": director.bio,
         "email": director.email,
         "phone": director.phone,
         "room_number": director.room_number,
@@ -502,6 +507,17 @@ async def create_faculty(
                 "project_id",
                 faculty_code,
                 request.projects,
+                now,
+                db,
+            )
+
+        if request.directions_of_action:
+            await _create_translated_section(
+                FacultyDirectionOfAction,
+                FacultyDirectionOfActionTr,
+                "direction_of_action_id",
+                faculty_code,
+                request.directions_of_action,
                 now,
                 db,
             )
@@ -710,6 +726,14 @@ async def get_faculty(
                 lang_code,
                 db,
             ),
+            "directions_of_action": await _serialize_translated_section(
+                FacultyDirectionOfAction,
+                FacultyDirectionOfActionTr,
+                "direction_of_action_id",
+                faculty_code,
+                lang_code,
+                db,
+            ),
             "deputy_deans": [
                 {
                     "first_name": person.first_name,
@@ -911,6 +935,19 @@ async def update_faculty(
                     db,
                 )
 
+        if "directions_of_action" in request_data:
+            await _delete_section(FacultyDirectionOfAction, faculty_code, db)
+            if request_data["directions_of_action"]:
+                await _create_translated_section(
+                    FacultyDirectionOfAction,
+                    FacultyDirectionOfActionTr,
+                    "direction_of_action_id",
+                    faculty_code,
+                    request_data["directions_of_action"],
+                    now,
+                    db,
+                )
+
         if "deputy_deans" in request_data:
             await _delete_section(FacultyDeputyDean, faculty_code, db)
             if request_data["deputy_deans"]:
@@ -945,6 +982,247 @@ async def update_faculty(
         return JSONResponse(
             content={"status_code": 422, "errors": {"title": [str(e)]}},
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+# ── New service functions ──────────────────────────────────────────────────────
+
+
+async def upload_director_profile_image(
+    faculty_code: str,
+    image: UploadFile,
+    db: AsyncSession,
+):
+    try:
+        director_query = await db.execute(
+            select(FacultyDirector).where(FacultyDirector.faculty_code == faculty_code)
+        )
+        director = director_query.scalar_one_or_none()
+
+        if not director:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Director not found for this faculty."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        old_path = director.profile_image
+        new_path = await save_upload(image, "directors", ALLOWED_IMAGE_MIMES)
+
+        director.profile_image = new_path
+        director.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+
+        if old_path:
+            safe_delete_file(old_path)
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Director profile image uploaded successfully.",
+                "data": {"profile_image": new_path},
+            },
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def get_directions_of_action(
+    faculty_code: str,
+    lang_code: str,
+    db: AsyncSession,
+):
+    try:
+        faculty_query = await db.execute(
+            select(Faculty).where(Faculty.faculty_code == faculty_code)
+        )
+        if not faculty_query.scalar_one_or_none():
+            return JSONResponse(
+                content={"status_code": 404, "message": "Faculty not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        items = await _serialize_translated_section(
+            FacultyDirectionOfAction,
+            FacultyDirectionOfActionTr,
+            "direction_of_action_id",
+            faculty_code,
+            lang_code,
+            db,
+        )
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Directions of action fetched successfully.",
+                "directions_of_action": items,
+            },
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def create_direction_of_action(
+    faculty_code: str,
+    request: CreateDirectionOfAction,
+    db: AsyncSession,
+):
+    try:
+        faculty_query = await db.execute(
+            select(Faculty).where(Faculty.faculty_code == faculty_code)
+        )
+        if not faculty_query.scalar_one_or_none():
+            return JSONResponse(
+                content={"status_code": 404, "message": "Faculty not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        now = datetime.now(timezone.utc)
+        direction = FacultyDirectionOfAction(
+            faculty_code=faculty_code,
+            display_order=0,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(direction)
+        await db.flush()
+
+        db.add(FacultyDirectionOfActionTr(
+            direction_of_action_id=direction.id,
+            lang_code="az",
+            title=request.az.title,
+            description=request.az.description,
+            created_at=now,
+            updated_at=now,
+        ))
+        db.add(FacultyDirectionOfActionTr(
+            direction_of_action_id=direction.id,
+            lang_code="en",
+            title=request.en.title,
+            description=request.en.description,
+            created_at=now,
+            updated_at=now,
+        ))
+
+        await db.commit()
+
+        return JSONResponse(
+            content={
+                "status_code": 201,
+                "message": "Direction of action created successfully.",
+                "data": {"id": direction.id},
+            },
+            status_code=status.HTTP_201_CREATED,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def update_direction_of_action(
+    direction_id: int,
+    request: UpdateDirectionOfAction,
+    db: AsyncSession,
+):
+    try:
+        direction_query = await db.execute(
+            select(FacultyDirectionOfAction).where(FacultyDirectionOfAction.id == direction_id)
+        )
+        direction = direction_query.scalar_one_or_none()
+
+        if not direction:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Direction of action not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        now = datetime.now(timezone.utc)
+        data = request.dict(exclude_unset=True)
+
+        for lang, payload in [("az", data.get("az")), ("en", data.get("en"))]:
+            if payload is None:
+                continue
+            tr_query = await db.execute(
+                select(FacultyDirectionOfActionTr).where(
+                    FacultyDirectionOfActionTr.direction_of_action_id == direction_id,
+                    FacultyDirectionOfActionTr.lang_code == lang,
+                )
+            )
+            tr = tr_query.scalar_one_or_none()
+            if tr:
+                if "title" in payload:
+                    tr.title = payload["title"]
+                if "description" in payload:
+                    tr.description = payload["description"]
+                tr.updated_at = now
+            else:
+                db.add(FacultyDirectionOfActionTr(
+                    direction_of_action_id=direction_id,
+                    lang_code=lang,
+                    title=payload.get("title", ""),
+                    description=payload.get("description"),
+                    created_at=now,
+                    updated_at=now,
+                ))
+
+        direction.updated_at = now
+        await db.commit()
+
+        return JSONResponse(
+            content={"status_code": 200, "message": "Direction of action updated successfully."},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def delete_direction_of_action(
+    direction_id: int,
+    db: AsyncSession,
+):
+    try:
+        direction_query = await db.execute(
+            select(FacultyDirectionOfAction).where(FacultyDirectionOfAction.id == direction_id)
+        )
+        if not direction_query.scalar_one_or_none():
+            return JSONResponse(
+                content={"status_code": 404, "message": "Direction of action not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        await db.execute(
+            sqlalchemy_delete(FacultyDirectionOfAction).where(FacultyDirectionOfAction.id == direction_id)
+        )
+        await db.commit()
+
+        return JSONResponse(
+            content={"status_code": 200, "message": "Direction of action deleted successfully."},
+            status_code=status.HTTP_200_OK,
         )
     except Exception as e:
         logger.exception("500 Internal Server Error")

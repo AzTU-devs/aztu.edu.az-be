@@ -259,3 +259,53 @@ class FacultyProjectTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     project = relationship("FacultyProject", back_populates="translations")
+
+
+class FacultyDirectionOfAction(Base):
+    __tablename__ = "faculty_directions_of_action"
+
+    id = Column(Integer, primary_key=True, index=True)
+    faculty_code = Column(
+        String(50),
+        ForeignKey("faculties.faculty_code", ondelete="CASCADE"),
+        nullable=False,
+    )
+    display_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    faculty = relationship("Faculty", back_populates="directions_of_action")
+    translations = relationship(
+        "FacultyDirectionOfActionTr",
+        back_populates="direction_of_action",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class FacultyDirectionOfActionTr(Base):
+    __tablename__ = "faculty_direction_of_action_tr"
+    __table_args__ = (
+        UniqueConstraint(
+            "direction_of_action_id",
+            "lang_code",
+            name="uq_faculty_direction_of_action_tr_id_lang",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    direction_of_action_id = Column(
+        Integer,
+        ForeignKey("faculty_directions_of_action.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    lang_code = Column(String(10), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    direction_of_action = relationship(
+        "FacultyDirectionOfAction",
+        back_populates="translations",
+    )

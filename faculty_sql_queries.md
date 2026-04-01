@@ -32,6 +32,7 @@ CREATE TABLE faculty_directors (
     father_name VARCHAR(100),
     scientific_degree VARCHAR(255),
     scientific_title VARCHAR(255),
+    bio TEXT,
     email VARCHAR(255),
     phone VARCHAR(50),
     room_number VARCHAR(50),
@@ -214,6 +215,48 @@ CREATE TABLE faculty_duty_tr (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE,
     CONSTRAINT uq_faculty_duty_tr_id_lang UNIQUE (duty_id, lang_code)
+);
+
+
+CREATE TABLE faculty_projects (
+    id SERIAL PRIMARY KEY,
+    faculty_code VARCHAR(50) NOT NULL REFERENCES faculties(faculty_code) ON DELETE CASCADE,
+    display_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+
+CREATE TABLE faculty_project_tr (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES faculty_projects(id) ON DELETE CASCADE,
+    lang_code VARCHAR(10) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT uq_faculty_project_tr_id_lang UNIQUE (project_id, lang_code)
+);
+
+
+CREATE TABLE faculty_directions_of_action (
+    id SERIAL PRIMARY KEY,
+    faculty_code VARCHAR(50) NOT NULL REFERENCES faculties(faculty_code) ON DELETE CASCADE,
+    display_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+
+CREATE TABLE faculty_direction_of_action_tr (
+    id SERIAL PRIMARY KEY,
+    direction_of_action_id INTEGER NOT NULL REFERENCES faculty_directions_of_action(id) ON DELETE CASCADE,
+    lang_code VARCHAR(10) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT uq_faculty_direction_of_action_tr_id_lang UNIQUE (direction_of_action_id, lang_code)
 );
 
 

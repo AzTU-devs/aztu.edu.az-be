@@ -60,6 +60,12 @@ class Faculty(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    directions_of_action = relationship(
+        "FacultyDirectionOfAction",
+        back_populates="faculty",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     deputy_deans = relationship(
         "FacultyDeputyDean",
         back_populates="faculty",

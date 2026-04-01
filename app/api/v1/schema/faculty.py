@@ -88,6 +88,7 @@ class CreateFaculty(BaseModel):
     objectives: list[SectionItem] | None = None
     duties: list[SectionItem] | None = None
     projects: list[SectionItem] | None = None
+    directions_of_action: list[SectionItem] | None = None
     deputy_deans: list[DeputyDean] | None = None
     scientific_council: list[ScientificCouncilMember] | None = None
     workers: list[Worker] | None = None
@@ -103,9 +104,28 @@ class UpdateFaculty(BaseModel):
     objectives: list[SectionItem] | None = None
     duties: list[SectionItem] | None = None
     projects: list[SectionItem] | None = None
+    directions_of_action: list[SectionItem] | None = None
     deputy_deans: list[DeputyDean] | None = None
     scientific_council: list[ScientificCouncilMember] | None = None
     workers: list[Worker] | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class DirectionTranslation(BaseModel):
+    title: str = Field(...)
+    description: str | None = None
+
+
+class CreateDirectionOfAction(BaseModel):
+    az: DirectionTranslation
+    en: DirectionTranslation
+
+
+class UpdateDirectionOfAction(BaseModel):
+    az: DirectionTranslation | None = None
+    en: DirectionTranslation | None = None
 
     class Config:
         extra = "ignore"
