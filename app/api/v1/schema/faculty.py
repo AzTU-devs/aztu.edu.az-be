@@ -2,8 +2,8 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class LanguageBlock(BaseModel):
-    faculty_name: str = Field(...)
-    about_text: str | None = None
+    title: str = Field(...)
+    html_content: str | None = None
 
 
 class DirectorWorkingHour(BaseModel):
@@ -29,6 +29,7 @@ class FacultyDirectorPayload(BaseModel):
     father_name: str | None = None
     scientific_degree: str | None = None
     scientific_title: str | None = None
+    bio: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
     room_number: str | None = None

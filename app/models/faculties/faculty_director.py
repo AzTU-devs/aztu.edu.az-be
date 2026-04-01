@@ -24,6 +24,7 @@ class FacultyDirector(Base):
     phone = Column(String(50))
     room_number = Column(String(50))
     profile_image = Column(String(1024))
+    bio = Column(Text)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 

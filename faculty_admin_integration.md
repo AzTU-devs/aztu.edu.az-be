@@ -23,12 +23,12 @@
 ```json
 {
   "az": {
-    "faculty_name": "Fakultə adı",
-    "about_text": "Fakultə haqqında mətn"
+    "title": "Fakultə başlığı",
+    "html_content": "<p>Fakultə haqqında mətn</p>"
   },
   "en": {
-    "faculty_name": "Faculty name",
-    "about_text": "Text about faculty"
+    "title": "Faculty title",
+    "html_content": "<p>Text about faculty</p>"
   },
   "director": {
     "first_name": "Ayaz",
@@ -36,6 +36,7 @@
     "father_name": "Əli",
     "scientific_degree": "PhD",
     "scientific_title": "Professor",
+    "bio": "<p>Professor Ayaz Məmmədov is the dean of the faculty with expertise in applied research.</p>",
     "email": "dekan@example.com",
     "phone": "+994501234567",
     "room_number": "B-101",

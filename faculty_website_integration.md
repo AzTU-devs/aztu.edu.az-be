@@ -30,14 +30,15 @@ Response contains faculty summary objects with:
 The detail response returns a nested `faculty` object with:
 
 - `faculty_code`
-- `faculty_name`
-- `about_text`
+- `title`
+- `html_content`
 - `director`
   - `first_name`
   - `last_name`
   - `father_name`
   - `scientific_degree`
   - `scientific_title`
+  - `bio`
   - `email`
   - `phone`
   - `room_number`

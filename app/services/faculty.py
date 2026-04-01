@@ -229,6 +229,7 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         "father_name",
         "scientific_degree",
         "scientific_title",
+        "bio",
         "email",
         "phone",
         "room_number",
@@ -393,7 +394,7 @@ async def create_faculty(
         for lang_code, translation in [("az", request.az), ("en", request.en)]:
             dup_q = await db.execute(
                 select(FacultyTr).where(
-                    func.lower(FacultyTr.faculty_name) == func.lower(translation.faculty_name),
+                    func.lower(FacultyTr.faculty_name) == func.lower(translation.title),
                     FacultyTr.lang_code == lang_code,
                 )
             )
@@ -402,8 +403,8 @@ async def create_faculty(
                     content={
                         "status_code": 422,
                         "errors": {
-                            "faculty_name": [
-                                f"Faculty name '{translation.faculty_name}' ({lang_code}) already exists (case-insensitive)."
+                            "title": [
+                                f"Faculty title '{translation.title}' ({lang_code}) already exists (case-insensitive)."
                             ]
                         },
                     },
@@ -421,8 +422,8 @@ async def create_faculty(
             FacultyTr(
                 faculty_code=faculty_code,
                 lang_code="az",
-                faculty_name=request.az.faculty_name,
-                about_text=request.az.about_text,
+                faculty_name=request.az.title,
+                about_text=request.az.html_content,
                 created_at=now,
             )
         )
@@ -430,8 +431,8 @@ async def create_faculty(
             FacultyTr(
                 faculty_code=faculty_code,
                 lang_code="en",
-                faculty_name=request.en.faculty_name,
-                about_text=request.en.about_text,
+                faculty_name=request.en.title,
+                about_text=request.en.html_content,
                 created_at=now,
             )
         )
@@ -595,7 +596,7 @@ async def get_faculties(
                 {
                     "id": faculty.id,
                     "faculty_code": faculty.faculty_code,
-                    "faculty_name": tr.faculty_name if tr else None,
+                    "title": tr.faculty_name if tr else None,
                     "cafedra_count": cafedra_count,
                     "deputy_dean_count": deputy_count,
                     "created_at": faculty.created_at.isoformat()
@@ -658,8 +659,8 @@ async def get_faculty(
         faculty_obj = {
             "id": faculty.id,
             "faculty_code": faculty.faculty_code,
-            "faculty_name": tr.faculty_name if tr else None,
-            "about_text": tr.about_text if tr else None,
+            "title": tr.faculty_name if tr else None,
+            "html_content": tr.about_text if tr else None,
             "director": await _serialize_director(director, db) if director else None,
             "laboratories": await _serialize_translated_section(
                 FacultyLaboratory,
@@ -790,17 +791,17 @@ async def update_faculty(
         async def ensure_translation(lang: str, translation_data: Any):
             if translation_data is None:
                 return
-            if translation_data.faculty_name:
+            if translation_data.title:
                 dup_q = await db.execute(
                     select(FacultyTr).where(
-                        func.lower(FacultyTr.faculty_name) == func.lower(translation_data.faculty_name),
+                        func.lower(FacultyTr.faculty_name) == func.lower(translation_data.title),
                         FacultyTr.lang_code == lang,
                         FacultyTr.faculty_code != faculty_code,
                     )
                 )
                 if dup_q.scalar_one_or_none():
                     raise ValueError(
-                        f"Faculty name '{translation_data.faculty_name}' ({lang}) already exists (case-insensitive)."
+                        f"Faculty title '{translation_data.title}' ({lang}) already exists (case-insensitive)."
                     )
             tr_query = await db.execute(
                 select(FacultyTr).where(
@@ -810,18 +811,18 @@ async def update_faculty(
             )
             tr = tr_query.scalar_one_or_none()
             if tr:
-                if translation_data.faculty_name is not None:
-                    tr.faculty_name = translation_data.faculty_name
-                if translation_data.about_text is not None:
-                    tr.about_text = translation_data.about_text
+                if translation_data.title is not None:
+                    tr.faculty_name = translation_data.title
+                if translation_data.html_content is not None:
+                    tr.about_text = translation_data.html_content
                 tr.updated_at = now
             else:
                 db.add(
                     FacultyTr(
                         faculty_code=faculty_code,
                         lang_code=lang,
-                        faculty_name=translation_data.faculty_name or "",
-                        about_text=translation_data.about_text,
+                        faculty_name=translation_data.title or "",
+                        about_text=translation_data.html_content,
                         created_at=now,
                     )
                 )
@@ -942,7 +943,7 @@ async def update_faculty(
     except ValueError as e:
         await db.rollback()
         return JSONResponse(
-            content={"status_code": 422, "errors": {"faculty_name": [str(e)]}},
+            content={"status_code": 422, "errors": {"title": [str(e)]}},
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
     except Exception as e:
