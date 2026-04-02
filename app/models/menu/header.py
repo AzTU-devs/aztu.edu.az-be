@@ -16,6 +16,7 @@ class MenuHeader(Base):
     id = Column(Integer, primary_key=True, index=True)
     image_url = Column(Text, nullable=True)
     direct_url = Column(String(500), nullable=True)
+    has_subitems = Column(Boolean, nullable=False, default=True)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
 
@@ -57,6 +58,7 @@ class MenuHeaderItem(Base):
         Integer, ForeignKey("menu_headers.id", ondelete="CASCADE"), nullable=False
     )
     direct_url = Column(String(500), nullable=True)
+    has_subitems = Column(Boolean, nullable=False, default=True)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
 
@@ -98,7 +100,7 @@ class MenuHeaderSubItem(Base):
     item_id = Column(
         Integer, ForeignKey("menu_header_items.id", ondelete="CASCADE"), nullable=False
     )
-    direct_url = Column(String(500), nullable=False)
+    direct_url = Column(String(500), nullable=True)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
 

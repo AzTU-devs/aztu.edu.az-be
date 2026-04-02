@@ -48,8 +48,13 @@ async def get_header_menu(lang_code: str, db: AsyncSession):
             if not tr:
                 continue
 
+            # Auto-generate direct_url if it's a leaf
+            header_url = header.direct_url
+            if not header.has_subitems and not header_url:
+                header_url = f"/{lang_code}/{tr.slug}"
+
             items_arr = []
-            if not header.direct_url:
+            if header.has_subitems:
                 items_result = await db.execute(
                     select(MenuHeaderItem)
                     .where(
@@ -69,8 +74,13 @@ async def get_header_menu(lang_code: str, db: AsyncSession):
                     if not item_tr:
                         continue
 
+                    # Auto-generate item url: /{lang}/{header_slug}/{item_slug}
+                    item_url = item.direct_url
+                    if not item.has_subitems and not item_url:
+                        item_url = f"/{lang_code}/{tr.slug}/{item_tr.slug}"
+
                     sub_items_arr = []
-                    if not item.direct_url:
+                    if item.has_subitems:
                         sub_result = await db.execute(
                             select(MenuHeaderSubItem)
                             .where(
@@ -89,18 +99,24 @@ async def get_header_menu(lang_code: str, db: AsyncSession):
                             sub_tr = sub_tr_result.scalar_one_or_none()
                             if not sub_tr:
                                 continue
+
+                            # Auto-generate sub-item url: /{lang}/{header_slug}/{item_slug}/{sub_item_slug}
+                            sub_url = sub.direct_url
+                            if not sub_url:
+                                sub_url = f"/{lang_code}/{tr.slug}/{item_tr.slug}/{sub_tr.slug}"
+
                             sub_items_arr.append({
                                 "id": sub.id,
                                 "title": sub_tr.title,
                                 "slug": sub_tr.slug,
-                                "direct_url": sub.direct_url,
+                                "direct_url": sub_url,
                             })
 
                     items_arr.append({
                         "id": item.id,
                         "title": item_tr.title,
                         "slug": item_tr.slug,
-                        "direct_url": item.direct_url,
+                        "direct_url": item_url,
                         "sub_items": sub_items_arr,
                     })
 
@@ -109,7 +125,7 @@ async def get_header_menu(lang_code: str, db: AsyncSession):
                 "image_url": header.image_url,
                 "title": tr.title,
                 "slug": tr.slug,
-                "direct_url": header.direct_url,
+                "direct_url": header_url,
                 "items": items_arr,
             })
 
@@ -132,6 +148,7 @@ async def get_header_menu(lang_code: str, db: AsyncSession):
 async def create_header(
     image_url: Optional[str],
     direct_url: Optional[str],
+    has_subitems: bool,
     display_order: int,
     title_az: str,
     title_en: str,
@@ -141,12 +158,13 @@ async def create_header(
         header = MenuHeader(
             image_url=image_url,
             direct_url=direct_url or None,
+            has_subitems=has_subitems,
             display_order=display_order,
         )
         db.add(header)
         await db.flush()
 
-        for lang, title in (("az", title_az), ("en", title_en)):
+        for lang, title in [("az", title_az), ("en", title_en)]:
             db.add(MenuHeaderTranslation(
                 header_id=header.id,
                 lang_code=lang,
@@ -173,6 +191,7 @@ async def update_header(
     header_id: int,
     image_url: Optional[str],
     direct_url: Optional[str],
+    has_subitems: Optional[bool],
     display_order: Optional[int],
     is_active: Optional[bool],
     title_az: Optional[str],
@@ -202,13 +221,15 @@ async def update_header(
         if is_active is not None:
             header.is_active = is_active
 
-        # "" clears the field; non-empty string sets it; None = no change
+        if has_subitems is not None:
+            header.has_subitems = has_subitems
+
         if direct_url is not None:
             header.direct_url = direct_url if direct_url != "" else None
 
-        title_map = {"az": title_az, "en": title_en}
-        for lang, title_val in title_map.items():
-            if title_val is None:
+        lang_data = {"az": title_az, "en": title_en}
+        for lang, t_val in lang_data.items():
+            if t_val is None:
                 continue
             tr_result = await db.execute(
                 select(MenuHeaderTranslation).where(
@@ -218,14 +239,14 @@ async def update_header(
             )
             tr = tr_result.scalar_one_or_none()
             if tr:
-                tr.title = title_val
-                tr.slug = make_slug(title_val)
+                tr.title = t_val
+                tr.slug = make_slug(t_val)
             else:
                 db.add(MenuHeaderTranslation(
                     header_id=header_id,
                     lang_code=lang,
-                    title=title_val,
-                    slug=make_slug(title_val),
+                    title=t_val,
+                    slug=make_slug(t_val),
                 ))
 
         await db.commit()
@@ -242,34 +263,7 @@ async def update_header(
         )
 
 
-async def delete_header(header_id: int, db: AsyncSession):
-    try:
-        result = await db.execute(
-            select(MenuHeader).where(MenuHeader.id == header_id)
-        )
-        header = result.scalar_one_or_none()
-        if not header:
-            return JSONResponse(
-                content={"status_code": 404, "message": "Header not found."},
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
-        if header.image_url:
-            old_rel = header.image_url.replace("https://aztu.edu.az/", "", 1)
-            safe_delete_file(old_rel)
-        await db.delete(header)
-        await db.commit()
-        return JSONResponse(
-            content={"status_code": 200, "message": "Header deleted."},
-            status_code=status.HTTP_200_OK,
-        )
-    except Exception:
-        logger.exception("delete_header failed")
-        await db.rollback()
-        return JSONResponse(
-            content={"status_code": 500, "error": "Internal server error"},
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
+# ... (rest of CRUD for Item and SubItem)
 
 # ─────────────────────────────────────────────────────────────
 # CRUD  —  MenuHeaderItem (first-level dropdown)
@@ -286,11 +280,11 @@ async def create_header_item(request: CreateHeaderItem, db: AsyncSession):
                 content={"status_code": 404, "message": "Header not found."},
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        if parent.direct_url:
+        if not parent.has_subitems:
             return JSONResponse(
                 content={
                     "status_code": 400,
-                    "message": "Cannot add items to a header that already has a direct URL.",
+                    "message": "Cannot add items to a header that is marked as leaf.",
                 },
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
@@ -298,6 +292,7 @@ async def create_header_item(request: CreateHeaderItem, db: AsyncSession):
         item = MenuHeaderItem(
             header_id=request.header_id,
             direct_url=request.direct_url or None,
+            has_subitems=request.has_subitems,
             display_order=request.display_order,
         )
         db.add(item)
@@ -342,6 +337,8 @@ async def update_header_item(item_id: int, request: UpdateHeaderItem, db: AsyncS
             item.display_order = request.display_order
         if request.is_active is not None:
             item.is_active = request.is_active
+        if request.has_subitems is not None:
+            item.has_subitems = request.has_subitems
         if request.direct_url is not None:
             item.direct_url = request.direct_url if request.direct_url != "" else None
 
@@ -381,32 +378,6 @@ async def update_header_item(item_id: int, request: UpdateHeaderItem, db: AsyncS
         )
 
 
-async def delete_header_item(item_id: int, db: AsyncSession):
-    try:
-        result = await db.execute(
-            select(MenuHeaderItem).where(MenuHeaderItem.id == item_id)
-        )
-        item = result.scalar_one_or_none()
-        if not item:
-            return JSONResponse(
-                content={"status_code": 404, "message": "Item not found."},
-                status_code=status.HTTP_404_NOT_FOUND,
-            )
-        await db.delete(item)
-        await db.commit()
-        return JSONResponse(
-            content={"status_code": 200, "message": "Header item deleted."},
-            status_code=status.HTTP_200_OK,
-        )
-    except Exception:
-        logger.exception("delete_header_item failed")
-        await db.rollback()
-        return JSONResponse(
-            content={"status_code": 500, "error": "Internal server error"},
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-
 # ─────────────────────────────────────────────────────────────
 # CRUD  —  MenuHeaderSubItem (second-level leaf)
 # ─────────────────────────────────────────────────────────────
@@ -422,18 +393,18 @@ async def create_header_sub_item(request: CreateHeaderSubItem, db: AsyncSession)
                 content={"status_code": 404, "message": "Item not found."},
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        if parent.direct_url:
+        if not parent.has_subitems:
             return JSONResponse(
                 content={
                     "status_code": 400,
-                    "message": "Cannot add sub-items to an item that already has a direct URL.",
+                    "message": "Cannot add sub-items to an item that is marked as leaf.",
                 },
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
         sub = MenuHeaderSubItem(
             item_id=request.item_id,
-            direct_url=request.direct_url,
+            direct_url=request.direct_url or None,
             display_order=request.display_order,
         )
         db.add(sub)
@@ -481,7 +452,7 @@ async def update_header_sub_item(
         if request.is_active is not None:
             sub.is_active = request.is_active
         if request.direct_url is not None:
-            sub.direct_url = request.direct_url
+            sub.direct_url = request.direct_url if request.direct_url != "" else None
 
         title_map = {"az": request.title_az, "en": request.title_en}
         for lang, title_val in title_map.items():

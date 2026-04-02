@@ -18,14 +18,16 @@ class CreateHeaderItem(BaseModel):
     header_id: int
     title_az: str
     title_en: str
-    direct_url: Optional[str] = None   # set → leaf node, no sub-items allowed
+    direct_url: Optional[str] = None   # manual override
+    has_subitems: bool = True          # if False, auto-generates direct_url
     display_order: int
 
 
 class UpdateHeaderItem(BaseModel):
     title_az: Optional[str] = None
     title_en: Optional[str] = None
-    direct_url: Optional[str] = None   # "" to clear
+    direct_url: Optional[str] = None
+    has_subitems: Optional[bool] = None
     display_order: Optional[int] = None
     is_active: Optional[bool] = None
 
@@ -36,7 +38,7 @@ class CreateHeaderSubItem(BaseModel):
     item_id: int
     title_az: str
     title_en: str
-    direct_url: str                    # always required – leaf node
+    direct_url: Optional[str] = None   # leaf node, if null auto-generates from parent+self
     display_order: int
 
 
