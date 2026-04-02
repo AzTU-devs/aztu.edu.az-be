@@ -15,7 +15,7 @@ class ProjectTranslationCreate(ProjectTranslationBase):
 class ProjectTranslationRead(ProjectTranslationBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
     
 class ProjectTranslationCreateForm:
     def __init__(
@@ -80,7 +80,7 @@ class ProjectRead(ProjectBase):
     translations: List[ProjectTranslationRead]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ProjectReorder(BaseModel):
     project_id: int

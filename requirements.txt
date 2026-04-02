@@ -47,3 +47,5 @@ watchfiles==1.1.1
 webencodings==0.5.1
 websockets==15.0.1
 wrapt==2.1.2
+filetype==1.2.0
+email-validator==2.1.0
