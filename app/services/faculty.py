@@ -14,16 +14,22 @@ from app.core.session import get_db
 from app.models.cafedras.cafedras import Cafedra
 from app.models.faculties.faculties import Faculty
 from app.models.faculties.faculties_tr import FacultyTr
-from app.models.faculties.faculty_director import FacultyDirector
+from app.models.faculties.faculty_director import FacultyDirector, FacultyDirectorTr
 from app.models.faculties.faculty_director_relations import (
     FacultyDirectorEducation,
+    FacultyDirectorEducationTr,
     FacultyDirectorScientificEvent,
+    FacultyDirectorScientificEventTr,
     FacultyDirectorWorkingHour,
+    FacultyDirectorWorkingHourTr,
 )
 from app.models.faculties.faculty_personnel import (
     FacultyCouncilMember,
+    FacultyCouncilMemberTr,
     FacultyDeputyDean,
+    FacultyDeputyDeanTr,
     FacultyWorker,
+    FacultyWorkerTr,
 )
 from app.models.faculties.faculty_section import (
     FacultyDuty,
@@ -126,24 +132,60 @@ async def _serialize_translated_section(
     return items
 
 
-async def _create_people(parent_cls: Type[Any], items: list[Any], faculty_code: str, now: datetime, db: AsyncSession):
+async def _create_person_translations(
+    tr_cls: Type[Any],
+    person_id_field: str,
+    person_id: int,
+    az_data: Any,
+    en_data: Any,
+    now: datetime,
+    db: AsyncSession,
+):
+    for lang_code, data in [("az", az_data), ("en", en_data)]:
+        if data is None:
+            continue
+        fields = {person_id_field: person_id, "lang_code": lang_code, "created_at": now, "updated_at": now}
+        for attr in ["scientific_name", "scientific_degree", "duty"]:
+            if hasattr(tr_cls, attr):
+                fields[attr] = getattr(data, attr, None)
+        db.add(tr_cls(**fields))
+
+
+async def _create_people(
+    parent_cls: Type[Any],
+    tr_cls: Type[Any],
+    person_id_field: str,
+    items: list[Any],
+    faculty_code: str,
+    now: datetime,
+    db: AsyncSession,
+):
     for item in items:
         payload = {
             "faculty_code": faculty_code,
             "first_name": item.first_name,
             "last_name": item.last_name,
             "father_name": item.father_name,
-            "scientific_name": getattr(item, "scientific_name", None),
-            "scientific_degree": getattr(item, "scientific_degree", None),
             "email": getattr(item, "email", None),
             "phone": getattr(item, "phone", None),
             "profile_image": getattr(item, "profile_image", None),
-            "duty": getattr(item, "duty", None),
             "created_at": now,
             "updated_at": now,
         }
         allowed = {k: v for k, v in payload.items() if hasattr(parent_cls, k)}
-        db.add(parent_cls(**allowed))
+        person = parent_cls(**allowed)
+        db.add(person)
+        await db.flush()
+
+        await _create_person_translations(
+            tr_cls,
+            person_id_field,
+            person.id,
+            getattr(item, "az", None),
+            getattr(item, "en", None),
+            now,
+            db,
+        )
 
 
 async def _create_director(faculty_code: str, director_data: Any, now: datetime, db: AsyncSession):
@@ -152,9 +194,6 @@ async def _create_director(faculty_code: str, director_data: Any, now: datetime,
         first_name=director_data.first_name,
         last_name=director_data.last_name,
         father_name=director_data.father_name,
-        scientific_degree=director_data.scientific_degree,
-        scientific_title=director_data.scientific_title,
-        bio=director_data.bio,
         email=director_data.email,
         phone=director_data.phone,
         room_number=director_data.room_number,
@@ -165,43 +204,89 @@ async def _create_director(faculty_code: str, director_data: Any, now: datetime,
     db.add(director)
     await db.flush()
 
+    for lang_code, tr_data in [("az", director_data.az), ("en", director_data.en)]:
+        if tr_data is None:
+            continue
+        db.add(FacultyDirectorTr(
+            director_id=director.id,
+            lang_code=lang_code,
+            scientific_degree=tr_data.scientific_degree,
+            scientific_title=tr_data.scientific_title,
+            bio=tr_data.bio,
+            created_at=now,
+            updated_at=now,
+        ))
+
     if director_data.working_hours:
         for item in director_data.working_hours:
-            db.add(
-                FacultyDirectorWorkingHour(
-                    director_id=director.id,
-                    day=item.day,
-                    time_range=item.time_range,
-                    created_at=now,
-                    updated_at=now,
-                )
+            wh = FacultyDirectorWorkingHour(
+                director_id=director.id,
+                time_range=item.time_range,
+                created_at=now,
+                updated_at=now,
             )
+            db.add(wh)
+            await db.flush()
+            db.add(FacultyDirectorWorkingHourTr(
+                working_hour_id=wh.id, lang_code="az", day=item.az.day, created_at=now, updated_at=now,
+            ))
+            db.add(FacultyDirectorWorkingHourTr(
+                working_hour_id=wh.id, lang_code="en", day=item.en.day, created_at=now, updated_at=now,
+            ))
 
     if director_data.scientific_events:
         for item in director_data.scientific_events:
-            db.add(
-                FacultyDirectorScientificEvent(
-                    director_id=director.id,
-                    event_title=item.event_title,
-                    event_description=item.event_description,
-                    created_at=now,
-                    updated_at=now,
-                )
+            event = FacultyDirectorScientificEvent(
+                director_id=director.id,
+                created_at=now,
+                updated_at=now,
             )
+            db.add(event)
+            await db.flush()
+            db.add(FacultyDirectorScientificEventTr(
+                scientific_event_id=event.id,
+                lang_code="az",
+                event_title=item.az.event_title,
+                event_description=item.az.event_description,
+                created_at=now,
+                updated_at=now,
+            ))
+            db.add(FacultyDirectorScientificEventTr(
+                scientific_event_id=event.id,
+                lang_code="en",
+                event_title=item.en.event_title,
+                event_description=item.en.event_description,
+                created_at=now,
+                updated_at=now,
+            ))
 
     if director_data.educations:
         for item in director_data.educations:
-            db.add(
-                FacultyDirectorEducation(
-                    director_id=director.id,
-                    degree=item.degree,
-                    university=item.university,
-                    start_year=item.start_year,
-                    end_year=item.end_year,
-                    created_at=now,
-                    updated_at=now,
-                )
+            edu = FacultyDirectorEducation(
+                director_id=director.id,
+                start_year=item.start_year,
+                end_year=item.end_year,
+                created_at=now,
+                updated_at=now,
             )
+            db.add(edu)
+            await db.flush()
+            db.add(FacultyDirectorEducationTr(
+                education_id=edu.id,
+                lang_code="az",
+                degree=item.az.degree,
+                university=item.az.university,
+                created_at=now,
+                updated_at=now,
+            ))
+            db.add(FacultyDirectorEducationTr(
+                education_id=edu.id,
+                lang_code="en",
+                degree=item.en.degree,
+                university=item.en.university,
+                created_at=now,
+                updated_at=now,
+            ))
 
 
 async def _upsert_director(faculty_code: str, director_data: Any, now: datetime, db: AsyncSession):
@@ -227,21 +312,36 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         await db.flush()
 
     data = director_data.dict(exclude_unset=True)
-    for field in [
-        "first_name",
-        "last_name",
-        "father_name",
-        "scientific_degree",
-        "scientific_title",
-        "bio",
-        "email",
-        "phone",
-        "room_number",
-        "profile_image",
-    ]:
+    for field in ["first_name", "last_name", "father_name", "email", "phone", "room_number", "profile_image"]:
         if field in data:
             setattr(director, field, data[field])
     director.updated_at = now
+
+    for lang_code, tr_data in [("az", data.get("az")), ("en", data.get("en"))]:
+        if tr_data is None:
+            continue
+        tr_query = await db.execute(
+            select(FacultyDirectorTr).where(
+                FacultyDirectorTr.director_id == director.id,
+                FacultyDirectorTr.lang_code == lang_code,
+            )
+        )
+        tr = tr_query.scalar_one_or_none()
+        if tr:
+            for field in ["scientific_degree", "scientific_title", "bio"]:
+                if field in tr_data:
+                    setattr(tr, field, tr_data[field])
+            tr.updated_at = now
+        else:
+            db.add(FacultyDirectorTr(
+                director_id=director.id,
+                lang_code=lang_code,
+                scientific_degree=tr_data.get("scientific_degree"),
+                scientific_title=tr_data.get("scientific_title"),
+                bio=tr_data.get("bio"),
+                created_at=now,
+                updated_at=now,
+            ))
 
     if "working_hours" in data:
         await db.execute(
@@ -251,15 +351,20 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         )
         if data["working_hours"]:
             for item in data["working_hours"]:
-                db.add(
-                    FacultyDirectorWorkingHour(
-                        director_id=director.id,
-                        day=item.day,
-                        time_range=item.time_range,
-                        created_at=now,
-                        updated_at=now,
-                    )
+                wh = FacultyDirectorWorkingHour(
+                    director_id=director.id,
+                    time_range=item.time_range,
+                    created_at=now,
+                    updated_at=now,
                 )
+                db.add(wh)
+                await db.flush()
+                db.add(FacultyDirectorWorkingHourTr(
+                    working_hour_id=wh.id, lang_code="az", day=item.az.day, created_at=now, updated_at=now,
+                ))
+                db.add(FacultyDirectorWorkingHourTr(
+                    working_hour_id=wh.id, lang_code="en", day=item.en.day, created_at=now, updated_at=now,
+                ))
 
     if "scientific_events" in data:
         await db.execute(
@@ -269,15 +374,29 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         )
         if data["scientific_events"]:
             for item in data["scientific_events"]:
-                db.add(
-                    FacultyDirectorScientificEvent(
-                        director_id=director.id,
-                        event_title=item.event_title,
-                        event_description=item.event_description,
-                        created_at=now,
-                        updated_at=now,
-                    )
+                event = FacultyDirectorScientificEvent(
+                    director_id=director.id,
+                    created_at=now,
+                    updated_at=now,
                 )
+                db.add(event)
+                await db.flush()
+                db.add(FacultyDirectorScientificEventTr(
+                    scientific_event_id=event.id,
+                    lang_code="az",
+                    event_title=item.az.event_title,
+                    event_description=item.az.event_description,
+                    created_at=now,
+                    updated_at=now,
+                ))
+                db.add(FacultyDirectorScientificEventTr(
+                    scientific_event_id=event.id,
+                    lang_code="en",
+                    event_title=item.en.event_title,
+                    event_description=item.en.event_description,
+                    created_at=now,
+                    updated_at=now,
+                ))
 
     if "educations" in data:
         await db.execute(
@@ -287,17 +406,31 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         )
         if data["educations"]:
             for item in data["educations"]:
-                db.add(
-                    FacultyDirectorEducation(
-                        director_id=director.id,
-                        degree=item.degree,
-                        university=item.university,
-                        start_year=item.start_year,
-                        end_year=item.end_year,
-                        created_at=now,
-                        updated_at=now,
-                    )
+                edu = FacultyDirectorEducation(
+                    director_id=director.id,
+                    start_year=item.start_year,
+                    end_year=item.end_year,
+                    created_at=now,
+                    updated_at=now,
                 )
+                db.add(edu)
+                await db.flush()
+                db.add(FacultyDirectorEducationTr(
+                    education_id=edu.id,
+                    lang_code="az",
+                    degree=item.az.degree,
+                    university=item.az.university,
+                    created_at=now,
+                    updated_at=now,
+                ))
+                db.add(FacultyDirectorEducationTr(
+                    education_id=edu.id,
+                    lang_code="en",
+                    degree=item.en.degree,
+                    university=item.en.university,
+                    created_at=now,
+                    updated_at=now,
+                ))
 
     return director
 
@@ -308,16 +441,35 @@ async def _delete_section(parent_cls: Type[Any], faculty_code: str, db: AsyncSes
     )
 
 
-async def _fetch_people(parent_cls: Type[Any], faculty_code: str, db: AsyncSession):
+async def _fetch_people_with_tr(parent_cls: Type[Any], tr_cls: Type[Any], person_id_field: str, faculty_code: str, lang_code: str, db: AsyncSession):
     query = await db.execute(
         select(parent_cls).where(parent_cls.faculty_code == faculty_code)
     )
-    return query.scalars().all()
+    people = query.scalars().all()
+    result = []
+    for person in people:
+        tr_query = await db.execute(
+            select(tr_cls).where(
+                getattr(tr_cls, person_id_field) == person.id,
+                tr_cls.lang_code == lang_code,
+            )
+        )
+        tr = tr_query.scalar_one_or_none()
+        result.append((person, tr))
+    return result
 
 
-async def _serialize_director(director: FacultyDirector, db: AsyncSession):
+async def _serialize_director(director: FacultyDirector, lang_code: str, db: AsyncSession):
     if not director:
         return None
+
+    tr_query = await db.execute(
+        select(FacultyDirectorTr).where(
+            FacultyDirectorTr.director_id == director.id,
+            FacultyDirectorTr.lang_code == lang_code,
+        )
+    )
+    tr = tr_query.scalar_one_or_none()
 
     working_hours_query = await db.execute(
         select(FacultyDirectorWorkingHour).where(
@@ -335,40 +487,64 @@ async def _serialize_director(director: FacultyDirector, db: AsyncSession):
         )
     )
 
+    working_hours = []
+    for hour in working_hours_query.scalars().all():
+        wh_tr_q = await db.execute(
+            select(FacultyDirectorWorkingHourTr).where(
+                FacultyDirectorWorkingHourTr.working_hour_id == hour.id,
+                FacultyDirectorWorkingHourTr.lang_code == lang_code,
+            )
+        )
+        wh_tr = wh_tr_q.scalar_one_or_none()
+        working_hours.append({
+            "day": wh_tr.day if wh_tr else None,
+            "time_range": hour.time_range,
+        })
+
+    scientific_events = []
+    for event in scientific_events_query.scalars().all():
+        ev_tr_q = await db.execute(
+            select(FacultyDirectorScientificEventTr).where(
+                FacultyDirectorScientificEventTr.scientific_event_id == event.id,
+                FacultyDirectorScientificEventTr.lang_code == lang_code,
+            )
+        )
+        ev_tr = ev_tr_q.scalar_one_or_none()
+        scientific_events.append({
+            "event_title": ev_tr.event_title if ev_tr else None,
+            "event_description": ev_tr.event_description if ev_tr else None,
+        })
+
+    educations = []
+    for edu in educations_query.scalars().all():
+        edu_tr_q = await db.execute(
+            select(FacultyDirectorEducationTr).where(
+                FacultyDirectorEducationTr.education_id == edu.id,
+                FacultyDirectorEducationTr.lang_code == lang_code,
+            )
+        )
+        edu_tr = edu_tr_q.scalar_one_or_none()
+        educations.append({
+            "degree": edu_tr.degree if edu_tr else None,
+            "university": edu_tr.university if edu_tr else None,
+            "start_year": edu.start_year,
+            "end_year": edu.end_year,
+        })
+
     return {
         "first_name": director.first_name,
         "last_name": director.last_name,
         "father_name": director.father_name,
-        "scientific_degree": director.scientific_degree,
-        "scientific_title": director.scientific_title,
-        "bio": director.bio,
+        "scientific_degree": tr.scientific_degree if tr else None,
+        "scientific_title": tr.scientific_title if tr else None,
+        "bio": tr.bio if tr else None,
         "email": director.email,
         "phone": director.phone,
         "room_number": director.room_number,
         "profile_image": director.profile_image,
-        "working_hours": [
-            {
-                "day": hour.day,
-                "time_range": hour.time_range,
-            }
-            for hour in working_hours_query.scalars().all()
-        ],
-        "scientific_events": [
-            {
-                "event_title": event.event_title,
-                "event_description": event.event_description,
-            }
-            for event in scientific_events_query.scalars().all()
-        ],
-        "educations": [
-            {
-                "degree": education.degree,
-                "university": education.university,
-                "start_year": education.start_year,
-                "end_year": education.end_year,
-            }
-            for education in educations_query.scalars().all()
-        ],
+        "working_hours": working_hours,
+        "scientific_events": scientific_events,
+        "educations": educations,
     }
 
 
@@ -447,89 +623,47 @@ async def create_faculty(
 
         if request.laboratories:
             await _create_translated_section(
-                FacultyLaboratory,
-                FacultyLaboratoryTr,
-                "laboratory_id",
-                faculty_code,
-                request.laboratories,
-                now,
-                db,
+                FacultyLaboratory, FacultyLaboratoryTr, "laboratory_id", faculty_code, request.laboratories, now, db,
             )
 
         if request.research_works:
             await _create_translated_section(
-                FacultyResearchWork,
-                FacultyResearchWorkTr,
-                "research_work_id",
-                faculty_code,
-                request.research_works,
-                now,
-                db,
+                FacultyResearchWork, FacultyResearchWorkTr, "research_work_id", faculty_code, request.research_works, now, db,
             )
 
         if request.partner_companies:
             await _create_translated_section(
-                FacultyPartnerCompany,
-                FacultyPartnerCompanyTr,
-                "partner_company_id",
-                faculty_code,
-                request.partner_companies,
-                now,
-                db,
+                FacultyPartnerCompany, FacultyPartnerCompanyTr, "partner_company_id", faculty_code, request.partner_companies, now, db,
             )
 
         if request.objectives:
             await _create_translated_section(
-                FacultyObjective,
-                FacultyObjectiveTr,
-                "objective_id",
-                faculty_code,
-                request.objectives,
-                now,
-                db,
+                FacultyObjective, FacultyObjectiveTr, "objective_id", faculty_code, request.objectives, now, db,
             )
 
         if request.duties:
             await _create_translated_section(
-                FacultyDuty,
-                FacultyDutyTr,
-                "duty_id",
-                faculty_code,
-                request.duties,
-                now,
-                db,
+                FacultyDuty, FacultyDutyTr, "duty_id", faculty_code, request.duties, now, db,
             )
 
         if request.projects:
             await _create_translated_section(
-                FacultyProject,
-                FacultyProjectTr,
-                "project_id",
-                faculty_code,
-                request.projects,
-                now,
-                db,
+                FacultyProject, FacultyProjectTr, "project_id", faculty_code, request.projects, now, db,
             )
 
         if request.directions_of_action:
             await _create_translated_section(
-                FacultyDirectionOfAction,
-                FacultyDirectionOfActionTr,
-                "direction_of_action_id",
-                faculty_code,
-                request.directions_of_action,
-                now,
-                db,
+                FacultyDirectionOfAction, FacultyDirectionOfActionTr, "direction_of_action_id", faculty_code, request.directions_of_action, now, db,
             )
 
         if request.deputy_deans:
-            await _create_people(FacultyDeputyDean, request.deputy_deans, faculty_code, now, db)
+            await _create_people(FacultyDeputyDean, FacultyDeputyDeanTr, "deputy_dean_id", request.deputy_deans, faculty_code, now, db)
 
         if request.scientific_council:
-            await _create_people(FacultyCouncilMember, request.scientific_council, faculty_code, now, db)
+            await _create_people(FacultyCouncilMember, FacultyCouncilMemberTr, "council_member_id", request.scientific_council, faculty_code, now, db)
 
         if request.workers:
-            await _create_people(FacultyWorker, request.workers, faculty_code, now, db)
+            await _create_people(FacultyWorker, FacultyWorkerTr, "worker_id", request.workers, faculty_code, now, db)
 
         await db.commit()
         await db.refresh(faculty)
@@ -539,9 +673,7 @@ async def create_faculty(
                 "status_code": 201,
                 "data": {
                     "faculty_code": faculty.faculty_code,
-                    "created_at": faculty.created_at.isoformat()
-                    if faculty.created_at
-                    else None,
+                    "created_at": faculty.created_at.isoformat() if faculty.created_at else None,
                 },
                 "message": "Faculty created successfully.",
             },
@@ -552,10 +684,7 @@ async def create_faculty(
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(
-            content={
-                "status_code": 500,
-                "error": "Internal server error",
-            },
+            content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -615,12 +744,8 @@ async def get_faculties(
                     "title": tr.faculty_name if tr else None,
                     "cafedra_count": cafedra_count,
                     "deputy_dean_count": deputy_count,
-                    "created_at": faculty.created_at.isoformat()
-                    if faculty.created_at
-                    else None,
-                    "updated_at": faculty.updated_at.isoformat()
-                    if faculty.updated_at
-                    else None,
+                    "created_at": faculty.created_at.isoformat() if faculty.created_at else None,
+                    "updated_at": faculty.updated_at.isoformat() if faculty.updated_at else None,
                 }
             )
 
@@ -672,102 +797,77 @@ async def get_faculty(
         )
         director = director_query.scalar_one_or_none()
 
+        deputy_deans_with_tr = await _fetch_people_with_tr(
+            FacultyDeputyDean, FacultyDeputyDeanTr, "deputy_dean_id", faculty_code, lang_code, db
+        )
+        council_with_tr = await _fetch_people_with_tr(
+            FacultyCouncilMember, FacultyCouncilMemberTr, "council_member_id", faculty_code, lang_code, db
+        )
+        workers_with_tr = await _fetch_people_with_tr(
+            FacultyWorker, FacultyWorkerTr, "worker_id", faculty_code, lang_code, db
+        )
+
         faculty_obj = {
             "id": faculty.id,
             "faculty_code": faculty.faculty_code,
             "title": tr.faculty_name if tr else None,
             "html_content": tr.about_text if tr else None,
-            "director": await _serialize_director(director, db) if director else None,
+            "director": await _serialize_director(director, lang_code, db) if director else None,
             "laboratories": await _serialize_translated_section(
-                FacultyLaboratory,
-                FacultyLaboratoryTr,
-                "laboratory_id",
-                faculty_code,
-                lang_code,
-                db,
+                FacultyLaboratory, FacultyLaboratoryTr, "laboratory_id", faculty_code, lang_code, db,
             ),
             "research_works": await _serialize_translated_section(
-                FacultyResearchWork,
-                FacultyResearchWorkTr,
-                "research_work_id",
-                faculty_code,
-                lang_code,
-                db,
+                FacultyResearchWork, FacultyResearchWorkTr, "research_work_id", faculty_code, lang_code, db,
             ),
             "partner_companies": await _serialize_translated_section(
-                FacultyPartnerCompany,
-                FacultyPartnerCompanyTr,
-                "partner_company_id",
-                faculty_code,
-                lang_code,
-                db,
+                FacultyPartnerCompany, FacultyPartnerCompanyTr, "partner_company_id", faculty_code, lang_code, db,
             ),
             "objectives": await _serialize_translated_section(
-                FacultyObjective,
-                FacultyObjectiveTr,
-                "objective_id",
-                faculty_code,
-                lang_code,
-                db,
+                FacultyObjective, FacultyObjectiveTr, "objective_id", faculty_code, lang_code, db,
             ),
             "duties": await _serialize_translated_section(
-                FacultyDuty,
-                FacultyDutyTr,
-                "duty_id",
-                faculty_code,
-                lang_code,
-                db,
+                FacultyDuty, FacultyDutyTr, "duty_id", faculty_code, lang_code, db,
             ),
             "projects": await _serialize_translated_section(
-                FacultyProject,
-                FacultyProjectTr,
-                "project_id",
-                faculty_code,
-                lang_code,
-                db,
+                FacultyProject, FacultyProjectTr, "project_id", faculty_code, lang_code, db,
             ),
             "directions_of_action": await _serialize_translated_section(
-                FacultyDirectionOfAction,
-                FacultyDirectionOfActionTr,
-                "direction_of_action_id",
-                faculty_code,
-                lang_code,
-                db,
+                FacultyDirectionOfAction, FacultyDirectionOfActionTr, "direction_of_action_id", faculty_code, lang_code, db,
             ),
             "deputy_deans": [
                 {
                     "first_name": person.first_name,
                     "last_name": person.last_name,
                     "father_name": person.father_name,
-                    "scientific_name": person.scientific_name,
-                    "scientific_degree": person.scientific_degree,
+                    "scientific_name": tr.scientific_name if tr else None,
+                    "scientific_degree": tr.scientific_degree if tr else None,
+                    "duty": tr.duty if tr else None,
                     "email": person.email,
                     "phone": person.phone,
-                    "duty": person.duty,
                     "profile_image": person.profile_image,
                 }
-                for person in (await _fetch_people(FacultyDeputyDean, faculty_code, db))
+                for person, tr in deputy_deans_with_tr
             ],
             "scientific_council": [
                 {
                     "first_name": person.first_name,
                     "last_name": person.last_name,
                     "father_name": person.father_name,
-                    "duty": person.duty,
+                    "duty": tr.duty if tr else None,
                 }
-                for person in (await _fetch_people(FacultyCouncilMember, faculty_code, db))
+                for person, tr in council_with_tr
             ],
             "workers": [
                 {
                     "first_name": person.first_name,
                     "last_name": person.last_name,
                     "father_name": person.father_name,
-                    "duty": person.duty,
-                    "scientific_name": person.scientific_name,
-                    "scientific_degree": person.scientific_degree,
+                    "duty": tr.duty if tr else None,
+                    "scientific_name": tr.scientific_name if tr else None,
+                    "scientific_degree": tr.scientific_degree if tr else None,
                     "email": person.email,
                 }
-                for person in (await _fetch_people(FacultyWorker, faculty_code, db))
+                for person, tr in workers_with_tr
             ],
             "created_at": faculty.created_at.isoformat() if faculty.created_at else None,
             "updated_at": faculty.updated_at.isoformat() if faculty.updated_at else None,
@@ -861,109 +961,65 @@ async def update_faculty(
             await _delete_section(FacultyLaboratory, faculty_code, db)
             if request_data["laboratories"]:
                 await _create_translated_section(
-                    FacultyLaboratory,
-                    FacultyLaboratoryTr,
-                    "laboratory_id",
-                    faculty_code,
-                    request_data["laboratories"],
-                    now,
-                    db,
+                    FacultyLaboratory, FacultyLaboratoryTr, "laboratory_id", faculty_code, request_data["laboratories"], now, db,
                 )
 
         if "research_works" in request_data:
             await _delete_section(FacultyResearchWork, faculty_code, db)
             if request_data["research_works"]:
                 await _create_translated_section(
-                    FacultyResearchWork,
-                    FacultyResearchWorkTr,
-                    "research_work_id",
-                    faculty_code,
-                    request_data["research_works"],
-                    now,
-                    db,
+                    FacultyResearchWork, FacultyResearchWorkTr, "research_work_id", faculty_code, request_data["research_works"], now, db,
                 )
 
         if "partner_companies" in request_data:
             await _delete_section(FacultyPartnerCompany, faculty_code, db)
             if request_data["partner_companies"]:
                 await _create_translated_section(
-                    FacultyPartnerCompany,
-                    FacultyPartnerCompanyTr,
-                    "partner_company_id",
-                    faculty_code,
-                    request_data["partner_companies"],
-                    now,
-                    db,
+                    FacultyPartnerCompany, FacultyPartnerCompanyTr, "partner_company_id", faculty_code, request_data["partner_companies"], now, db,
                 )
 
         if "objectives" in request_data:
             await _delete_section(FacultyObjective, faculty_code, db)
             if request_data["objectives"]:
                 await _create_translated_section(
-                    FacultyObjective,
-                    FacultyObjectiveTr,
-                    "objective_id",
-                    faculty_code,
-                    request_data["objectives"],
-                    now,
-                    db,
+                    FacultyObjective, FacultyObjectiveTr, "objective_id", faculty_code, request_data["objectives"], now, db,
                 )
 
         if "duties" in request_data:
             await _delete_section(FacultyDuty, faculty_code, db)
             if request_data["duties"]:
                 await _create_translated_section(
-                    FacultyDuty,
-                    FacultyDutyTr,
-                    "duty_id",
-                    faculty_code,
-                    request_data["duties"],
-                    now,
-                    db,
+                    FacultyDuty, FacultyDutyTr, "duty_id", faculty_code, request_data["duties"], now, db,
                 )
 
         if "projects" in request_data:
             await _delete_section(FacultyProject, faculty_code, db)
             if request_data["projects"]:
                 await _create_translated_section(
-                    FacultyProject,
-                    FacultyProjectTr,
-                    "project_id",
-                    faculty_code,
-                    request_data["projects"],
-                    now,
-                    db,
+                    FacultyProject, FacultyProjectTr, "project_id", faculty_code, request_data["projects"], now, db,
                 )
 
         if "directions_of_action" in request_data:
             await _delete_section(FacultyDirectionOfAction, faculty_code, db)
             if request_data["directions_of_action"]:
                 await _create_translated_section(
-                    FacultyDirectionOfAction,
-                    FacultyDirectionOfActionTr,
-                    "direction_of_action_id",
-                    faculty_code,
-                    request_data["directions_of_action"],
-                    now,
-                    db,
+                    FacultyDirectionOfAction, FacultyDirectionOfActionTr, "direction_of_action_id", faculty_code, request_data["directions_of_action"], now, db,
                 )
 
         if "deputy_deans" in request_data:
             await _delete_section(FacultyDeputyDean, faculty_code, db)
             if request_data["deputy_deans"]:
-                await _create_people(FacultyDeputyDean, request_data["deputy_deans"], faculty_code, now, db)
+                await _create_people(FacultyDeputyDean, FacultyDeputyDeanTr, "deputy_dean_id", request_data["deputy_deans"], faculty_code, now, db)
 
         if "scientific_council" in request_data:
             await _delete_section(FacultyCouncilMember, faculty_code, db)
             if request_data["scientific_council"]:
-                await _create_people(
-                    FacultyCouncilMember, request_data["scientific_council"], faculty_code, now, db
-                )
+                await _create_people(FacultyCouncilMember, FacultyCouncilMemberTr, "council_member_id", request_data["scientific_council"], faculty_code, now, db)
 
         if "workers" in request_data:
             await _delete_section(FacultyWorker, faculty_code, db)
             if request_data["workers"]:
-                await _create_people(FacultyWorker, request_data["workers"], faculty_code, now, db)
+                await _create_people(FacultyWorker, FacultyWorkerTr, "worker_id", request_data["workers"], faculty_code, now, db)
 
         faculty.updated_at = now
         await db.commit()
@@ -1026,6 +1082,50 @@ async def upload_director_profile_image(
             content={
                 "status_code": 200,
                 "message": "Director profile image uploaded successfully.",
+                "data": {"profile_image": new_path},
+            },
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def upload_deputy_dean_profile_image(
+    deputy_dean_id: int,
+    image: UploadFile,
+    db: AsyncSession,
+):
+    try:
+        query = await db.execute(
+            select(FacultyDeputyDean).where(FacultyDeputyDean.id == deputy_dean_id)
+        )
+        deputy_dean = query.scalar_one_or_none()
+
+        if not deputy_dean:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Deputy dean not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        old_path = deputy_dean.profile_image
+        new_path = await save_upload(image, "deputy-deans", ALLOWED_IMAGE_MIMES)
+
+        deputy_dean.profile_image = new_path
+        deputy_dean.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+
+        if old_path:
+            safe_delete_file(old_path)
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Deputy dean profile image uploaded successfully.",
                 "data": {"profile_image": new_path},
             },
             status_code=status.HTTP_200_OK,

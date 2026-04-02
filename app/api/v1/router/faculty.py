@@ -12,6 +12,7 @@ from app.services.faculty import (
     update_faculty,
     delete_faculty,
     upload_director_profile_image,
+    upload_deputy_dean_profile_image,
     get_directions_of_action,
     create_direction_of_action,
     update_direction_of_action,
@@ -113,6 +114,20 @@ async def upload_director_image_endpoint(
 ):
     return await upload_director_profile_image(
         faculty_code=faculty_code,
+        image=image,
+        db=db,
+    )
+
+
+@router.put("/deputy-deans/{deputy_dean_id}/image")
+async def upload_deputy_dean_image_endpoint(
+    deputy_dean_id: int,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await upload_deputy_dean_profile_image(
+        deputy_dean_id=deputy_dean_id,
         image=image,
         db=db,
     )

@@ -4,6 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +31,7 @@ from app.api.v1.router.menu_header import router as menu_header_router
 from app.api.v1.router.collaboration import router as collaboration_router
 from app.api.v1.router.auth import router as auth_router
 from app.api.v1.router.employee import router as employee_router
+from app.api.v1.router.department import router as department_router
 
 
 @asynccontextmanager
@@ -85,6 +87,23 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+# ── Validation exception handler ─────────────────────────────────────────────
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    body = await request.body()
+    logger.warning(
+        "Request validation failed on %s %s: %s; body=%s",
+        request.method,
+        request.url.path,
+        exc.errors(),
+        body.decode("utf-8", errors="replace"),
+    )
+    return JSONResponse(
+        status_code=422,
+        content={"status_code": 422, "detail": exc.errors()},
+    )
+
+
 # ── Global exception handler ───────────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -114,6 +133,7 @@ app.include_router(menu_router,          prefix="/api/menu",          tags=["Men
 app.include_router(menu_header_router,   prefix="/api/menu/header",   tags=["Menu Header"])
 app.include_router(collaboration_router, prefix="/api/collaboration", tags=["Collaboration"])
 app.include_router(employee_router,    prefix="/api/employee",    tags=["Employee"])
+app.include_router(department_router,  prefix="/api/department",  tags=["Department"])
 
 
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)
