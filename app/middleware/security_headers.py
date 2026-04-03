@@ -14,10 +14,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Prevent MIME-type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
 
-        # Prevent clickjacking
+        # Prevent clickjacking (allow same-origin for internal tools if needed, but DENY is safer)
         response.headers["X-Frame-Options"] = "DENY"
 
-        # Legacy XSS filter (modern browsers ignore, but kept for older ones)
+        # Legacy XSS filter
         response.headers["X-XSS-Protection"] = "1; mode=block"
 
         # Enforce HTTPS for 1 year
@@ -28,23 +28,28 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Restrict referrer information
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # Restrict browser feature access
-        response.headers["Permissions-Policy"] = (
-            "geolocation=(), microphone=(), camera=(), payment=()"
-        )
-
-        # Content Security Policy
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "img-src 'self' data: https:; "
-            "media-src 'self'; "
-            "script-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "font-src 'self' https:; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none'; "
-            "base-uri 'self'; "
-            "form-action 'self';"
-        )
+        # Content Security Policy (relaxed for Swagger UI)
+        if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "img-src 'self' data: https:; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+                "connect-src 'self'; "
+                "font-src 'self' data: https:;"
+            )
+        else:
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "img-src 'self' data: https:; "
+                "media-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "font-src 'self' https:; "
+                "connect-src 'self'; "
+                "frame-ancestors 'none'; "
+                "base-uri 'self'; "
+                "form-action 'self';"
+            )
 
         return response

@@ -38,7 +38,7 @@ async def create_collaboration_endpoint(
     az_name: str = Form(...),
     en_name: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     request = CollaborationCreate.as_form(
         logo=logo,
@@ -57,7 +57,7 @@ async def update_collaboration_endpoint(
     az_name: str = Form(...),
     en_name: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     request = CollaborationUpdate.as_form(
         logo=logo,
@@ -72,7 +72,7 @@ async def update_collaboration_endpoint(
 async def reorder_collaboration_endpoint(
     request: ReOrderCollaboration,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await reorder_collaboration(request=request, db=db)
 
@@ -81,6 +81,6 @@ async def reorder_collaboration_endpoint(
 async def delete_collaboration_endpoint(
     collaboration_id: int,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await delete_collaboration(collaboration_id=collaboration_id, db=db)

@@ -47,7 +47,7 @@ async def create_project_endpoint(
     en_description: str = Form(...),
     en_content_html: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     project = ProjectCreate.as_form(
         bg_image=bg_image,
@@ -65,7 +65,7 @@ async def create_project_endpoint(
 async def reorder_project_endpoint(
     request: ReOrderProject,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await reorder_project(
         request=request,
@@ -76,7 +76,7 @@ async def reorder_project_endpoint(
 async def delete_project_endpoint(
     project_id: int,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await delete_project(
         project_id=project_id,

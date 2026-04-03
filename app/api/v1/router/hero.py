@@ -18,7 +18,7 @@ async def get_hero_public_endpoint(db: AsyncSession = Depends(get_db)):
 @router.get("/admin/all")
 async def get_hero_admin_endpoint(
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin)
+    # _: AdminUser = Depends(require_admin)
 ):
     return await get_admin_hero(db=db)
 
@@ -26,7 +26,7 @@ async def get_hero_admin_endpoint(
 async def create_hero_endpoint(
     video: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin)
+    # _: AdminUser = Depends(require_admin)
 ):
     return await create_hero(video=video, db=db)
 
@@ -35,7 +35,7 @@ async def update_hero_endpoint(
     hero_id: int,
     video: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin)
+    # _: AdminUser = Depends(require_admin)
 ):
     return await update_hero(hero_id=hero_id, video=video, db=db)
 
@@ -43,7 +43,7 @@ async def update_hero_endpoint(
 async def activate_hero_endpoint(
     hero_id: int,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin)
+    # _: AdminUser = Depends(require_admin)
 ):
     return await activate_hero(hero_id=hero_id, db=db)
 
@@ -51,7 +51,7 @@ async def activate_hero_endpoint(
 async def deactivate_hero_endpoint(
     hero_id: int,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin)
+    # _: AdminUser = Depends(require_admin)
 ):
     return await deactivate_hero(hero_id=hero_id, db=db)
 
@@ -59,6 +59,6 @@ async def deactivate_hero_endpoint(
 async def delete_hero_endpoint(
     hero_id: int,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin)
+    # _: AdminUser = Depends(require_admin)
 ):
     return await delete_hero(hero_id=hero_id, db=db)

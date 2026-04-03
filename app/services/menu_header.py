@@ -263,7 +263,59 @@ async def update_header(
         )
 
 
-# ... (rest of CRUD for Item and SubItem)
+async def delete_header(header_id: int, db: AsyncSession):
+    try:
+        result = await db.execute(
+            select(MenuHeader).where(MenuHeader.id == header_id)
+        )
+        header = result.scalar_one_or_none()
+        if not header:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Header not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        if header.image_url:
+            old_rel = header.image_url.replace("https://aztu.edu.az/", "", 1)
+            safe_delete_file(old_rel)
+        await db.delete(header)
+        await db.commit()
+        return JSONResponse(
+            content={"status_code": 200, "message": "Header deleted."},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("delete_header failed")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def delete_header_item(item_id: int, db: AsyncSession):
+    try:
+        result = await db.execute(
+            select(MenuHeaderItem).where(MenuHeaderItem.id == item_id)
+        )
+        item = result.scalar_one_or_none()
+        if not item:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Item not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        await db.delete(item)
+        await db.commit()
+        return JSONResponse(
+            content={"status_code": 200, "message": "Header item deleted."},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("delete_header_item failed")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 # ─────────────────────────────────────────────────────────────
 # CRUD  —  MenuHeaderItem (first-level dropdown)

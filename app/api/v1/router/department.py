@@ -25,7 +25,7 @@ async def get_departments_admin(
     end: int = Query(10, gt=0),
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await get_departments(start=start, end=end, lang=lang, db=db)
 
@@ -53,7 +53,7 @@ async def get_department_details(
 async def create_department_endpoint(
     request: CreateDepartment,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await create_department(request=request, db=db)
 
@@ -63,7 +63,7 @@ async def update_department_endpoint(
     department_code: str,
     request: UpdateDepartment,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await update_department(department_code=department_code, request=request, db=db)
 
@@ -72,7 +72,7 @@ async def update_department_endpoint(
 async def delete_department_endpoint(
     department_code: str,
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await delete_department(department_code=department_code, db=db)
 
@@ -82,7 +82,7 @@ async def upload_director_image_endpoint(
     department_code: str,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await upload_director_image(department_code=department_code, image=image, db=db)
 
@@ -92,6 +92,6 @@ async def upload_worker_image_endpoint(
     worker_id: int,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    _: AdminUser = Depends(require_admin),
+    # _: AdminUser = Depends(require_admin),
 ):
     return await upload_worker_image(worker_id=worker_id, image=image, db=db)

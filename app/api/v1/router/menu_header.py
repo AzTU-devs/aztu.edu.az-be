@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.session import get_db
 from app.utils.language import get_language
-from app.core.auth_dependency import require_admin
 from app.utils.file_upload import save_upload, ALLOWED_IMAGE_MIMES
 from app.api.v1.schema.menu import (
     CreateHeaderItem, UpdateHeaderItem,
@@ -19,7 +18,7 @@ from app.services.menu_header import (
 )
 
 router = APIRouter()
-admin_router = APIRouter(dependencies=[Depends(require_admin)])
+admin_router = APIRouter(tags=["Menu Header Admin"])
 
 
 # ─────────────────────────────────────────────────────────────

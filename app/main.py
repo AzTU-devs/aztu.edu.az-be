@@ -87,20 +87,20 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# ── Validation exception handler ─────────────────────────────────────────────
+from fastapi.encoders import jsonable_encoder
+
+# ... (inside validation_exception_handler)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    body = await request.body()
     logger.warning(
-        "Request validation failed on %s %s: %s; body=%s",
+        "Request validation failed on %s %s: %s",
         request.method,
         request.url.path,
         exc.errors(),
-        body.decode("utf-8", errors="replace"),
     )
     return JSONResponse(
         status_code=422,
-        content={"status_code": 422, "detail": exc.errors()},
+        content=jsonable_encoder({"status_code": 422, "detail": exc.errors()}),
     )
 
 
