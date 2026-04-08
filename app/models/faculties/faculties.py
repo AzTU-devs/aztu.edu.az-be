@@ -1,5 +1,5 @@
 from app.core.database import Base
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Column, DateTime, Integer, String, JSON
 from sqlalchemy.orm import relationship
 
 
@@ -8,6 +8,17 @@ class Faculty(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     faculty_code = Column(String(50), unique=True, nullable=False)
+
+    # Statistics
+    bachelor_programs_count = Column(Integer, default=0)
+    master_programs_count = Column(Integer, default=0)
+    phd_programs_count = Column(Integer, default=0)
+    international_collaborations_count = Column(Integer, default=0)
+    laboratories_count = Column(Integer, default=0)
+    projects_patents_count = Column(Integer, default=0)
+    industrial_collaborations_count = Column(Integer, default=0)
+    sdgs = Column(JSON, default=list)
+
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.session import get_db
@@ -12,6 +12,8 @@ from app.services.cafedra import (
     get_cafedra,
     get_cafedras,
     update_cafedra,
+    upload_cafedra_director_image,
+    upload_cafedra_worker_image,
 )
 
 router = APIRouter()
@@ -67,7 +69,7 @@ async def get_cafedra_details_endpoint(
 
 @router.post("/create")
 async def create_cafedra_endpoint(
-    request: CreateCafedra = Depends(CreateCafedra.as_form),
+    request: CreateCafedra,
     db: AsyncSession = Depends(get_db),
     # _: AdminUser = Depends(require_admin),
 ):
@@ -80,7 +82,7 @@ async def create_cafedra_endpoint(
 @router.put("/{cafedra_code}")
 async def update_cafedra_endpoint(
     cafedra_code: str,
-    request: UpdateCafedra = Depends(UpdateCafedra.as_form),
+    request: UpdateCafedra,
     db: AsyncSession = Depends(get_db),
     # _: AdminUser = Depends(require_admin),
 ):
@@ -99,5 +101,33 @@ async def delete_cafedra_endpoint(
 ):
     return await delete_cafedra(
         cafedra_code=cafedra_code,
+        db=db,
+    )
+
+
+@router.put("/{cafedra_code}/director/image")
+async def upload_cafedra_director_image_endpoint(
+    cafedra_code: str,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    # _: AdminUser = Depends(require_admin),
+):
+    return await upload_cafedra_director_image(
+        cafedra_code=cafedra_code,
+        image=image,
+        db=db,
+    )
+
+
+@router.put("/workers/{worker_id}/image")
+async def upload_cafedra_worker_image_endpoint(
+    worker_id: int,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    # _: AdminUser = Depends(require_admin),
+):
+    return await upload_cafedra_worker_image(
+        worker_id=worker_id,
+        image=image,
         db=db,
     )

@@ -42,6 +42,7 @@ class DirectorTranslation(BaseModel):
     scientific_degree: str | None = None
     scientific_title: str | None = None
     bio: str | None = None
+    scientific_research_fields: list[str] | None = None
 
 
 class FacultyDirectorPayload(BaseModel):
@@ -87,6 +88,8 @@ class DeputyDean(BaseModel):
 
 class CouncilMemberTranslation(BaseModel):
     duty: str = Field(...)
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
 
 
 class ScientificCouncilMember(BaseModel):
@@ -95,6 +98,8 @@ class ScientificCouncilMember(BaseModel):
     father_name: str | None = None
     az: CouncilMemberTranslation
     en: CouncilMemberTranslation
+    email: EmailStr | None = None
+    phone: str | None = None
 
 
 class WorkerTranslation(BaseModel):
@@ -110,12 +115,25 @@ class Worker(BaseModel):
     az: WorkerTranslation
     en: WorkerTranslation
     email: EmailStr | None = None
+    phone: str | None = None
+    profile_image: str | None = None
 
 
 class CreateFaculty(BaseModel):
     az: LanguageBlock
     en: LanguageBlock
     director: FacultyDirectorPayload | None = None
+
+    # Statistics
+    bachelor_programs_count: int | None = 0
+    master_programs_count: int | None = 0
+    phd_programs_count: int | None = 0
+    international_collaborations_count: int | None = 0
+    laboratories_count: int | None = 0
+    projects_patents_count: int | None = 0
+    industrial_collaborations_count: int | None = 0
+    sdgs: list[int] | None = None
+
     laboratories: list[SectionItem] | None = None
     research_works: list[SectionItem] | None = None
     partner_companies: list[SectionItem] | None = None
@@ -132,6 +150,17 @@ class UpdateFaculty(BaseModel):
     az: LanguageBlock | None = None
     en: LanguageBlock | None = None
     director: FacultyDirectorPayload | None = None
+
+    # Statistics
+    bachelor_programs_count: int | None = None
+    master_programs_count: int | None = None
+    phd_programs_count: int | None = None
+    international_collaborations_count: int | None = None
+    laboratories_count: int | None = None
+    projects_patents_count: int | None = None
+    industrial_collaborations_count: int | None = None
+    sdgs: list[int] | None = None
+
     laboratories: list[SectionItem] | None = None
     research_works: list[SectionItem] | None = None
     partner_companies: list[SectionItem] | None = None

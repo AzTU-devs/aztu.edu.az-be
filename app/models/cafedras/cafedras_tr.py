@@ -1,5 +1,5 @@
 from app.core.database import Base
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 class CafedraTr(Base):
@@ -10,6 +10,7 @@ class CafedraTr(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     cafedra_name = Column(String(255), nullable=False)
+    about_text = Column(Text)
     cafedra_code = Column(
         String(50),
         ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),

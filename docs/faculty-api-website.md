@@ -1,6 +1,6 @@
 # Faculty API — Website (Public) Guide
 
-This document describes the public faculty endpoints and the shape of the data returned after the translation refactor. All translatable fields are now served in the language requested via the `lang` query parameter (`az` or `en`).
+This document describes the public faculty endpoints and the shape of the data returned. All translatable fields are served in the language requested via the `lang` query parameter (`az` or `en`).
 
 ---
 
@@ -65,6 +65,17 @@ Get full faculty details. All translatable fields are returned in the requested 
     "title": "Mühəndislik fakültəsi",
     "html_content": "<p>...</p>",
 
+    "bachelor_programs_count": 10,
+    "master_programs_count": 5,
+    "phd_programs_count": 2,
+    "international_collaborations_count": 15,
+    "laboratories_count": 8,
+    "projects_patents_count": 20,
+    "industrial_collaborations_count": 12,
+    "sdgs": [4, 7, 9, 13],
+    "cafedra_count": 4,
+    "deputy_dean_count": 2,
+
     "director": {
       "first_name": "Əli",
       "last_name": "Əliyev",
@@ -72,6 +83,7 @@ Get full faculty details. All translatable fields are returned in the requested 
       "scientific_degree": "Texnika elmləri doktoru",
       "scientific_title": "Professor",
       "bio": "<p>...</p>",
+      "scientific_research_fields": ["Cybersecurity", "AI"],
       "email": "ali@aztu.edu.az",
       "phone": "+994501234567",
       "room_number": "301",
@@ -94,6 +106,7 @@ Get full faculty details. All translatable fields are returned in the requested 
 
     "deputy_deans": [
       {
+        "id": 1,
         "first_name": "Nigar",
         "last_name": "Həsənova",
         "father_name": "Mübariz qızı",
@@ -108,22 +121,29 @@ Get full faculty details. All translatable fields are returned in the requested 
 
     "scientific_council": [
       {
+        "id": 1,
         "first_name": "Rauf",
         "last_name": "Quliyev",
         "father_name": "Tofiq oğlu",
-        "duty": "Elmi katib"
+        "duty": "Elmi katib",
+        "scientific_name": "Dosent",
+        "scientific_degree": "Fəlsəfə doktoru",
+        "email": "rauf@aztu.edu.az",
+        "phone": "+994501234569"
       }
     ],
 
     "workers": [
       {
+        "id": 1,
         "first_name": "Leyla",
         "last_name": "Məmmədova",
         "father_name": "Farid qızı",
         "duty": "Müəllim",
         "scientific_name": "Dosent",
         "scientific_degree": "Fəlsəfə doktoru",
-        "email": "leyla@aztu.edu.az"
+        "email": "leyla@aztu.edu.az",
+        "profile_image": "static/faculty-workers/lmn789.jpg"
       }
     ],
 
@@ -162,49 +182,40 @@ Get only the directions of action for a faculty.
 
 ---
 
-## What Changed From the Previous Version
+## Field Details
 
-### Director fields
+### Statistics
+- `bachelor_programs_count`, `master_programs_count`, `phd_programs_count`: Integer counts of academic programs.
+- `international_collaborations_count`, `industrial_collaborations_count`: Counts of partnerships.
+- `laboratories_count`: Total count of laboratories.
+- `projects_patents_count`: Count of projects and patents.
+- `sdgs`: Array of Sustainable Development Goal (SDG) numbers (1-17).
+- `cafedra_count`: Total number of departments (cafedras) under this faculty.
+- `deputy_dean_count`: Number of deputy deans.
 
-Previously `scientific_degree`, `scientific_title`, and `bio` were always returned in a single fixed language. Now they reflect the `?lang` parameter.
+### Director
+- `scientific_research_fields`: Array of strings representing research areas.
+- `working_hours`: List of `{ day, time_range }`. `day` is translated.
+- `scientific_events`: List of `{ event_title, event_description }`. Both are translated.
+- `educations`: List of `{ degree, university, start_year, end_year }`. `degree` and `university` are translated.
 
-### Working hours
+### Personnel (Deputy Deans, Council, Workers)
+- `scientific_name`, `scientific_degree`, `duty`: All translated based on `?lang`.
+- `profile_image`: Relative path. Prefix with API base domain (e.g., `https://api.aztu.edu.az/`).
 
-Previously `day` was a fixed string (e.g., always in Azerbaijani). Now it reflects the `?lang` parameter — pass `?lang=en` to receive `"Monday"`, `?lang=az` to receive `"Bazar ertəsi"`.
+---
 
-### Scientific events
+## Static Assets
 
-`event_title` and `event_description` are now translated per `?lang`.
-
-### Educations
-
-`degree` and `university` are now translated per `?lang`.
-
-### Deputy deans
-
-`scientific_name`, `scientific_degree`, and `duty` are now translated per `?lang`.
-
-### Scientific council members
-
-`duty` is now translated per `?lang`.
-
-### Workers
-
-`duty`, `scientific_name`, and `scientific_degree` are now translated per `?lang`.
-
-### Profile images
-
-`profile_image` values are relative paths — prepend the API base domain to get the full URL:
-
+Prepend the API base domain to all image paths:
 ```
 https://api.aztu.edu.az/static/directors/abc123.jpg
 https://api.aztu.edu.az/static/deputy-deans/xyz456.jpg
+https://api.aztu.edu.az/static/faculty-workers/lmn789.jpg
 ```
-
-If `profile_image` is `null`, render a placeholder.
 
 ---
 
 ## Null Safety
 
-All translatable fields (`scientific_degree`, `duty`, `bio`, `day`, etc.) may be `null` if no translation exists for the requested language. Always handle `null` gracefully in the UI.
+All translatable fields and optional sections may return `null` or `[]`. Always handle these cases in the UI.

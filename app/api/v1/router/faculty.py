@@ -133,6 +133,20 @@ async def upload_deputy_dean_image_endpoint(
     )
 
 
+@router.put("/workers/{worker_id}/image")
+async def upload_worker_image_endpoint(
+    worker_id: int,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    # _: AdminUser = Depends(require_admin),
+):
+    return await upload_worker_profile_image(
+        worker_id=worker_id,
+        image=image,
+        db=db,
+    )
+
+
 @router.get("/{faculty_code}/directions-of-action")
 async def get_directions_of_action_endpoint(
     faculty_code: str,

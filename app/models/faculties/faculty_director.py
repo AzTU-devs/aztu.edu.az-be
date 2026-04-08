@@ -1,5 +1,5 @@
 from app.core.database import Base
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, JSON
 from sqlalchemy.orm import relationship
 
 
@@ -68,6 +68,7 @@ class FacultyDirectorTr(Base):
     scientific_degree = Column(String(255))
     scientific_title = Column(String(255))
     bio = Column(Text)
+    scientific_research_fields = Column(JSON, default=list)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 

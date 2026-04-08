@@ -1,52 +1,118 @@
-from fastapi import Depends, Form
+from pydantic import BaseModel, EmailStr, Field
 
 
-class CreateCafedraForm:
-    def __init__(
-        self,
-        cafedra_name: str = Form(...),
-    ):
-        self.cafedra_name = cafedra_name
+class LanguageBlock(BaseModel):
+    title: str = Field(...)
+    html_content: str | None = None
 
 
-class CreateCafedra:
-    def __init__(
-        self,
-        faculty_code: str = Form(...),
-        az: CreateCafedraForm = Depends(),
-        en: CreateCafedraForm = Depends(),
-    ):
-        self.faculty_code = faculty_code
-        self.az = az
-        self.en = en
-
-    @classmethod
-    def as_form(
-        cls,
-        faculty_code: str = Form(...),
-        az_name: str = Form(...),
-        en_name: str = Form(...),
-    ):
-        az = CreateCafedraForm(cafedra_name=az_name)
-        en = CreateCafedraForm(cafedra_name=en_name)
-        return cls(faculty_code=faculty_code, az=az, en=en)
+class WorkingHourTranslation(BaseModel):
+    day: str = Field(...)
 
 
-class UpdateCafedra:
-    def __init__(
-        self,
-        az: CreateCafedraForm = Depends(),
-        en: CreateCafedraForm = Depends(),
-    ):
-        self.az = az
-        self.en = en
+class DirectorWorkingHour(BaseModel):
+    az: WorkingHourTranslation
+    en: WorkingHourTranslation
+    time_range: str = Field(...)
 
-    @classmethod
-    def as_form(
-        cls,
-        az_name: str | None = Form(None),
-        en_name: str | None = Form(None),
-    ):
-        az = CreateCafedraForm(cafedra_name=az_name) if az_name is not None else None
-        en = CreateCafedraForm(cafedra_name=en_name) if en_name is not None else None
-        return cls(az=az, en=en)
+
+class EducationTranslation(BaseModel):
+    degree: str = Field(...)
+    university: str = Field(...)
+
+
+class DirectorEducation(BaseModel):
+    az: EducationTranslation
+    en: EducationTranslation
+    start_year: str | None = None
+    end_year: str | None = None
+
+
+class DirectorTranslation(BaseModel):
+    scientific_degree: str | None = None
+    scientific_title: str | None = None
+    bio: str | None = None
+    scientific_research_fields: list[str] | None = None
+
+
+class CafedraDirectorPayload(BaseModel):
+    first_name: str = Field(...)
+    last_name: str = Field(...)
+    father_name: str | None = None
+    az: DirectorTranslation | None = None
+    en: DirectorTranslation | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    room_number: str | None = None
+    profile_image: str | None = None
+    working_hours: list[DirectorWorkingHour] | None = None
+    educations: list[DirectorEducation] | None = None
+
+
+class SectionTranslation(BaseModel):
+    title: str = Field(...)
+    description: str | None = None
+
+
+class SectionItem(BaseModel):
+    az: SectionTranslation
+    en: SectionTranslation
+
+
+class WorkerTranslation(BaseModel):
+    duty: str = Field(...)
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+
+
+class Worker(BaseModel):
+    first_name: str = Field(...)
+    last_name: str = Field(...)
+    father_name: str | None = None
+    az: WorkerTranslation
+    en: WorkerTranslation
+    email: EmailStr | None = None
+    phone: str | None = None
+    profile_image: str | None = None
+
+
+class CreateCafedra(BaseModel):
+    faculty_code: str = Field(...)
+    az: LanguageBlock
+    en: LanguageBlock
+    director: CafedraDirectorPayload | None = None
+
+    # Statistics
+    bachelor_programs_count: int | None = 0
+    master_programs_count: int | None = 0
+    phd_programs_count: int | None = 0
+    international_collaborations_count: int | None = 0
+    laboratories_count: int | None = 0
+    projects_patents_count: int | None = 0
+    industrial_collaborations_count: int | None = 0
+    sdgs: list[int] | None = None
+
+    directions_of_action: list[SectionItem] | None = None
+    workers: list[Worker] | None = None
+
+
+class UpdateCafedra(BaseModel):
+    az: LanguageBlock | None = None
+    en: LanguageBlock | None = None
+    director: CafedraDirectorPayload | None = None
+
+    # Statistics
+    bachelor_programs_count: int | None = None
+    master_programs_count: int | None = None
+    phd_programs_count: int | None = None
+    international_collaborations_count: int | None = None
+    laboratories_count: int | None = None
+    projects_patents_count: int | None = None
+    industrial_collaborations_count: int | None = None
+    sdgs: list[int] | None = None
+
+    directions_of_action: list[SectionItem] | None = None
+    workers: list[Worker] | None = None
+
+    class Config:
+        extra = "ignore"

@@ -52,6 +52,13 @@ from app.utils.language import get_language
 logger = get_logger(__name__)
 
 
+def validate_sdgs(sdgs: list[int] | None) -> list[int]:
+    if not sdgs:
+        return []
+    valid_sdgs = [i for i in sdgs if 1 <= i <= 17]
+    return list(set(valid_sdgs))
+
+
 def faculty_code_generator() -> str:
     return str(secrets.randbelow(900000) + 100000)
 
@@ -328,7 +335,7 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         )
         tr = tr_query.scalar_one_or_none()
         if tr:
-            for field in ["scientific_degree", "scientific_title", "bio"]:
+            for field in ["scientific_degree", "scientific_title", "bio", "scientific_research_fields"]:
                 if field in tr_data:
                     setattr(tr, field, tr_data[field])
             tr.updated_at = now
@@ -339,6 +346,7 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
                 scientific_degree=tr_data.get("scientific_degree"),
                 scientific_title=tr_data.get("scientific_title"),
                 bio=tr_data.get("bio"),
+                scientific_research_fields=tr_data.get("scientific_research_fields") or [],
                 created_at=now,
                 updated_at=now,
             ))
@@ -538,6 +546,7 @@ async def _serialize_director(director: FacultyDirector, lang_code: str, db: Asy
         "scientific_degree": tr.scientific_degree if tr else None,
         "scientific_title": tr.scientific_title if tr else None,
         "bio": tr.bio if tr else None,
+        "scientific_research_fields": tr.scientific_research_fields if tr else [],
         "email": director.email,
         "phone": director.phone,
         "room_number": director.room_number,
@@ -553,6 +562,7 @@ async def create_faculty(
     db: AsyncSession = Depends(get_db),
 ):
     try:
+        logger.debug("Creating faculty with payload: %s", request.dict())
         faculty_code = None
         for _ in range(10):
             candidate = faculty_code_generator()
@@ -580,6 +590,7 @@ async def create_faculty(
                 )
             )
             if dup_q.scalar_one_or_none():
+                logger.warning("Duplicate faculty title found: %s (%s)", translation.title, lang_code)
                 return JSONResponse(
                     content={
                         "status_code": 422,
@@ -595,6 +606,14 @@ async def create_faculty(
         now = datetime.now(timezone.utc)
         faculty = Faculty(
             faculty_code=faculty_code,
+            bachelor_programs_count=request.bachelor_programs_count or 0,
+            master_programs_count=request.master_programs_count or 0,
+            phd_programs_count=request.phd_programs_count or 0,
+            international_collaborations_count=request.international_collaborations_count or 0,
+            laboratories_count=request.laboratories_count or 0,
+            projects_patents_count=request.projects_patents_count or 0,
+            industrial_collaborations_count=request.industrial_collaborations_count or 0,
+            sdgs=validate_sdgs(request.sdgs),
             created_at=now,
         )
         db.add(faculty)
@@ -807,11 +826,38 @@ async def get_faculty(
             FacultyWorker, FacultyWorkerTr, "worker_id", faculty_code, lang_code, db
         )
 
+        cafedra_count_query = await db.execute(
+            select(func.count()).select_from(Cafedra).where(
+                Cafedra.faculty_code == faculty_code
+            )
+        )
+        cafedra_count = cafedra_count_query.scalar() or 0
+
+        deputy_count_query = await db.execute(
+            select(func.count()).select_from(FacultyDeputyDean).where(
+                FacultyDeputyDean.faculty_code == faculty_code
+            )
+        )
+        deputy_count = deputy_count_query.scalar() or 0
+
         faculty_obj = {
             "id": faculty.id,
             "faculty_code": faculty.faculty_code,
             "title": tr.faculty_name if tr else None,
             "html_content": tr.about_text if tr else None,
+            
+            # Statistics
+            "bachelor_programs_count": faculty.bachelor_programs_count or 0,
+            "master_programs_count": faculty.master_programs_count or 0,
+            "phd_programs_count": faculty.phd_programs_count or 0,
+            "international_collaborations_count": faculty.international_collaborations_count or 0,
+            "laboratories_count": faculty.laboratories_count or 0,
+            "projects_patents_count": faculty.projects_patents_count or 0,
+            "industrial_collaborations_count": faculty.industrial_collaborations_count or 0,
+            "sdgs": faculty.sdgs or [],
+            "cafedra_count": cafedra_count,
+            "deputy_dean_count": deputy_count,
+
             "director": await _serialize_director(director, lang_code, db) if director else None,
             "laboratories": await _serialize_translated_section(
                 FacultyLaboratory, FacultyLaboratoryTr, "laboratory_id", faculty_code, lang_code, db,
@@ -836,6 +882,7 @@ async def get_faculty(
             ),
             "deputy_deans": [
                 {
+                    "id": person.id,
                     "first_name": person.first_name,
                     "last_name": person.last_name,
                     "father_name": person.father_name,
@@ -850,15 +897,7 @@ async def get_faculty(
             ],
             "scientific_council": [
                 {
-                    "first_name": person.first_name,
-                    "last_name": person.last_name,
-                    "father_name": person.father_name,
-                    "duty": tr.duty if tr else None,
-                }
-                for person, tr in council_with_tr
-            ],
-            "workers": [
-                {
+                    "id": person.id,
                     "first_name": person.first_name,
                     "last_name": person.last_name,
                     "father_name": person.father_name,
@@ -866,6 +905,21 @@ async def get_faculty(
                     "scientific_name": tr.scientific_name if tr else None,
                     "scientific_degree": tr.scientific_degree if tr else None,
                     "email": person.email,
+                    "phone": person.phone,
+                }
+                for person, tr in council_with_tr
+            ],
+            "workers": [
+                {
+                    "id": person.id,
+                    "first_name": person.first_name,
+                    "last_name": person.last_name,
+                    "father_name": person.father_name,
+                    "duty": tr.duty if tr else None,
+                    "scientific_name": tr.scientific_name if tr else None,
+                    "scientific_degree": tr.scientific_degree if tr else None,
+                    "email": person.email,
+                    "profile_image": person.profile_image,
                 }
                 for person, tr in workers_with_tr
             ],
@@ -953,6 +1007,23 @@ async def update_faculty(
 
         await ensure_translation("az", request_data.get("az"))
         await ensure_translation("en", request_data.get("en"))
+
+        # Update Statistics
+        stat_fields = [
+            "bachelor_programs_count",
+            "master_programs_count",
+            "phd_programs_count",
+            "international_collaborations_count",
+            "laboratories_count",
+            "projects_patents_count",
+            "industrial_collaborations_count",
+        ]
+        for field in stat_fields:
+            if field in request_data:
+                setattr(faculty, field, request_data[field])
+        
+        if "sdgs" in request_data:
+            faculty.sdgs = validate_sdgs(request_data["sdgs"])
 
         if "director" in request_data:
             await _upsert_director(faculty_code, request_data.get("director"), now, db)
@@ -1126,6 +1197,50 @@ async def upload_deputy_dean_profile_image(
             content={
                 "status_code": 200,
                 "message": "Deputy dean profile image uploaded successfully.",
+                "data": {"profile_image": new_path},
+            },
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def upload_worker_profile_image(
+    worker_id: int,
+    image: UploadFile,
+    db: AsyncSession,
+):
+    try:
+        query = await db.execute(
+            select(FacultyWorker).where(FacultyWorker.id == worker_id)
+        )
+        worker = query.scalar_one_or_none()
+
+        if not worker:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Worker not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        old_path = worker.profile_image
+        new_path = await save_upload(image, "faculty-workers", ALLOWED_IMAGE_MIMES)
+
+        worker.profile_image = new_path
+        worker.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+
+        if old_path:
+            safe_delete_file(old_path)
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Worker profile image uploaded successfully.",
                 "data": {"profile_image": new_path},
             },
             status_code=status.HTTP_200_OK,

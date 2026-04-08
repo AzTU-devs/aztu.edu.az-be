@@ -64,6 +64,8 @@ class FacultyCouncilMember(Base):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     father_name = Column(String(100))
+    email = Column(String(255))
+    phone = Column(String(50))
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 
@@ -90,6 +92,8 @@ class FacultyCouncilMemberTr(Base):
     )
     lang_code = Column(String(10), nullable=False)
     duty = Column(String(255), nullable=False)
+    scientific_name = Column(String(255))
+    scientific_degree = Column(String(255))
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 
@@ -109,6 +113,8 @@ class FacultyWorker(Base):
     last_name = Column(String(100), nullable=False)
     father_name = Column(String(100))
     email = Column(String(255))
+    phone = Column(String(50))
+    profile_image = Column(String(1024))
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 
