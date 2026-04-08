@@ -55,8 +55,6 @@ class Settings(BaseSettings):
                     "JWT_SECRET_KEY must be set and at least 32 characters in production. "
                     f"Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
                 )
-            if "*" in self.ALLOWED_ORIGINS:
-                raise ValueError("Wildcard CORS origin not allowed in production")
         return self
 
 
