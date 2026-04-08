@@ -28,28 +28,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Restrict referrer information
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-        # Content Security Policy (relaxed for Swagger UI)
-        if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'self'; "
-                "img-src 'self' data: https:; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; "
-                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
-                "connect-src 'self'; "
-                "font-src 'self' data: https:;"
-            )
-        else:
-            response.headers["Content-Security-Policy"] = (
-                "default-src 'self'; "
-                "img-src 'self' data: https:; "
-                "media-src 'self'; "
-                "script-src 'self'; "
-                "style-src 'self' 'unsafe-inline'; "
-                "font-src 'self' https:; "
-                "connect-src 'self'; "
-                "frame-ancestors 'none'; "
-                "base-uri 'self'; "
-                "form-action 'self';"
-            )
+        # Relax or remove CSP for public-facing API to avoid cross-origin issues during early development
+        # response.headers["Content-Security-Policy"] = ...
 
         return response

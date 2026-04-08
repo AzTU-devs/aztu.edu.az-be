@@ -54,9 +54,6 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ── Security headers ───────────────────────────────────────────────────────────
-app.add_middleware(SecurityHeadersMiddleware)
-
 # ── CORS ───────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
@@ -66,6 +63,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# ── Security headers ───────────────────────────────────────────────────────────
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # ── Request logging middleware ─────────────────────────────────────────────────
