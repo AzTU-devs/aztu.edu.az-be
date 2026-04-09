@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     # App behaviour
     ENVIRONMENT: str = "production"  # development | production
-    ALLOWED_ORIGINS: list[str] = ["https://aztu.edu.az"]
+    ALLOWED_ORIGINS: list[str] = ["*"]
     MAX_UPLOAD_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB
 
     class Config:
