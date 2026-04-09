@@ -20,10 +20,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Legacy XSS filter
         response.headers["X-XSS-Protection"] = "1; mode=block"
 
-        # Enforce HTTPS for 1 year
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains; preload"
-        )
+        # Enforce HTTPS for 1 year (only if secure)
+        if request.url.scheme == "https":
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains; preload"
+            )
 
         # Restrict referrer information
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
