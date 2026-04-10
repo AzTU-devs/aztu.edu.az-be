@@ -80,7 +80,7 @@ async def create_faculty_endpoint(
     )
 
 
-@router.put("/{faculty_code}")
+@router.patch("/{faculty_code}")
 async def update_faculty_endpoint(
     faculty_code: str,
     request: UpdateFaculty,
