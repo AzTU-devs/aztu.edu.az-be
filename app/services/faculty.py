@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction
+from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction, Worker
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
 from app.core.logger import get_logger
 from app.core.session import get_db
@@ -1438,6 +1438,68 @@ async def delete_direction_of_action(
         return JSONResponse(
             content={"status_code": 200, "message": "Direction of action deleted successfully."},
             status_code=status.HTTP_200_OK,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def create_worker(
+    faculty_code: str,
+    request: Worker,
+    db: AsyncSession,
+):
+    try:
+        faculty_query = await db.execute(
+            select(Faculty).where(Faculty.faculty_code == faculty_code)
+        )
+        if not faculty_query.scalar_one_or_none():
+            return JSONResponse(
+                content={"status_code": 404, "message": "Faculty not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        now = datetime.now(timezone.utc)
+        worker = FacultyWorker(
+            faculty_code=faculty_code,
+            first_name=request.first_name,
+            last_name=request.last_name,
+            father_name=request.father_name,
+            email=request.email,
+            phone=request.phone,
+            profile_image=request.profile_image,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(worker)
+        await db.flush()
+
+        for lang_code, tr_data in [("az", request.az), ("en", request.en)]:
+            if tr_data is None:
+                continue
+            db.add(FacultyWorkerTr(
+                worker_id=worker.id,
+                lang_code=lang_code,
+                duty=tr_data.duty,
+                scientific_name=tr_data.scientific_name,
+                scientific_degree=tr_data.scientific_degree,
+                created_at=now,
+                updated_at=now,
+            ))
+
+        await db.commit()
+
+        return JSONResponse(
+            content={
+                "status_code": 201,
+                "message": "Worker added successfully.",
+                "data": {"id": worker.id},
+            },
+            status_code=status.HTTP_201_CREATED,
         )
     except Exception as e:
         logger.exception("500 Internal Server Error")

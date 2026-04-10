@@ -84,6 +84,7 @@ class DeputyDean(BaseModel):
     en: DeputyDeanTranslation | None = None
     email: EmailStr | None = None
     phone: str | None = None
+    profile_image: str | None = None
 
 
 class CouncilMemberTranslation(BaseModel):

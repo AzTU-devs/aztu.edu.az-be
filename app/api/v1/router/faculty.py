@@ -13,12 +13,13 @@ from app.services.faculty import (
     delete_faculty,
     upload_director_profile_image,
     upload_deputy_dean_profile_image,
+    upload_worker_profile_image,
     get_directions_of_action,
     create_direction_of_action,
     update_direction_of_action,
     delete_direction_of_action,
 )
-from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction
+from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction, Worker
 
 router = APIRouter()
 
@@ -143,6 +144,21 @@ async def upload_worker_image_endpoint(
     return await upload_worker_profile_image(
         worker_id=worker_id,
         image=image,
+        db=db,
+    )
+
+
+@router.post("/{faculty_code}/workers")
+async def create_worker_endpoint(
+    faculty_code: str,
+    request: Worker,
+    db: AsyncSession = Depends(get_db),
+    # _: AdminUser = Depends(require_admin),
+):
+    from app.services.faculty import create_worker
+    return await create_worker(
+        faculty_code=faculty_code,
+        request=request,
         db=db,
     )
 

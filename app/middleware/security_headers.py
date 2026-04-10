@@ -11,6 +11,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
 
+        # Support for Private Network Access (PNA)
+        # Required when a global domain (public) requests a local IP (private)
+        if request.headers.get("access-control-request-private-network") == "true":
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
+
+        # Skip other security headers for CORS preflight (OPTIONS)
+        if request.method == "OPTIONS":
+            return response
+
         # Prevent MIME-type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
 
