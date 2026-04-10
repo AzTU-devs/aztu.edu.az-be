@@ -13,6 +13,7 @@ from app.services.cafedra import (
     get_cafedras,
     update_cafedra,
     upload_cafedra_director_image,
+    upload_cafedra_deputy_director_image,
     upload_cafedra_worker_image,
 )
 
@@ -114,6 +115,20 @@ async def upload_cafedra_director_image_endpoint(
 ):
     return await upload_cafedra_director_image(
         cafedra_code=cafedra_code,
+        image=image,
+        db=db,
+    )
+
+
+@router.put("/deputy-directors/{deputy_director_id}/image")
+async def upload_cafedra_deputy_director_image_endpoint(
+    deputy_director_id: int,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    # _: AdminUser = Depends(require_admin),
+):
+    return await upload_cafedra_deputy_director_image(
+        deputy_director_id=deputy_director_id,
         image=image,
         db=db,
     )

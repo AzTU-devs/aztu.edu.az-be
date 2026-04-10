@@ -50,8 +50,56 @@ class Cafedra(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    laboratories = relationship(
+        "CafedraLaboratory",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    research_works = relationship(
+        "CafedraResearchWork",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    partner_companies = relationship(
+        "CafedraPartnerCompany",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    objectives = relationship(
+        "CafedraObjective",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    duties = relationship(
+        "CafedraDuty",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    projects = relationship(
+        "CafedraProject",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     directions_of_action = relationship(
         "CafedraDirectionOfAction",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    deputy_directors = relationship(
+        "CafedraDeputyDirector",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    scientific_council = relationship(
+        "CafedraCouncilMember",
         back_populates="cafedra",
         cascade="all, delete-orphan",
         passive_deletes=True,

@@ -44,6 +44,12 @@ class CafedraDirector(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    scientific_events = relationship(
+        "CafedraDirectorScientificEvent",
+        back_populates="director",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class CafedraDirectorTr(Base):
@@ -153,3 +159,45 @@ class CafedraDirectorEducationTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     education = relationship("CafedraDirectorEducation", back_populates="translations")
+
+
+class CafedraDirectorScientificEvent(Base):
+    __tablename__ = "cafedra_director_scientific_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    director_id = Column(
+        Integer,
+        ForeignKey("cafedra_directors.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    director = relationship("CafedraDirector", back_populates="scientific_events")
+    translations = relationship(
+        "CafedraDirectorScientificEventTr",
+        back_populates="scientific_event",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class CafedraDirectorScientificEventTr(Base):
+    __tablename__ = "cafedra_director_scientific_event_tr"
+    __table_args__ = (
+        UniqueConstraint("scientific_event_id", "lang_code", name="uq_cafedra_director_scientific_event_tr_id_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    scientific_event_id = Column(
+        Integer,
+        ForeignKey("cafedra_director_scientific_events.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    lang_code = Column(String(10), nullable=False)
+    event_title = Column(String(255), nullable=False)
+    event_description = Column(Text)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    scientific_event = relationship("CafedraDirectorScientificEvent", back_populates="translations")

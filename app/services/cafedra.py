@@ -21,12 +21,30 @@ from app.models.cafedras.cafedra_director import (
     CafedraDirectorWorkingHourTr,
     CafedraDirectorEducation,
     CafedraDirectorEducationTr,
+    CafedraDirectorScientificEvent,
+    CafedraDirectorScientificEventTr,
 )
 from app.models.cafedras.cafedra_personnel import (
     CafedraWorker,
     CafedraWorkerTr,
+    CafedraDeputyDirector,
+    CafedraDeputyDirectorTr,
+    CafedraCouncilMember,
+    CafedraCouncilMemberTr,
 )
 from app.models.cafedras.cafedra_section import (
+    CafedraLaboratory,
+    CafedraLaboratoryTr,
+    CafedraResearchWork,
+    CafedraResearchWorkTr,
+    CafedraPartnerCompany,
+    CafedraPartnerCompanyTr,
+    CafedraObjective,
+    CafedraObjectiveTr,
+    CafedraDuty,
+    CafedraDutyTr,
+    CafedraProject,
+    CafedraProjectTr,
     CafedraDirectionOfAction,
     CafedraDirectionOfActionTr,
 )
@@ -112,6 +130,12 @@ async def _serialize_translated_section(
     return items
 
 
+async def _delete_section(parent_cls: Type[Any], cafedra_code: str, db: AsyncSession):
+    await db.execute(
+        sqlalchemy_delete(parent_cls).where(parent_cls.cafedra_code == cafedra_code)
+    )
+
+
 async def _create_people(
     parent_cls: Type[Any],
     tr_cls: Type[Any],
@@ -151,6 +175,31 @@ async def _create_people(
                 if hasattr(tr_cls, "scientific_degree"):
                     fields["scientific_degree"] = data.scientific_degree
                 db.add(tr_cls(**fields))
+
+
+async def _fetch_people_with_tr(
+    parent_cls: Type[Any],
+    tr_cls: Type[Any],
+    person_id_field: str,
+    cafedra_code: str,
+    lang_code: str,
+    db: AsyncSession,
+):
+    query = await db.execute(
+        select(parent_cls).where(parent_cls.cafedra_code == cafedra_code)
+    )
+    people = query.scalars().all()
+    result = []
+    for person in people:
+        tr_query = await db.execute(
+            select(tr_cls).where(
+                getattr(tr_cls, person_id_field) == person.id,
+                tr_cls.lang_code == lang_code,
+            )
+        )
+        tr = tr_query.scalar_one_or_none()
+        result.append((person, tr))
+    return result
 
 
 async def _create_director(cafedra_code: str, director_data: Any, now: datetime, db: AsyncSession):
@@ -198,6 +247,32 @@ async def _create_director(cafedra_code: str, director_data: Any, now: datetime,
             ))
             db.add(CafedraDirectorWorkingHourTr(
                 working_hour_id=wh.id, lang_code="en", day=item.en.day, created_at=now, updated_at=now,
+            ))
+
+    if director_data.scientific_events:
+        for item in director_data.scientific_events:
+            event = CafedraDirectorScientificEvent(
+                director_id=director.id,
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(event)
+            await db.flush()
+            db.add(CafedraDirectorScientificEventTr(
+                scientific_event_id=event.id,
+                lang_code="az",
+                event_title=item.az.event_title,
+                event_description=item.az.event_description,
+                created_at=now,
+                updated_at=now,
+            ))
+            db.add(CafedraDirectorScientificEventTr(
+                scientific_event_id=event.id,
+                lang_code="en",
+                event_title=item.en.event_title,
+                event_description=item.en.event_description,
+                created_at=now,
+                updated_at=now,
             ))
 
     if director_data.educations:
@@ -288,6 +363,38 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
                 db.add(CafedraDirectorWorkingHourTr(working_hour_id=wh.id, lang_code="az", day=item.az.day, created_at=now, updated_at=now))
                 db.add(CafedraDirectorWorkingHourTr(working_hour_id=wh.id, lang_code="en", day=item.en.day, created_at=now, updated_at=now))
 
+    if "scientific_events" in data:
+        await db.execute(
+            sqlalchemy_delete(CafedraDirectorScientificEvent).where(
+                CafedraDirectorScientificEvent.director_id == director.id
+            )
+        )
+        if data["scientific_events"]:
+            for item in data["scientific_events"]:
+                event = CafedraDirectorScientificEvent(
+                    director_id=director.id,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(event)
+                await db.flush()
+                db.add(CafedraDirectorScientificEventTr(
+                    scientific_event_id=event.id,
+                    lang_code="az",
+                    event_title=item.az.event_title,
+                    event_description=item.az.event_description,
+                    created_at=now,
+                    updated_at=now,
+                ))
+                db.add(CafedraDirectorScientificEventTr(
+                    scientific_event_id=event.id,
+                    lang_code="en",
+                    event_title=item.en.event_title,
+                    event_description=item.en.event_description,
+                    created_at=now,
+                    updated_at=now,
+                ))
+
     if "educations" in data:
         await db.execute(sqlalchemy_delete(CafedraDirectorEducation).where(CafedraDirectorEducation.director_id == director.id))
         if data["educations"]:
@@ -314,6 +421,7 @@ async def _serialize_director(director: CafedraDirector, lang_code: str, db: Asy
     tr = tr_query.scalar_one_or_none()
 
     working_hours_query = await db.execute(select(CafedraDirectorWorkingHour).where(CafedraDirectorWorkingHour.director_id == director.id))
+    scientific_events_query = await db.execute(select(CafedraDirectorScientificEvent).where(CafedraDirectorScientificEvent.director_id == director.id))
     educations_query = await db.execute(select(CafedraDirectorEducation).where(CafedraDirectorEducation.director_id == director.id))
 
     working_hours = []
@@ -321,6 +429,20 @@ async def _serialize_director(director: CafedraDirector, lang_code: str, db: Asy
         wh_tr_q = await db.execute(select(CafedraDirectorWorkingHourTr).where(CafedraDirectorWorkingHourTr.working_hour_id == hour.id, CafedraDirectorWorkingHourTr.lang_code == lang_code))
         wh_tr = wh_tr_q.scalar_one_or_none()
         working_hours.append({"day": wh_tr.day if wh_tr else None, "time_range": hour.time_range})
+
+    scientific_events = []
+    for event in scientific_events_query.scalars().all():
+        ev_tr_q = await db.execute(
+            select(CafedraDirectorScientificEventTr).where(
+                CafedraDirectorScientificEventTr.scientific_event_id == event.id,
+                CafedraDirectorScientificEventTr.lang_code == lang_code,
+            )
+        )
+        ev_tr = ev_tr_q.scalar_one_or_none()
+        scientific_events.append({
+            "event_title": ev_tr.event_title if ev_tr else None,
+            "event_description": ev_tr.event_description if ev_tr else None,
+        })
 
     educations = []
     for edu in educations_query.scalars().all():
@@ -341,6 +463,7 @@ async def _serialize_director(director: CafedraDirector, lang_code: str, db: Asy
         "room_number": director.room_number,
         "profile_image": director.profile_image,
         "working_hours": working_hours,
+        "scientific_events": scientific_events,
         "educations": educations,
     }
 
@@ -387,8 +510,32 @@ async def create_cafedra(
         if request.director:
             await _create_director(cafedra_code, request.director, now, db)
 
+        if request.laboratories:
+            await _create_translated_section(CafedraLaboratory, CafedraLaboratoryTr, "laboratory_id", cafedra_code, request.laboratories, now, db)
+
+        if request.research_works:
+            await _create_translated_section(CafedraResearchWork, CafedraResearchWorkTr, "research_work_id", cafedra_code, request.research_works, now, db)
+
+        if request.partner_companies:
+            await _create_translated_section(CafedraPartnerCompany, CafedraPartnerCompanyTr, "partner_company_id", cafedra_code, request.partner_companies, now, db)
+
+        if request.objectives:
+            await _create_translated_section(CafedraObjective, CafedraObjectiveTr, "objective_id", cafedra_code, request.objectives, now, db)
+
+        if request.duties:
+            await _create_translated_section(CafedraDuty, CafedraDutyTr, "duty_id", cafedra_code, request.duties, now, db)
+
+        if request.projects:
+            await _create_translated_section(CafedraProject, CafedraProjectTr, "project_id", cafedra_code, request.projects, now, db)
+
         if request.directions_of_action:
             await _create_translated_section(CafedraDirectionOfAction, CafedraDirectionOfActionTr, "direction_of_action_id", cafedra_code, request.directions_of_action, now, db)
+
+        if request.deputy_directors:
+            await _create_people(CafedraDeputyDirector, CafedraDeputyDirectorTr, "deputy_director_id", request.deputy_directors, cafedra_code, now, db)
+
+        if request.scientific_council:
+            await _create_people(CafedraCouncilMember, CafedraCouncilMemberTr, "council_member_id", request.scientific_council, cafedra_code, now, db)
 
         if request.workers:
             await _create_people(CafedraWorker, CafedraWorkerTr, "worker_id", request.workers, cafedra_code, now, db)
@@ -422,7 +569,7 @@ async def get_cafedras(
         query = select(Cafedra)
         if faculty_code:
             query = query.where(Cafedra.faculty_code == faculty_code)
-        
+
         total_query = await db.execute(select(func.count()).select_from(query.subquery()))
         total = total_query.scalar() or 0
 
@@ -437,11 +584,17 @@ async def get_cafedras(
             tr_query = await db.execute(select(CafedraTr).where(CafedraTr.cafedra_code == cafedra.cafedra_code, CafedraTr.lang_code == lang))
             tr = tr_query.scalar_one_or_none()
 
+            deputy_count_q = await db.execute(
+                select(func.count()).select_from(CafedraDeputyDirector).where(CafedraDeputyDirector.cafedra_code == cafedra.cafedra_code)
+            )
+            deputy_count = deputy_count_q.scalar() or 0
+
             cafedras_arr.append({
                 "id": cafedra.id,
                 "faculty_code": cafedra.faculty_code,
                 "cafedra_code": cafedra.cafedra_code,
                 "title": tr.cafedra_name if tr else None,
+                "deputy_director_count": deputy_count,
                 "created_at": cafedra.created_at.isoformat() if cafedra.created_at else None,
             })
 
@@ -469,23 +622,20 @@ async def get_cafedra(
         director_query = await db.execute(select(CafedraDirector).where(CafedraDirector.cafedra_code == cafedra_code))
         director = director_query.scalar_one_or_none()
 
-        workers_query = await db.execute(select(CafedraWorker).where(CafedraWorker.cafedra_code == cafedra_code))
-        workers = workers_query.scalars().all()
-        workers_list = []
-        for worker in workers:
-            w_tr_q = await db.execute(select(CafedraWorkerTr).where(CafedraWorkerTr.worker_id == worker.id, CafedraWorkerTr.lang_code == lang_code))
-            w_tr = w_tr_q.scalar_one_or_none()
-            workers_list.append({
-                "first_name": worker.first_name,
-                "last_name": worker.last_name,
-                "father_name": worker.father_name,
-                "duty": w_tr.duty if w_tr else None,
-                "scientific_name": w_tr.scientific_name if w_tr else None,
-                "scientific_degree": w_tr.scientific_degree if w_tr else None,
-                "email": worker.email,
-                "phone": worker.phone,
-                "profile_image": worker.profile_image,
-            })
+        deputy_directors_with_tr = await _fetch_people_with_tr(
+            CafedraDeputyDirector, CafedraDeputyDirectorTr, "deputy_director_id", cafedra_code, lang_code, db
+        )
+        council_with_tr = await _fetch_people_with_tr(
+            CafedraCouncilMember, CafedraCouncilMemberTr, "council_member_id", cafedra_code, lang_code, db
+        )
+        workers_with_tr = await _fetch_people_with_tr(
+            CafedraWorker, CafedraWorkerTr, "worker_id", cafedra_code, lang_code, db
+        )
+
+        deputy_count_q = await db.execute(
+            select(func.count()).select_from(CafedraDeputyDirector).where(CafedraDeputyDirector.cafedra_code == cafedra_code)
+        )
+        deputy_count = deputy_count_q.scalar() or 0
 
         cafedra_obj = {
             "id": cafedra.id,
@@ -501,9 +651,73 @@ async def get_cafedra(
             "projects_patents_count": cafedra.projects_patents_count,
             "industrial_collaborations_count": cafedra.industrial_collaborations_count,
             "sdgs": cafedra.sdgs,
+            "deputy_director_count": deputy_count,
             "director": await _serialize_director(director, lang_code, db) if director else None,
-            "directions_of_action": await _serialize_translated_section(CafedraDirectionOfAction, CafedraDirectionOfActionTr, "direction_of_action_id", cafedra_code, lang_code, db),
-            "workers": workers_list,
+            "laboratories": await _serialize_translated_section(
+                CafedraLaboratory, CafedraLaboratoryTr, "laboratory_id", cafedra_code, lang_code, db,
+            ),
+            "research_works": await _serialize_translated_section(
+                CafedraResearchWork, CafedraResearchWorkTr, "research_work_id", cafedra_code, lang_code, db,
+            ),
+            "partner_companies": await _serialize_translated_section(
+                CafedraPartnerCompany, CafedraPartnerCompanyTr, "partner_company_id", cafedra_code, lang_code, db,
+            ),
+            "objectives": await _serialize_translated_section(
+                CafedraObjective, CafedraObjectiveTr, "objective_id", cafedra_code, lang_code, db,
+            ),
+            "duties": await _serialize_translated_section(
+                CafedraDuty, CafedraDutyTr, "duty_id", cafedra_code, lang_code, db,
+            ),
+            "projects": await _serialize_translated_section(
+                CafedraProject, CafedraProjectTr, "project_id", cafedra_code, lang_code, db,
+            ),
+            "directions_of_action": await _serialize_translated_section(
+                CafedraDirectionOfAction, CafedraDirectionOfActionTr, "direction_of_action_id", cafedra_code, lang_code, db,
+            ),
+            "deputy_directors": [
+                {
+                    "id": person.id,
+                    "first_name": person.first_name,
+                    "last_name": person.last_name,
+                    "father_name": person.father_name,
+                    "scientific_name": tr.scientific_name if tr else None,
+                    "scientific_degree": tr.scientific_degree if tr else None,
+                    "duty": tr.duty if tr else None,
+                    "email": person.email,
+                    "phone": person.phone,
+                    "profile_image": person.profile_image,
+                }
+                for person, tr in deputy_directors_with_tr
+            ],
+            "scientific_council": [
+                {
+                    "id": person.id,
+                    "first_name": person.first_name,
+                    "last_name": person.last_name,
+                    "father_name": person.father_name,
+                    "duty": tr.duty if tr else None,
+                    "scientific_name": tr.scientific_name if tr else None,
+                    "scientific_degree": tr.scientific_degree if tr else None,
+                    "email": person.email,
+                    "phone": person.phone,
+                }
+                for person, tr in council_with_tr
+            ],
+            "workers": [
+                {
+                    "id": person.id,
+                    "first_name": person.first_name,
+                    "last_name": person.last_name,
+                    "father_name": person.father_name,
+                    "duty": tr.duty if tr else None,
+                    "scientific_name": tr.scientific_name if tr else None,
+                    "scientific_degree": tr.scientific_degree if tr else None,
+                    "email": person.email,
+                    "phone": person.phone,
+                    "profile_image": person.profile_image,
+                }
+                for person, tr in workers_with_tr
+            ],
             "created_at": cafedra.created_at.isoformat() if cafedra.created_at else None,
             "updated_at": cafedra.updated_at.isoformat() if cafedra.updated_at else None,
         }
@@ -545,20 +759,60 @@ async def update_cafedra(
         for field in stat_fields:
             if field in request_data:
                 setattr(cafedra, field, request_data[field])
-        
+
         if "sdgs" in request_data:
             cafedra.sdgs = validate_sdgs(request_data["sdgs"])
 
         if "director" in request_data:
             await _upsert_director(cafedra_code, request.director, now, db)
 
+        if "laboratories" in request_data:
+            await _delete_section(CafedraLaboratory, cafedra_code, db)
+            if request_data["laboratories"]:
+                await _create_translated_section(CafedraLaboratory, CafedraLaboratoryTr, "laboratory_id", cafedra_code, request.laboratories, now, db)
+
+        if "research_works" in request_data:
+            await _delete_section(CafedraResearchWork, cafedra_code, db)
+            if request_data["research_works"]:
+                await _create_translated_section(CafedraResearchWork, CafedraResearchWorkTr, "research_work_id", cafedra_code, request.research_works, now, db)
+
+        if "partner_companies" in request_data:
+            await _delete_section(CafedraPartnerCompany, cafedra_code, db)
+            if request_data["partner_companies"]:
+                await _create_translated_section(CafedraPartnerCompany, CafedraPartnerCompanyTr, "partner_company_id", cafedra_code, request.partner_companies, now, db)
+
+        if "objectives" in request_data:
+            await _delete_section(CafedraObjective, cafedra_code, db)
+            if request_data["objectives"]:
+                await _create_translated_section(CafedraObjective, CafedraObjectiveTr, "objective_id", cafedra_code, request.objectives, now, db)
+
+        if "duties" in request_data:
+            await _delete_section(CafedraDuty, cafedra_code, db)
+            if request_data["duties"]:
+                await _create_translated_section(CafedraDuty, CafedraDutyTr, "duty_id", cafedra_code, request.duties, now, db)
+
+        if "projects" in request_data:
+            await _delete_section(CafedraProject, cafedra_code, db)
+            if request_data["projects"]:
+                await _create_translated_section(CafedraProject, CafedraProjectTr, "project_id", cafedra_code, request.projects, now, db)
+
         if "directions_of_action" in request_data:
-            await db.execute(sqlalchemy_delete(CafedraDirectionOfAction).where(CafedraDirectionOfAction.cafedra_code == cafedra_code))
+            await _delete_section(CafedraDirectionOfAction, cafedra_code, db)
             if request_data["directions_of_action"]:
                 await _create_translated_section(CafedraDirectionOfAction, CafedraDirectionOfActionTr, "direction_of_action_id", cafedra_code, request.directions_of_action, now, db)
 
+        if "deputy_directors" in request_data:
+            await _delete_section(CafedraDeputyDirector, cafedra_code, db)
+            if request_data["deputy_directors"]:
+                await _create_people(CafedraDeputyDirector, CafedraDeputyDirectorTr, "deputy_director_id", request.deputy_directors, cafedra_code, now, db)
+
+        if "scientific_council" in request_data:
+            await _delete_section(CafedraCouncilMember, cafedra_code, db)
+            if request_data["scientific_council"]:
+                await _create_people(CafedraCouncilMember, CafedraCouncilMemberTr, "council_member_id", request.scientific_council, cafedra_code, now, db)
+
         if "workers" in request_data:
-            await db.execute(sqlalchemy_delete(CafedraWorker).where(CafedraWorker.cafedra_code == cafedra_code))
+            await _delete_section(CafedraWorker, cafedra_code, db)
             if request_data["workers"]:
                 await _create_people(CafedraWorker, CafedraWorkerTr, "worker_id", request.workers, cafedra_code, now, db)
 
@@ -600,6 +854,24 @@ async def upload_cafedra_director_image(cafedra_code: str, image: UploadFile, db
         await db.commit()
         if old_path: safe_delete_file(old_path)
         return JSONResponse(content={"status_code": 200, "message": "Director profile image uploaded successfully.", "data": {"profile_image": new_path}}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def upload_cafedra_deputy_director_image(deputy_director_id: int, image: UploadFile, db: AsyncSession):
+    try:
+        query = await db.execute(select(CafedraDeputyDirector).where(CafedraDeputyDirector.id == deputy_director_id))
+        deputy_director = query.scalar_one_or_none()
+        if not deputy_director: return JSONResponse(content={"status_code": 404, "message": "Deputy director not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        old_path = deputy_director.profile_image
+        new_path = await save_upload(image, "cafedra-deputy-directors", ALLOWED_IMAGE_MIMES)
+        deputy_director.profile_image = new_path
+        deputy_director.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+        if old_path: safe_delete_file(old_path)
+        return JSONResponse(content={"status_code": 200, "message": "Deputy director profile image uploaded successfully.", "data": {"profile_image": new_path}}, status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.exception("500 Internal Server Error")
         await db.rollback()

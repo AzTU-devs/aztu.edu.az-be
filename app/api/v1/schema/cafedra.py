@@ -16,6 +16,16 @@ class DirectorWorkingHour(BaseModel):
     time_range: str = Field(...)
 
 
+class ScientificEventTranslation(BaseModel):
+    event_title: str = Field(...)
+    event_description: str | None = None
+
+
+class DirectorScientificEvent(BaseModel):
+    az: ScientificEventTranslation
+    en: ScientificEventTranslation
+
+
 class EducationTranslation(BaseModel):
     degree: str = Field(...)
     university: str = Field(...)
@@ -46,6 +56,7 @@ class CafedraDirectorPayload(BaseModel):
     room_number: str | None = None
     profile_image: str | None = None
     working_hours: list[DirectorWorkingHour] | None = None
+    scientific_events: list[DirectorScientificEvent] | None = None
     educations: list[DirectorEducation] | None = None
 
 
@@ -57,6 +68,39 @@ class SectionTranslation(BaseModel):
 class SectionItem(BaseModel):
     az: SectionTranslation
     en: SectionTranslation
+
+
+class DeputyDirectorTranslation(BaseModel):
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+    duty: str | None = None
+
+
+class DeputyDirector(BaseModel):
+    first_name: str = Field(...)
+    last_name: str = Field(...)
+    father_name: str | None = None
+    az: DeputyDirectorTranslation | None = None
+    en: DeputyDirectorTranslation | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    profile_image: str | None = None
+
+
+class CouncilMemberTranslation(BaseModel):
+    duty: str = Field(...)
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+
+
+class ScientificCouncilMember(BaseModel):
+    first_name: str = Field(...)
+    last_name: str = Field(...)
+    father_name: str | None = None
+    az: CouncilMemberTranslation
+    en: CouncilMemberTranslation
+    email: EmailStr | None = None
+    phone: str | None = None
 
 
 class WorkerTranslation(BaseModel):
@@ -92,7 +136,15 @@ class CreateCafedra(BaseModel):
     industrial_collaborations_count: int | None = 0
     sdgs: list[int] | None = None
 
+    laboratories: list[SectionItem] | None = None
+    research_works: list[SectionItem] | None = None
+    partner_companies: list[SectionItem] | None = None
+    objectives: list[SectionItem] | None = None
+    duties: list[SectionItem] | None = None
+    projects: list[SectionItem] | None = None
     directions_of_action: list[SectionItem] | None = None
+    deputy_directors: list[DeputyDirector] | None = None
+    scientific_council: list[ScientificCouncilMember] | None = None
     workers: list[Worker] | None = None
 
 
@@ -111,7 +163,15 @@ class UpdateCafedra(BaseModel):
     industrial_collaborations_count: int | None = None
     sdgs: list[int] | None = None
 
+    laboratories: list[SectionItem] | None = None
+    research_works: list[SectionItem] | None = None
+    partner_companies: list[SectionItem] | None = None
+    objectives: list[SectionItem] | None = None
+    duties: list[SectionItem] | None = None
+    projects: list[SectionItem] | None = None
     directions_of_action: list[SectionItem] | None = None
+    deputy_directors: list[DeputyDirector] | None = None
+    scientific_council: list[ScientificCouncilMember] | None = None
     workers: list[Worker] | None = None
 
     class Config:
