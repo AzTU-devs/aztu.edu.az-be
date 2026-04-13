@@ -32,6 +32,7 @@ from app.api.v1.router.collaboration import router as collaboration_router
 from app.api.v1.router.auth import router as auth_router
 from app.api.v1.router.employee import router as employee_router
 from app.api.v1.router.department import router as department_router
+from app.api.v1.router.research_institute import router as research_institute_router
 
 
 @asynccontextmanager
@@ -134,6 +135,7 @@ app.include_router(menu_header_router,   prefix="/api/menu/header",   tags=["Men
 app.include_router(collaboration_router, prefix="/api/collaboration", tags=["Collaboration"])
 app.include_router(employee_router,    prefix="/api/employee",    tags=["Employee"])
 app.include_router(department_router,  prefix="/api/department",  tags=["Department"])
+app.include_router(research_institute_router, prefix="/api/research-institute", tags=["Research Institute"])
 
 
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)
