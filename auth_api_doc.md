@@ -3,7 +3,7 @@
 Base path: `/api/v1/auth`
 
 ---
-
+--
 ## Endpoints
 
 ### POST `/api/v1/auth/login`
