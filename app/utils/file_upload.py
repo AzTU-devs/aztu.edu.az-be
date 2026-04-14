@@ -59,18 +59,46 @@ async def save_upload(
 
     # 4. Safe path
     target_dir = os.path.abspath(os.path.join(STATIC_BASE, subdirectory))
-    if not target_dir.startswith(STATIC_BASE):
-        logger.error("Path traversal attempt: %s", subdirectory)
+    # Robust path traversal check
+    if os.path.commonpath([STATIC_BASE, target_dir]) != STATIC_BASE:
+        logger.error("Path traversal attempt: subdirectory='%s', resolved='%s'", subdirectory, target_dir)
         raise HTTPException(status_code=400, detail="Invalid directory")
 
-    os.makedirs(target_dir, exist_ok=True)
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+    except OSError as e:
+        logger.error("Failed to create directory %s: %s", target_dir, e)
+        raise HTTPException(
+            status_code=500,
+            detail="Could not create upload directory. Please check permissions."
+        )
 
     file_path = os.path.join(target_dir, filename)
 
-    with open(file_path, "wb") as f:
-        f.write(content)
+    try:
+        with open(file_path, "wb") as f:
+            f.write(content)
+    except OSError as e:
+        logger.error("Failed to write file %s: %s", file_path, e)
+        raise HTTPException(
+            status_code=500,
+            detail="Could not save file. Please check permissions."
+        )
 
     return f"static/{subdirectory}/{filename}"
+
+
+# Startup check
+if not os.path.exists(STATIC_BASE):
+    try:
+        os.makedirs(STATIC_BASE, exist_ok=True)
+        logger.info("Created static base directory at %s", STATIC_BASE)
+    except OSError as e:
+        logger.error("CRITICAL: Could not create static base directory %s: %s", STATIC_BASE, e)
+elif not os.access(STATIC_BASE, os.W_OK):
+    logger.warning("WARNING: Static base directory %s is not writable!", STATIC_BASE)
+else:
+    logger.info("Static base directory %s is ready and writable.", STATIC_BASE)
 
 
 def safe_delete_file(relative_path: str) -> None:
