@@ -501,13 +501,27 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
     if not director:
         return None
 
-    tr_query = await db.execute(
-        select(FacultyDirectorTr).where(
-            FacultyDirectorTr.director_id == director.id,
-            FacultyDirectorTr.lang_code == lang_code,
+    if lang_code:
+        tr_query = await db.execute(
+            select(FacultyDirectorTr).where(
+                FacultyDirectorTr.director_id == director.id,
+                FacultyDirectorTr.lang_code == lang_code,
+            )
         )
-    )
-    tr = tr_query.scalar_one_or_none()
+        tr = tr_query.scalar_one_or_none()
+    else:
+        tr = None
+
+    tr_bilingual = {}
+    if not lang_code:
+        for lc in ["az", "en"]:
+            lc_query = await db.execute(
+                select(FacultyDirectorTr).where(
+                    FacultyDirectorTr.director_id == director.id,
+                    FacultyDirectorTr.lang_code == lc,
+                )
+            )
+            tr_bilingual[lc] = lc_query.scalar_one_or_none()
 
     working_hours_query = await db.execute(
         select(FacultyDirectorWorkingHour).where(
@@ -527,56 +541,97 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
 
     working_hours = []
     for hour in working_hours_query.scalars().all():
-        wh_tr_q = await db.execute(
-            select(FacultyDirectorWorkingHourTr).where(
-                FacultyDirectorWorkingHourTr.working_hour_id == hour.id,
-                FacultyDirectorWorkingHourTr.lang_code == lang_code,
+        if lang_code:
+            wh_tr_q = await db.execute(
+                select(FacultyDirectorWorkingHourTr).where(
+                    FacultyDirectorWorkingHourTr.working_hour_id == hour.id,
+                    FacultyDirectorWorkingHourTr.lang_code == lang_code,
+                )
             )
-        )
-        wh_tr = wh_tr_q.scalar_one_or_none()
-        working_hours.append({
-            "day": wh_tr.day if wh_tr else None,
-            "time_range": hour.time_range,
-        })
+            wh_tr = wh_tr_q.scalar_one_or_none()
+            working_hours.append({
+                "day": wh_tr.day if wh_tr else None,
+                "time_range": hour.time_range,
+            })
+        else:
+            wh_item = {"time_range": hour.time_range}
+            for lc in ["az", "en"]:
+                wh_tr_q = await db.execute(
+                    select(FacultyDirectorWorkingHourTr).where(
+                        FacultyDirectorWorkingHourTr.working_hour_id == hour.id,
+                        FacultyDirectorWorkingHourTr.lang_code == lc,
+                    )
+                )
+                wh_tr = wh_tr_q.scalar_one_or_none()
+                wh_item[lc] = {"day": wh_tr.day if wh_tr else None}
+            working_hours.append(wh_item)
 
     scientific_events = []
     for event in scientific_events_query.scalars().all():
-        ev_tr_q = await db.execute(
-            select(FacultyDirectorScientificEventTr).where(
-                FacultyDirectorScientificEventTr.scientific_event_id == event.id,
-                FacultyDirectorScientificEventTr.lang_code == lang_code,
+        if lang_code:
+            ev_tr_q = await db.execute(
+                select(FacultyDirectorScientificEventTr).where(
+                    FacultyDirectorScientificEventTr.scientific_event_id == event.id,
+                    FacultyDirectorScientificEventTr.lang_code == lang_code,
+                )
             )
-        )
-        ev_tr = ev_tr_q.scalar_one_or_none()
-        scientific_events.append({
-            "event_title": ev_tr.event_title if ev_tr else None,
-            "event_description": ev_tr.event_description if ev_tr else None,
-        })
+            ev_tr = ev_tr_q.scalar_one_or_none()
+            scientific_events.append({
+                "event_title": ev_tr.event_title if ev_tr else None,
+                "event_description": ev_tr.event_description if ev_tr else None,
+            })
+        else:
+            ev_item = {}
+            for lc in ["az", "en"]:
+                ev_tr_q = await db.execute(
+                    select(FacultyDirectorScientificEventTr).where(
+                        FacultyDirectorScientificEventTr.scientific_event_id == event.id,
+                        FacultyDirectorScientificEventTr.lang_code == lc,
+                    )
+                )
+                ev_tr = ev_tr_q.scalar_one_or_none()
+                ev_item[lc] = {
+                    "event_title": ev_tr.event_title if ev_tr else None,
+                    "event_description": ev_tr.event_description if ev_tr else None,
+                }
+            scientific_events.append(ev_item)
 
     educations = []
     for edu in educations_query.scalars().all():
-        edu_tr_q = await db.execute(
-            select(FacultyDirectorEducationTr).where(
-                FacultyDirectorEducationTr.education_id == edu.id,
-                FacultyDirectorEducationTr.lang_code == lang_code,
+        if lang_code:
+            edu_tr_q = await db.execute(
+                select(FacultyDirectorEducationTr).where(
+                    FacultyDirectorEducationTr.education_id == edu.id,
+                    FacultyDirectorEducationTr.lang_code == lang_code,
+                )
             )
-        )
-        edu_tr = edu_tr_q.scalar_one_or_none()
-        educations.append({
-            "degree": edu_tr.degree if edu_tr else None,
-            "university": edu_tr.university if edu_tr else None,
-            "start_year": edu.start_year,
-            "end_year": edu.end_year,
-        })
+            edu_tr = edu_tr_q.scalar_one_or_none()
+            educations.append({
+                "degree": edu_tr.degree if edu_tr else None,
+                "university": edu_tr.university if edu_tr else None,
+                "start_year": edu.start_year,
+                "end_year": edu.end_year,
+            })
+        else:
+            edu_item = {"start_year": edu.start_year, "end_year": edu.end_year}
+            for lc in ["az", "en"]:
+                edu_tr_q = await db.execute(
+                    select(FacultyDirectorEducationTr).where(
+                        FacultyDirectorEducationTr.education_id == edu.id,
+                        FacultyDirectorEducationTr.lang_code == lc,
+                    )
+                )
+                edu_tr = edu_tr_q.scalar_one_or_none()
+                edu_item[lc] = {
+                    "degree": edu_tr.degree if edu_tr else None,
+                    "university": edu_tr.university if edu_tr else None,
+                }
+            educations.append(edu_item)
 
-    return {
+    result = {
         "first_name": director.first_name,
         "last_name": director.last_name,
         "father_name": director.father_name,
-        "scientific_degree": tr.scientific_degree if tr else None,
-        "scientific_title": tr.scientific_title if tr else None,
-        "bio": tr.bio if tr else None,
-        "scientific_research_fields": tr.scientific_research_fields if tr else [],
         "email": director.email,
         "phone": director.phone,
         "room_number": director.room_number,
@@ -585,6 +640,23 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
         "scientific_events": scientific_events,
         "educations": educations,
     }
+
+    if lang_code:
+        result["scientific_degree"] = tr.scientific_degree if tr else None
+        result["scientific_title"] = tr.scientific_title if tr else None
+        result["bio"] = tr.bio if tr else None
+        result["scientific_research_fields"] = tr.scientific_research_fields if tr else []
+    else:
+        for lc in ["az", "en"]:
+            lc_tr = tr_bilingual.get(lc)
+            result[lc] = {
+                "scientific_degree": lc_tr.scientific_degree if lc_tr else None,
+                "scientific_title": lc_tr.scientific_title if lc_tr else None,
+                "bio": lc_tr.bio if lc_tr else None,
+                "scientific_research_fields": lc_tr.scientific_research_fields if lc_tr else [],
+            }
+
+    return result
 
 
 async def create_faculty(
@@ -816,6 +888,36 @@ async def get_faculties(
         )
 
 
+def _serialize_people(people_with_tr: list, lang_code: str | None, has_profile_image: bool = False) -> list:
+    result = []
+    for person, tr_data in people_with_tr:
+        item = {
+            "id": person.id,
+            "first_name": person.first_name,
+            "last_name": person.last_name,
+            "father_name": person.father_name,
+            "email": person.email,
+            "phone": person.phone,
+        }
+        if has_profile_image:
+            item["profile_image"] = person.profile_image
+
+        if lang_code:
+            item["scientific_name"] = tr_data.scientific_name if tr_data else None
+            item["scientific_degree"] = tr_data.scientific_degree if tr_data else None
+            item["duty"] = tr_data.duty if tr_data else None
+        else:
+            for lc in ["az", "en"]:
+                lc_tr = tr_data.get(lc) if isinstance(tr_data, dict) else None
+                item[lc] = {
+                    "scientific_name": lc_tr.scientific_name if lc_tr else None,
+                    "scientific_degree": lc_tr.scientific_degree if lc_tr else None,
+                    "duty": lc_tr.duty if lc_tr else None,
+                }
+        result.append(item)
+    return result
+
+
 async def get_faculty(
     faculty_code: str,
     lang_code: str = Depends(get_language),
@@ -833,13 +935,26 @@ async def get_faculty(
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        tr_query = await db.execute(
-            select(FacultyTr).where(
-                FacultyTr.faculty_code == faculty.faculty_code,
-                FacultyTr.lang_code == lang_code,
+        if lang_code:
+            tr_query = await db.execute(
+                select(FacultyTr).where(
+                    FacultyTr.faculty_code == faculty.faculty_code,
+                    FacultyTr.lang_code == lang_code,
+                )
             )
-        )
-        tr = tr_query.scalar_one_or_none()
+            tr = tr_query.scalar_one_or_none()
+            tr_bilingual = None
+        else:
+            tr = None
+            tr_bilingual = {}
+            for lc in ["az", "en"]:
+                lc_query = await db.execute(
+                    select(FacultyTr).where(
+                        FacultyTr.faculty_code == faculty.faculty_code,
+                        FacultyTr.lang_code == lc,
+                    )
+                )
+                tr_bilingual[lc] = lc_query.scalar_one_or_none()
 
         director_query = await db.execute(
             select(FacultyDirector).where(FacultyDirector.faculty_code == faculty_code)
@@ -873,9 +988,7 @@ async def get_faculty(
         faculty_obj = {
             "id": faculty.id,
             "faculty_code": faculty.faculty_code,
-            "title": tr.faculty_name if tr else None,
-            "html_content": tr.about_text if tr else None,
-            
+
             # Statistics
             "bachelor_programs_count": faculty.bachelor_programs_count or 0,
             "master_programs_count": faculty.master_programs_count or 0,
@@ -910,52 +1023,23 @@ async def get_faculty(
             "directions_of_action": await _serialize_translated_section(
                 FacultyDirectionOfAction, FacultyDirectionOfActionTr, "direction_of_action_id", faculty_code, lang_code, db,
             ),
-            "deputy_deans": [
-                {
-                    "id": person.id,
-                    "first_name": person.first_name,
-                    "last_name": person.last_name,
-                    "father_name": person.father_name,
-                    "scientific_name": tr.scientific_name if tr else None,
-                    "scientific_degree": tr.scientific_degree if tr else None,
-                    "duty": tr.duty if tr else None,
-                    "email": person.email,
-                    "phone": person.phone,
-                    "profile_image": person.profile_image,
-                }
-                for person, tr in deputy_deans_with_tr
-            ],
-            "scientific_council": [
-                {
-                    "id": person.id,
-                    "first_name": person.first_name,
-                    "last_name": person.last_name,
-                    "father_name": person.father_name,
-                    "duty": tr.duty if tr else None,
-                    "scientific_name": tr.scientific_name if tr else None,
-                    "scientific_degree": tr.scientific_degree if tr else None,
-                    "email": person.email,
-                    "phone": person.phone,
-                }
-                for person, tr in council_with_tr
-            ],
-            "workers": [
-                {
-                    "id": person.id,
-                    "first_name": person.first_name,
-                    "last_name": person.last_name,
-                    "father_name": person.father_name,
-                    "duty": tr.duty if tr else None,
-                    "scientific_name": tr.scientific_name if tr else None,
-                    "scientific_degree": tr.scientific_degree if tr else None,
-                    "email": person.email,
-                    "profile_image": person.profile_image,
-                }
-                for person, tr in workers_with_tr
-            ],
+            "deputy_deans": _serialize_people(deputy_deans_with_tr, lang_code, has_profile_image=True),
+            "scientific_council": _serialize_people(council_with_tr, lang_code, has_profile_image=False),
+            "workers": _serialize_people(workers_with_tr, lang_code, has_profile_image=True),
             "created_at": faculty.created_at.isoformat() if faculty.created_at else None,
             "updated_at": faculty.updated_at.isoformat() if faculty.updated_at else None,
         }
+
+        if lang_code:
+            faculty_obj["title"] = tr.faculty_name if tr else None
+            faculty_obj["html_content"] = tr.about_text if tr else None
+        else:
+            for lc in ["az", "en"]:
+                lc_tr = tr_bilingual.get(lc)
+                faculty_obj[lc] = {
+                    "title": lc_tr.faculty_name if lc_tr else None,
+                    "html_content": lc_tr.about_text if lc_tr else None,
+                }
 
         return JSONResponse(
             content={"status_code": 200, "message": "Faculty details fetched successfully.", "faculty": faculty_obj},

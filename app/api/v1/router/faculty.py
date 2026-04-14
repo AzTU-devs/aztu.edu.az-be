@@ -58,12 +58,26 @@ async def get_faculties_endpoint_public(
 @router.get("/{faculty_code}")
 async def get_faculty_details_endpoint(
     faculty_code: str,
-    lang_code: str = Depends(get_language),
+    lang_code: str | None = Query(None, description="Language code (az or en). If omitted, returns bilingual data."),
     db: AsyncSession = Depends(get_db),
 ):
     return await get_faculty(
         faculty_code=faculty_code,
         lang_code=lang_code,
+        db=db,
+    )
+
+
+@router.patch("/{faculty_code}")
+async def patch_faculty_endpoint(
+    faculty_code: str,
+    request: UpdateFaculty,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_faculty(
+        faculty_code=faculty_code,
+        request=request,
         db=db,
     )
 
