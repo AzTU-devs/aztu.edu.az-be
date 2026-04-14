@@ -47,7 +47,7 @@ from app.models.faculties.faculty_section import (
     FacultyDirectionOfAction,
     FacultyDirectionOfActionTr,
 )
-from app.utils.language import get_language
+from app.utils.language import get_language, get_optional_language
 
 logger = get_logger(__name__)
 
@@ -920,7 +920,7 @@ def _serialize_people(people_with_tr: list, lang_code: str | None, has_profile_i
 
 async def get_faculty(
     faculty_code: str,
-    lang_code: str = Depends(get_language),
+    lang_code: str = Depends(get_optional_language),
     db: AsyncSession = Depends(get_db),
 ):
     try:
