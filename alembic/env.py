@@ -71,6 +71,16 @@ from app.models.departments.department_director import (
     DepartmentDirectorEducationTr,
 )  # noqa: F401
 from app.models.departments.department_personnel import DepartmentWorker, DepartmentWorkerTr  # noqa: F401
+from app.models.research_institute.institute import (
+    ResearchInstitute,
+    ResearchInstituteTr,
+    InstituteDirector,
+    InstituteDirectorTr,
+    InstituteDirectorEducation,
+    InstituteDirectorEducationTr,
+    InstituteStaff,
+    InstituteStaffTr,
+)  # noqa: F401
 
 load_dotenv()
 

@@ -113,7 +113,7 @@ async def _serialize_translated_section(
     tr_cls: Type[Any],
     parent_id_name: str,
     faculty_code: str,
-    lang_code: str,
+    lang_code: str | None,
     db: AsyncSession,
 ):
     items = []
@@ -122,20 +122,37 @@ async def _serialize_translated_section(
     )
     parents = parents_query.scalars().all()
     for parent in parents:
-        tr_query = await db.execute(
-            select(tr_cls).where(
-                getattr(tr_cls, parent_id_name) == parent.id,
-                tr_cls.lang_code == lang_code,
+        if lang_code:
+            tr_query = await db.execute(
+                select(tr_cls).where(
+                    getattr(tr_cls, parent_id_name) == parent.id,
+                    tr_cls.lang_code == lang_code,
+                )
             )
-        )
-        tr = tr_query.scalar_one_or_none()
-        items.append(
-            {
-                "id": parent.id,
-                "title": tr.title if tr else None,
-                "description": tr.description if tr else None,
-            }
-        )
+            tr = tr_query.scalar_one_or_none()
+            items.append(
+                {
+                    "id": parent.id,
+                    "title": tr.title if tr else None,
+                    "description": tr.description if tr else None,
+                }
+            )
+        else:
+            # Bilingual
+            item_data = {"id": parent.id}
+            for lc in ["az", "en"]:
+                tr_query = await db.execute(
+                    select(tr_cls).where(
+                        getattr(tr_cls, parent_id_name) == parent.id,
+                        tr_cls.lang_code == lc,
+                    )
+                )
+                tr = tr_query.scalar_one_or_none()
+                item_data[lc] = {
+                    "title": tr.title if tr else None,
+                    "description": tr.description if tr else None,
+                }
+            items.append(item_data)
     return items
 
 
@@ -449,25 +466,38 @@ async def _delete_section(parent_cls: Type[Any], faculty_code: str, db: AsyncSes
     )
 
 
-async def _fetch_people_with_tr(parent_cls: Type[Any], tr_cls: Type[Any], person_id_field: str, faculty_code: str, lang_code: str, db: AsyncSession):
+async def _fetch_people_with_tr(parent_cls: Type[Any], tr_cls: Type[Any], person_id_field: str, faculty_code: str, lang_code: str | None, db: AsyncSession):
     query = await db.execute(
         select(parent_cls).where(parent_cls.faculty_code == faculty_code)
     )
     people = query.scalars().all()
     result = []
     for person in people:
-        tr_query = await db.execute(
-            select(tr_cls).where(
-                getattr(tr_cls, person_id_field) == person.id,
-                tr_cls.lang_code == lang_code,
+        if lang_code:
+            tr_query = await db.execute(
+                select(tr_cls).where(
+                    getattr(tr_cls, person_id_field) == person.id,
+                    tr_cls.lang_code == lang_code,
+                )
             )
-        )
-        tr = tr_query.scalar_one_or_none()
-        result.append((person, tr))
+            tr = tr_query.scalar_one_or_none()
+            result.append((person, tr))
+        else:
+            # Bilingual
+            tr_data = {}
+            for lc in ["az", "en"]:
+                tr_query = await db.execute(
+                    select(tr_cls).where(
+                        getattr(tr_cls, person_id_field) == person.id,
+                        tr_cls.lang_code == lc,
+                    )
+                )
+                tr_data[lc] = tr_query.scalar_one_or_none()
+            result.append((person, tr_data))
     return result
 
 
-async def _serialize_director(director: FacultyDirector, lang_code: str, db: AsyncSession):
+async def _serialize_director(director: FacultyDirector, lang_code: str | None, db: AsyncSession):
     if not director:
         return None
 
