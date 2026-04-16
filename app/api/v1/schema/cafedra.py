@@ -70,6 +70,12 @@ class SectionItem(BaseModel):
     en: SectionTranslation
 
 
+class LaboratoryItem(BaseModel):
+    az: SectionTranslation
+    en: SectionTranslation
+    image_url: str | None = None
+
+
 class DeputyDirectorTranslation(BaseModel):
     scientific_name: str | None = None
     scientific_degree: str | None = None
@@ -136,7 +142,7 @@ class CreateCafedra(BaseModel):
     industrial_collaborations_count: int | None = 0
     sdgs: list[int] | None = None
 
-    laboratories: list[SectionItem] | None = None
+    laboratories: list[LaboratoryItem] | None = None
     research_works: list[SectionItem] | None = None
     partner_companies: list[SectionItem] | None = None
     objectives: list[SectionItem] | None = None
@@ -163,7 +169,7 @@ class UpdateCafedra(BaseModel):
     industrial_collaborations_count: int | None = None
     sdgs: list[int] | None = None
 
-    laboratories: list[SectionItem] | None = None
+    laboratories: list[LaboratoryItem] | None = None
     research_works: list[SectionItem] | None = None
     partner_companies: list[SectionItem] | None = None
     objectives: list[SectionItem] | None = None

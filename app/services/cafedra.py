@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.schema.cafedra import CreateCafedra, UpdateCafedra
+from app.api.v1.schema.cafedra import CreateCafedra, UpdateCafedra, LaboratoryItem
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
 from app.core.logger import get_logger
 from app.core.session import get_db
@@ -74,12 +74,16 @@ async def _create_translated_section(
     db: AsyncSession,
 ):
     for index, item in enumerate(items):
-        parent = parent_cls(
-            cafedra_code=cafedra_code,
-            display_order=index,
-            created_at=now,
-            updated_at=now,
-        )
+        parent_params = {
+            "cafedra_code": cafedra_code,
+            "display_order": index,
+            "created_at": now,
+            "updated_at": now,
+        }
+        if hasattr(item, "image_url"):
+            parent_params["image_url"] = item.image_url
+
+        parent = parent_cls(**parent_params)
         db.add(parent)
         await db.flush()
 
@@ -120,13 +124,14 @@ async def _serialize_translated_section(
             )
         )
         tr = tr_query.scalar_one_or_none()
-        items.append(
-            {
-                "id": parent.id,
-                "title": tr.title if tr else None,
-                "description": tr.description if tr else None,
-            }
-        )
+        item_dict = {
+            "id": parent.id,
+            "title": tr.title if tr else None,
+            "description": tr.description if tr else None,
+        }
+        if hasattr(parent, "image_url"):
+            item_dict["image_url"] = parent.image_url
+        items.append(item_dict)
     return items
 
 
@@ -890,6 +895,114 @@ async def upload_cafedra_worker_image(worker_id: int, image: UploadFile, db: Asy
         await db.commit()
         if old_path: safe_delete_file(old_path)
         return JSONResponse(content={"status_code": 200, "message": "Worker profile image uploaded successfully.", "data": {"profile_image": new_path}}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def create_laboratory(
+    cafedra_code: str,
+    request: LaboratoryItem,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        cafedra_query = await db.execute(select(Cafedra).where(Cafedra.cafedra_code == cafedra_code))
+        if not cafedra_query.scalar_one_or_none():
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        now = datetime.now(timezone.utc)
+        order_query = await db.execute(
+            select(func.max(CafedraLaboratory.display_order)).where(CafedraLaboratory.cafedra_code == cafedra_code)
+        )
+        max_order = order_query.scalar() or -1
+
+        lab = CafedraLaboratory(
+            cafedra_code=cafedra_code,
+            image_url=request.image_url,
+            display_order=max_order + 1,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(lab)
+        await db.flush()
+
+        for lang in ["az", "en"]:
+            tr_data = getattr(request, lang)
+            db.add(CafedraLaboratoryTr(
+                laboratory_id=lab.id,
+                lang_code=lang,
+                title=tr_data.title,
+                description=tr_data.description,
+                created_at=now,
+                updated_at=now,
+            ))
+
+        await db.commit()
+        return JSONResponse(content={"status_code": 201, "message": "Laboratory created successfully.", "data": {"id": lab.id}}, status_code=status.HTTP_201_CREATED)
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def get_all_laboratories(
+    start: int = 0,
+    end: int = 10,
+    lang: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        query = select(CafedraLaboratory)
+        total_q = await db.execute(select(func.count()).select_from(query.subquery()))
+        total = total_q.scalar() or 0
+
+        labs_q = await db.execute(query.order_by(CafedraLaboratory.id.asc()).offset(start).limit(end - start))
+        labs = labs_q.scalars().all()
+
+        labs_arr = []
+        for lab in labs:
+            tr_q = await db.execute(select(CafedraLaboratoryTr).where(CafedraLaboratoryTr.laboratory_id == lab.id, CafedraLaboratoryTr.lang_code == lang))
+            tr = tr_q.scalar_one_or_none()
+            labs_arr.append({
+                "id": lab.id,
+                "cafedra_code": lab.cafedra_code,
+                "title": tr.title if tr else None,
+                "description": tr.description if tr else None,
+                "image_url": lab.image_url,
+            })
+
+        return JSONResponse(content={"status_code": 200, "laboratories": labs_arr, "total": total}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def get_cafedra_laboratories(
+    cafedra_code: str,
+    lang: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        labs = await _serialize_translated_section(CafedraLaboratory, CafedraLaboratoryTr, "laboratory_id", cafedra_code, lang, db)
+        return JSONResponse(content={"status_code": 200, "laboratories": labs}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def upload_laboratory_image(laboratory_id: int, image: UploadFile, db: AsyncSession):
+    try:
+        query = await db.execute(select(CafedraLaboratory).where(CafedraLaboratory.id == laboratory_id))
+        lab = query.scalar_one_or_none()
+        if not lab: return JSONResponse(content={"status_code": 404, "message": "Laboratory not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        old_path = lab.image_url
+        new_path = await save_upload(image, "cafedra-laboratories", ALLOWED_IMAGE_MIMES)
+        lab.image_url = new_path
+        lab.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+        if old_path: safe_delete_file(old_path)
+        return JSONResponse(content={"status_code": 200, "message": "Laboratory image uploaded successfully.", "data": {"image_url": new_path}}, status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.exception("500 Internal Server Error")
         await db.rollback()

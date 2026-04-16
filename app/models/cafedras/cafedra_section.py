@@ -12,6 +12,7 @@ class CafedraLaboratory(Base):
         ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
         nullable=False,
     )
+    image_url = Column(String(1024))
     display_order = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
