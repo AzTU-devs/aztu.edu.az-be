@@ -13,6 +13,9 @@ class CafedraLaboratory(Base):
         nullable=False,
     )
     image_url = Column(String(1024))
+    room_number = Column(String(50))
+    email = Column(String(255))
+    phone_number = Column(String(50))
     display_order = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
@@ -20,6 +23,18 @@ class CafedraLaboratory(Base):
     cafedra = relationship("Cafedra", back_populates="laboratories")
     translations = relationship(
         "CafedraLaboratoryTr",
+        back_populates="laboratory",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    objectives = relationship(
+        "CafedraLaboratoryObjective",
+        back_populates="laboratory",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    gallery_images = relationship(
+        "CafedraLaboratoryGalleryImage",
         back_populates="laboratory",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -45,6 +60,65 @@ class CafedraLaboratoryTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     laboratory = relationship("CafedraLaboratory", back_populates="translations")
+
+
+class CafedraLaboratoryObjective(Base):
+    __tablename__ = "cafedra_laboratory_objectives"
+
+    id = Column(Integer, primary_key=True, index=True)
+    laboratory_id = Column(
+        Integer,
+        ForeignKey("cafedra_laboratories.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    display_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    laboratory = relationship("CafedraLaboratory", back_populates="objectives")
+    translations = relationship(
+        "CafedraLaboratoryObjectiveTr",
+        back_populates="objective",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class CafedraLaboratoryObjectiveTr(Base):
+    __tablename__ = "cafedra_laboratory_objective_tr"
+    __table_args__ = (
+        UniqueConstraint("objective_id", "lang_code", name="uq_cafedra_lab_objective_tr_id_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    objective_id = Column(
+        Integer,
+        ForeignKey("cafedra_laboratory_objectives.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    lang_code = Column(String(10), nullable=False)
+    title = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    objective = relationship("CafedraLaboratoryObjective", back_populates="translations")
+
+
+class CafedraLaboratoryGalleryImage(Base):
+    __tablename__ = "cafedra_laboratory_gallery_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    laboratory_id = Column(
+        Integer,
+        ForeignKey("cafedra_laboratories.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    image_url = Column(String(1024), nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    laboratory = relationship("CafedraLaboratory", back_populates="gallery_images")
 
 
 class CafedraResearchWork(Base):

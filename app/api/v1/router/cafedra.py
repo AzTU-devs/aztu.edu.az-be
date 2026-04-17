@@ -19,6 +19,8 @@ from app.services.cafedra import (
     get_all_laboratories,
     get_cafedra_laboratories,
     upload_laboratory_image,
+    upload_laboratory_gallery_image,
+    delete_laboratory_gallery_image,
 )
 
 router = APIRouter()
@@ -204,5 +206,31 @@ async def upload_laboratory_image_endpoint(
     return await upload_laboratory_image(
         laboratory_id=laboratory_id,
         image=image,
+        db=db,
+    )
+
+
+@router.post("/laboratories/{laboratory_id}/gallery")
+async def upload_laboratory_gallery_image_endpoint(
+    laboratory_id: int,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    # _: AdminUser = Depends(require_admin),
+):
+    return await upload_laboratory_gallery_image(
+        laboratory_id=laboratory_id,
+        image=image,
+        db=db,
+    )
+
+
+@router.delete("/laboratories/gallery/{gallery_image_id}")
+async def delete_laboratory_gallery_image_endpoint(
+    gallery_image_id: int,
+    db: AsyncSession = Depends(get_db),
+    # _: AdminUser = Depends(require_admin),
+):
+    return await delete_laboratory_gallery_image(
+        gallery_image_id=gallery_image_id,
         db=db,
     )

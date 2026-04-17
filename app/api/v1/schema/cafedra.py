@@ -70,10 +70,29 @@ class SectionItem(BaseModel):
     en: SectionTranslation
 
 
+class LaboratoryObjectiveTranslation(BaseModel):
+    title: str = Field(...)
+
+
+class LaboratoryObjectiveItem(BaseModel):
+    az: LaboratoryObjectiveTranslation
+    en: LaboratoryObjectiveTranslation
+
+
+class LaboratoryTranslation(BaseModel):
+    title: str = Field(...)
+    html_content: str | None = None
+
+
 class LaboratoryItem(BaseModel):
-    az: SectionTranslation
-    en: SectionTranslation
+    az: LaboratoryTranslation
+    en: LaboratoryTranslation
+    room_number: str | None = None
+    email: EmailStr | None = None
+    phone_number: str | None = None
     image_url: str | None = None
+    objectives: list[LaboratoryObjectiveItem] | None = None
+    gallery_images: list[str] | None = None
 
 
 class DeputyDirectorTranslation(BaseModel):

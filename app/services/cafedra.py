@@ -35,6 +35,9 @@ from app.models.cafedras.cafedra_personnel import (
 from app.models.cafedras.cafedra_section import (
     CafedraLaboratory,
     CafedraLaboratoryTr,
+    CafedraLaboratoryObjective,
+    CafedraLaboratoryObjectiveTr,
+    CafedraLaboratoryGalleryImage,
     CafedraResearchWork,
     CafedraResearchWorkTr,
     CafedraPartnerCompany,
@@ -139,6 +142,138 @@ async def _delete_section(parent_cls: Type[Any], cafedra_code: str, db: AsyncSes
     await db.execute(
         sqlalchemy_delete(parent_cls).where(parent_cls.cafedra_code == cafedra_code)
     )
+
+
+async def _create_laboratory_items(
+    cafedra_code: str,
+    items: list[Any],
+    now: datetime,
+    db: AsyncSession,
+):
+    for index, item in enumerate(items):
+        lab = CafedraLaboratory(
+            cafedra_code=cafedra_code,
+            image_url=item.image_url,
+            room_number=item.room_number,
+            email=item.email,
+            phone_number=item.phone_number,
+            display_order=index,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(lab)
+        await db.flush()
+
+        for lang in ["az", "en"]:
+            data = getattr(item, lang)
+            db.add(CafedraLaboratoryTr(
+                laboratory_id=lab.id,
+                lang_code=lang,
+                title=data.title,
+                description=data.html_content,
+                created_at=now,
+                updated_at=now,
+            ))
+
+        if item.objectives:
+            for obj_index, obj in enumerate(item.objectives):
+                objective = CafedraLaboratoryObjective(
+                    laboratory_id=lab.id,
+                    display_order=obj_index,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(objective)
+                await db.flush()
+                for lang in ["az", "en"]:
+                    obj_data = getattr(obj, lang)
+                    db.add(CafedraLaboratoryObjectiveTr(
+                        objective_id=objective.id,
+                        lang_code=lang,
+                        title=obj_data.title,
+                        created_at=now,
+                        updated_at=now,
+                    ))
+
+        if item.gallery_images:
+            for img_index, img_url in enumerate(item.gallery_images):
+                db.add(CafedraLaboratoryGalleryImage(
+                    laboratory_id=lab.id,
+                    image_url=img_url,
+                    display_order=img_index,
+                    created_at=now,
+                    updated_at=now,
+                ))
+
+
+async def _serialize_laboratory(
+    lab: CafedraLaboratory,
+    lang_code: str,
+    db: AsyncSession,
+) -> dict:
+    tr_q = await db.execute(
+        select(CafedraLaboratoryTr).where(
+            CafedraLaboratoryTr.laboratory_id == lab.id,
+            CafedraLaboratoryTr.lang_code == lang_code,
+        )
+    )
+    tr = tr_q.scalar_one_or_none()
+
+    obj_q = await db.execute(
+        select(CafedraLaboratoryObjective)
+        .where(CafedraLaboratoryObjective.laboratory_id == lab.id)
+        .order_by(CafedraLaboratoryObjective.display_order.asc())
+    )
+    objectives = []
+    for obj in obj_q.scalars().all():
+        obj_tr_q = await db.execute(
+            select(CafedraLaboratoryObjectiveTr).where(
+                CafedraLaboratoryObjectiveTr.objective_id == obj.id,
+                CafedraLaboratoryObjectiveTr.lang_code == lang_code,
+            )
+        )
+        obj_tr = obj_tr_q.scalar_one_or_none()
+        objectives.append({
+            "id": obj.id,
+            "title": obj_tr.title if obj_tr else None,
+        })
+
+    gallery_q = await db.execute(
+        select(CafedraLaboratoryGalleryImage)
+        .where(CafedraLaboratoryGalleryImage.laboratory_id == lab.id)
+        .order_by(CafedraLaboratoryGalleryImage.display_order.asc())
+    )
+    gallery_images = [
+        {"id": img.id, "image_url": img.image_url}
+        for img in gallery_q.scalars().all()
+    ]
+
+    return {
+        "id": lab.id,
+        "cafedra_code": lab.cafedra_code,
+        "title": tr.title if tr else None,
+        "html_content": tr.description if tr else None,
+        "image_url": lab.image_url,
+        "room_number": lab.room_number,
+        "email": lab.email,
+        "phone_number": lab.phone_number,
+        "objectives": objectives,
+        "gallery_images": gallery_images,
+    }
+
+
+async def _serialize_laboratories_for_cafedra(
+    cafedra_code: str,
+    lang_code: str,
+    db: AsyncSession,
+) -> list[dict]:
+    labs_q = await db.execute(
+        select(CafedraLaboratory)
+        .where(CafedraLaboratory.cafedra_code == cafedra_code)
+        .order_by(CafedraLaboratory.display_order.asc())
+    )
+    labs = labs_q.scalars().all()
+    return [await _serialize_laboratory(lab, lang_code, db) for lab in labs]
 
 
 async def _create_people(
@@ -516,7 +651,7 @@ async def create_cafedra(
             await _create_director(cafedra_code, request.director, now, db)
 
         if request.laboratories:
-            await _create_translated_section(CafedraLaboratory, CafedraLaboratoryTr, "laboratory_id", cafedra_code, request.laboratories, now, db)
+            await _create_laboratory_items(cafedra_code, request.laboratories, now, db)
 
         if request.research_works:
             await _create_translated_section(CafedraResearchWork, CafedraResearchWorkTr, "research_work_id", cafedra_code, request.research_works, now, db)
@@ -658,9 +793,7 @@ async def get_cafedra(
             "sdgs": cafedra.sdgs,
             "deputy_director_count": deputy_count,
             "director": await _serialize_director(director, lang_code, db) if director else None,
-            "laboratories": await _serialize_translated_section(
-                CafedraLaboratory, CafedraLaboratoryTr, "laboratory_id", cafedra_code, lang_code, db,
-            ),
+            "laboratories": await _serialize_laboratories_for_cafedra(cafedra_code, lang_code, db),
             "research_works": await _serialize_translated_section(
                 CafedraResearchWork, CafedraResearchWorkTr, "research_work_id", cafedra_code, lang_code, db,
             ),
@@ -774,7 +907,7 @@ async def update_cafedra(
         if "laboratories" in request_data:
             await _delete_section(CafedraLaboratory, cafedra_code, db)
             if request_data["laboratories"]:
-                await _create_translated_section(CafedraLaboratory, CafedraLaboratoryTr, "laboratory_id", cafedra_code, request.laboratories, now, db)
+                await _create_laboratory_items(cafedra_code, request.laboratories, now, db)
 
         if "research_works" in request_data:
             await _delete_section(CafedraResearchWork, cafedra_code, db)
@@ -920,6 +1053,9 @@ async def create_laboratory(
         lab = CafedraLaboratory(
             cafedra_code=cafedra_code,
             image_url=request.image_url,
+            room_number=request.room_number,
+            email=request.email,
+            phone_number=request.phone_number,
             display_order=max_order + 1,
             created_at=now,
             updated_at=now,
@@ -933,10 +1069,40 @@ async def create_laboratory(
                 laboratory_id=lab.id,
                 lang_code=lang,
                 title=tr_data.title,
-                description=tr_data.description,
+                description=tr_data.html_content,
                 created_at=now,
                 updated_at=now,
             ))
+
+        if request.objectives:
+            for obj_index, obj in enumerate(request.objectives):
+                objective = CafedraLaboratoryObjective(
+                    laboratory_id=lab.id,
+                    display_order=obj_index,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(objective)
+                await db.flush()
+                for lang in ["az", "en"]:
+                    obj_data = getattr(obj, lang)
+                    db.add(CafedraLaboratoryObjectiveTr(
+                        objective_id=objective.id,
+                        lang_code=lang,
+                        title=obj_data.title,
+                        created_at=now,
+                        updated_at=now,
+                    ))
+
+        if request.gallery_images:
+            for img_index, img_url in enumerate(request.gallery_images):
+                db.add(CafedraLaboratoryGalleryImage(
+                    laboratory_id=lab.id,
+                    image_url=img_url,
+                    display_order=img_index,
+                    created_at=now,
+                    updated_at=now,
+                ))
 
         await db.commit()
         return JSONResponse(content={"status_code": 201, "message": "Laboratory created successfully.", "data": {"id": lab.id}}, status_code=status.HTTP_201_CREATED)
@@ -960,17 +1126,7 @@ async def get_all_laboratories(
         labs_q = await db.execute(query.order_by(CafedraLaboratory.id.asc()).offset(start).limit(end - start))
         labs = labs_q.scalars().all()
 
-        labs_arr = []
-        for lab in labs:
-            tr_q = await db.execute(select(CafedraLaboratoryTr).where(CafedraLaboratoryTr.laboratory_id == lab.id, CafedraLaboratoryTr.lang_code == lang))
-            tr = tr_q.scalar_one_or_none()
-            labs_arr.append({
-                "id": lab.id,
-                "cafedra_code": lab.cafedra_code,
-                "title": tr.title if tr else None,
-                "description": tr.description if tr else None,
-                "image_url": lab.image_url,
-            })
+        labs_arr = [await _serialize_laboratory(lab, lang, db) for lab in labs]
 
         return JSONResponse(content={"status_code": 200, "laboratories": labs_arr, "total": total}, status_code=status.HTTP_200_OK)
     except Exception as e:
@@ -984,7 +1140,7 @@ async def get_cafedra_laboratories(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        labs = await _serialize_translated_section(CafedraLaboratory, CafedraLaboratoryTr, "laboratory_id", cafedra_code, lang, db)
+        labs = await _serialize_laboratories_for_cafedra(cafedra_code, lang, db)
         return JSONResponse(content={"status_code": 200, "laboratories": labs}, status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.exception("500 Internal Server Error")
@@ -1003,6 +1159,65 @@ async def upload_laboratory_image(laboratory_id: int, image: UploadFile, db: Asy
         await db.commit()
         if old_path: safe_delete_file(old_path)
         return JSONResponse(content={"status_code": 200, "message": "Laboratory image uploaded successfully.", "data": {"image_url": new_path}}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def upload_laboratory_gallery_image(laboratory_id: int, image: UploadFile, db: AsyncSession):
+    try:
+        query = await db.execute(select(CafedraLaboratory).where(CafedraLaboratory.id == laboratory_id))
+        lab = query.scalar_one_or_none()
+        if not lab:
+            return JSONResponse(content={"status_code": 404, "message": "Laboratory not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        new_path = await save_upload(image, "cafedra-laboratory-gallery", ALLOWED_IMAGE_MIMES)
+        now = datetime.now(timezone.utc)
+
+        order_query = await db.execute(
+            select(func.max(CafedraLaboratoryGalleryImage.display_order))
+            .where(CafedraLaboratoryGalleryImage.laboratory_id == laboratory_id)
+        )
+        max_order = order_query.scalar() or -1
+
+        gallery_img = CafedraLaboratoryGalleryImage(
+            laboratory_id=laboratory_id,
+            image_url=new_path,
+            display_order=max_order + 1,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(gallery_img)
+        await db.commit()
+        await db.refresh(gallery_img)
+
+        return JSONResponse(
+            content={"status_code": 201, "message": "Gallery image uploaded successfully.", "data": {"id": gallery_img.id, "image_url": new_path}},
+            status_code=status.HTTP_201_CREATED,
+        )
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_laboratory_gallery_image(gallery_image_id: int, db: AsyncSession):
+    try:
+        query = await db.execute(
+            select(CafedraLaboratoryGalleryImage).where(CafedraLaboratoryGalleryImage.id == gallery_image_id)
+        )
+        img = query.scalar_one_or_none()
+        if not img:
+            return JSONResponse(content={"status_code": 404, "message": "Gallery image not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        old_path = img.image_url
+        await db.delete(img)
+        await db.commit()
+        if old_path:
+            safe_delete_file(old_path)
+
+        return JSONResponse(content={"status_code": 200, "message": "Gallery image deleted successfully."}, status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.exception("500 Internal Server Error")
         await db.rollback()
