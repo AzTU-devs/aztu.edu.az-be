@@ -17,8 +17,19 @@ async def fetch_article_counters() -> dict:
     start = time.monotonic()
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-blink-features=AutomationControlled"],
+        )
+        context = await browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            locale="en-US",
+        )
+        page = await context.new_page()
 
         scopus_count = None
         try:
@@ -28,6 +39,16 @@ async def fetch_article_counters() -> dict:
             except Exception:
                 pass
             logger.debug("scopus landed on: %s | title: %s", page.url, await page.title())
+            # accept cookie / GDPR consent if present
+            for selector in ["button#onetrust-accept-btn-handler", "button:has-text('Accept')", "button:has-text('Accept all')"]:
+                try:
+                    btn = await page.query_selector(selector)
+                    if btn:
+                        await btn.click()
+                        await page.wait_for_load_state("networkidle", timeout=8000)
+                        break
+                except Exception:
+                    pass
             el = await page.wait_for_selector("[data-testid='clickable-count']", timeout=15000)
             scopus_count = (await el.inner_text()).strip()
             logger.info("scopus counter fetched: %s", scopus_count)
@@ -48,6 +69,7 @@ async def fetch_article_counters() -> dict:
         except Exception as exc:
             logger.error("wos scrape failed: %s", exc)
 
+        await context.close()
         await browser.close()
 
     elapsed_ms = (time.monotonic() - start) * 1000
