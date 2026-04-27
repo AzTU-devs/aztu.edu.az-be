@@ -22,25 +22,29 @@ async def fetch_article_counters() -> dict:
 
         scopus_count = None
         try:
-            await page.goto(SCOPUS_URL, wait_until="networkidle", timeout=30000)
-            el = await page.wait_for_selector("[data-testid='clickable-count']", timeout=10000)
-            if el:
-                scopus_count = (await el.inner_text()).strip()
-                logger.info("scopus counter fetched: %s", scopus_count)
-            else:
-                logger.warning("scopus counter element not found")
+            await page.goto(SCOPUS_URL, wait_until="load", timeout=30000)
+            try:
+                await page.wait_for_load_state("networkidle", timeout=10000)
+            except Exception:
+                pass
+            logger.debug("scopus landed on: %s | title: %s", page.url, await page.title())
+            el = await page.wait_for_selector("[data-testid='clickable-count']", timeout=15000)
+            scopus_count = (await el.inner_text()).strip()
+            logger.info("scopus counter fetched: %s", scopus_count)
         except Exception as exc:
             logger.error("scopus scrape failed: %s", exc)
 
         wos_count = None
         try:
-            await page.goto(WEB_OF_SCIENCE_URL, wait_until="domcontentloaded", timeout=30000)
-            el = await page.wait_for_selector(".tab-results-count", timeout=15000)
-            if el:
-                wos_count = (await el.inner_text()).strip()
-                logger.info("wos counter fetched: %s", wos_count)
-            else:
-                logger.warning("wos counter element not found")
+            await page.goto(WEB_OF_SCIENCE_URL, wait_until="load", timeout=30000)
+            try:
+                await page.wait_for_load_state("networkidle", timeout=15000)
+            except Exception:
+                pass
+            logger.debug("wos landed on: %s | title: %s", page.url, await page.title())
+            el = await page.wait_for_selector(".tab-results-count", timeout=20000)
+            wos_count = (await el.inner_text()).strip()
+            logger.info("wos counter fetched: %s", wos_count)
         except Exception as exc:
             logger.error("wos scrape failed: %s", exc)
 
