@@ -23,24 +23,24 @@ async def fetch_article_counters() -> dict:
         scopus_count = None
         try:
             await page.goto(SCOPUS_URL, wait_until="networkidle", timeout=30000)
-            el = await page.query_selector(f"xpath={SCOPUS_COUNTER_PATH}")
+            el = await page.wait_for_selector("[data-testid='clickable-count']", timeout=10000)
             if el:
                 scopus_count = (await el.inner_text()).strip()
                 logger.info("scopus counter fetched: %s", scopus_count)
             else:
-                logger.warning("scopus counter element not found at xpath")
+                logger.warning("scopus counter element not found")
         except Exception as exc:
             logger.error("scopus scrape failed: %s", exc)
 
         wos_count = None
         try:
-            await page.goto(WEB_OF_SCIENCE_URL, wait_until="networkidle", timeout=30000)
-            el = await page.query_selector(f"xpath={WEB_OF_SCIENCE_COUNTER_PATH}")
+            await page.goto(WEB_OF_SCIENCE_URL, wait_until="domcontentloaded", timeout=30000)
+            el = await page.wait_for_selector(".tab-results-count", timeout=15000)
             if el:
                 wos_count = (await el.inner_text()).strip()
                 logger.info("wos counter fetched: %s", wos_count)
             else:
-                logger.warning("wos counter element not found at xpath")
+                logger.warning("wos counter element not found")
         except Exception as exc:
             logger.error("wos scrape failed: %s", exc)
 
