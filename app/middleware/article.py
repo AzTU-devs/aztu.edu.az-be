@@ -1,8 +1,8 @@
 from playwright.async_api import async_playwright
 from fastapi import APIRouter
 
-SCOPUS_URL = "https://www.scopus.com/YOUR_PAGE_HERE"
-WEB_OF_SCIENCE_URL = "https://www.webofscience.com/YOUR_PAGE_HERE"
+SCOPUS_URL = "https://www.scopus.com/pages/organization/60071968"
+WEB_OF_SCIENCE_URL = "https://www.webofscience.com/wos/woscc/summary/5667f913-5f6b-4e0b-8fe9-e12d8f6be1f1-01af1662f4/relevance/1?state=%7B%22searchType%22:%22generalSearch%22%7D"
 
 SCOPUS_COUNTER_PATH = "/html/body/div[1]/div/main/div/section/div/div/div[1]/div/header/div/section/div/div[1]/div/div/div/div[1]/a/span/span"
 WEB_OF_SCIENCE_COUNTER_PATH = "/html/body/app-wos/main/div/div[1]/div/div/div[2]/app-input-route/app-base-summary-component/app-search-friendly-display/div[4]/div[1]/nav/div[2]/div/div/a[1]/span[2]/span/span[1]"
