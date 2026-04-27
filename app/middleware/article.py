@@ -1,80 +1,45 @@
 import time
-from playwright.async_api import async_playwright
+import json
+import asyncio
+import urllib.request
 from fastapi import APIRouter
 from app.core.logger import get_logger
 
 logger = get_logger("aztu.article")
 
-SCOPUS_URL = "https://www.scopus.com/pages/organization/60071968"
-WEB_OF_SCIENCE_URL = "https://www.webofscience.com/wos/woscc/summary/5667f913-5f6b-4e0b-8fe9-e12d8f6be1f1-01af1662f4/relevance/1?state=%7B%22searchType%22:%22generalSearch%22%7D"
+SCOPUS_API_URL = "https://www.scopus.com/gateway/organisation-profile-api/organizations/60071968"
 
-SCOPUS_COUNTER_PATH = "/html/body/div[1]/div/main/div/section/div/div/div[1]/div/header/div/section/div/div[1]/div/div/div/div[1]/a/span/span"
-WEB_OF_SCIENCE_COUNTER_PATH = "/html/body/app-wos/main/div/div[1]/div/div/div[2]/app-input-route/app-base-summary-component/app-search-friendly-display/div[1]/app-general-search-friendly-display/div/div/h1/span"
+# WEB_OF_SCIENCE_URL = "https://www.webofscience.com/wos/woscc/summary/..."
+# WEB_OF_SCIENCE_COUNTER_PATH = "/html/body/app-wos/main/..."
+
+
+def _fetch_scopus_sync() -> dict:
+    req = urllib.request.Request(
+        SCOPUS_API_URL,
+        headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read())
 
 
 async def fetch_article_counters() -> dict:
-    logger.info("article counters scrape started")
+    logger.info("article counters fetch started")
     start = time.monotonic()
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-blink-features=AutomationControlled"],
-        )
-        context = await browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            ),
-            locale="en-US",
-        )
-        page = await context.new_page()
+    scopus_count = None
+    try:
+        data = await asyncio.to_thread(_fetch_scopus_sync)
+        scopus_count = str(data["metrics"]["documentsCount"])
+        logger.info("scopus documents count: %s", scopus_count)
+    except Exception as exc:
+        logger.error("scopus fetch failed: %s", exc)
 
-        scopus_count = None
-        try:
-            await page.goto(SCOPUS_URL, wait_until="load", timeout=30000)
-            try:
-                await page.wait_for_load_state("networkidle", timeout=10000)
-            except Exception:
-                pass
-            logger.debug("scopus landed on: %s | title: %s", page.url, await page.title())
-            # accept cookie / GDPR consent if present
-            for selector in ["button#onetrust-accept-btn-handler", "button:has-text('Accept')", "button:has-text('Accept all')"]:
-                try:
-                    btn = await page.query_selector(selector)
-                    if btn:
-                        await btn.click()
-                        await page.wait_for_load_state("networkidle", timeout=8000)
-                        break
-                except Exception:
-                    pass
-            el = await page.wait_for_selector("[data-testid='clickable-count']", timeout=15000)
-            scopus_count = (await el.inner_text()).strip()
-            logger.info("scopus counter fetched: %s", scopus_count)
-        except Exception as exc:
-            logger.error("scopus scrape failed: %s", exc)
-
-        wos_count = None
-        try:
-            await page.goto(WEB_OF_SCIENCE_URL, wait_until="load", timeout=30000)
-            try:
-                await page.wait_for_load_state("networkidle", timeout=15000)
-            except Exception:
-                pass
-            logger.debug("wos landed on: %s | title: %s", page.url, await page.title())
-            el = await page.wait_for_selector(".tab-results-count", timeout=20000)
-            wos_count = (await el.inner_text()).strip()
-            logger.info("wos counter fetched: %s", wos_count)
-        except Exception as exc:
-            logger.error("wos scrape failed: %s", exc)
-
-        await context.close()
-        await browser.close()
+    # wos_count = None
+    # WoS requires institutional auth — commented until resolved
 
     elapsed_ms = (time.monotonic() - start) * 1000
-    logger.info("article counters scrape finished in %.1fms — scopus=%s wos=%s", elapsed_ms, scopus_count, wos_count)
-    return {"scopus": scopus_count, "wos": wos_count}
+    logger.info("article counters fetch finished in %.1fms", elapsed_ms)
+    return {"scopus": scopus_count, "wos": None}
 
 
 router = APIRouter()
