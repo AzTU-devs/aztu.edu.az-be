@@ -8,6 +8,7 @@ from app.core.logger import get_logger
 logger = get_logger("aztu.article")
 
 SCOPUS_API_URL = "https://www.scopus.com/gateway/organisation-profile-api/organizations/60071968"
+SCOPUS_API_KEY = "833d8114bee9d1f779195cd3993b77e4"
 
 # WEB_OF_SCIENCE_URL = "https://www.webofscience.com/wos/woscc/summary/..."
 # WEB_OF_SCIENCE_COUNTER_PATH = "/html/body/app-wos/main/..."
@@ -16,7 +17,10 @@ SCOPUS_API_URL = "https://www.scopus.com/gateway/organisation-profile-api/organi
 def _fetch_scopus_sync() -> dict:
     req = urllib.request.Request(
         SCOPUS_API_URL,
-        headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
+        headers={
+            "Accept": "application/json",
+            "X-ELS-APIKey": SCOPUS_API_KEY,
+        },
     )
     with urllib.request.urlopen(req, timeout=15) as resp:
         return json.loads(resp.read())
