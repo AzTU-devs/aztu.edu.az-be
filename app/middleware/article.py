@@ -2,28 +2,35 @@ import time
 import json
 import asyncio
 import urllib.request
+import urllib.parse
 from fastapi import APIRouter
 from app.core.logger import get_logger
 
 logger = get_logger("aztu.article")
 
-SCOPUS_API_URL = "https://www.scopus.com/gateway/organisation-profile-api/organizations/60071968"
+SCOPUS_SEARCH_URL = "https://api.elsevier.com/content/search/scopus"
 SCOPUS_API_KEY = "833d8114bee9d1f779195cd3993b77e4"
+SCOPUS_QUERY = (
+    'AF-ID(60071968) OR AFFIL("Azerbaijan Technical University") '
+    'OR AFFIL("Azərbaycan Texniki Universiteti")'
+)
 
 # WEB_OF_SCIENCE_URL = "https://www.webofscience.com/wos/woscc/summary/..."
 # WEB_OF_SCIENCE_COUNTER_PATH = "/html/body/app-wos/main/..."
 
 
-def _fetch_scopus_sync() -> dict:
+def _fetch_scopus_sync() -> str:
+    params = urllib.parse.urlencode({"query": SCOPUS_QUERY, "count": "0"})
     req = urllib.request.Request(
-        SCOPUS_API_URL,
+        f"{SCOPUS_SEARCH_URL}?{params}",
         headers={
             "Accept": "application/json",
             "X-ELS-APIKey": SCOPUS_API_KEY,
         },
     )
     with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read())
+        data = json.loads(resp.read())
+    return data["search-results"]["opensearch:totalResults"]
 
 
 async def fetch_article_counters() -> dict:
@@ -32,9 +39,8 @@ async def fetch_article_counters() -> dict:
 
     scopus_count = None
     try:
-        data = await asyncio.to_thread(_fetch_scopus_sync)
-        scopus_count = str(data["metrics"]["documentsCount"])
-        logger.info("scopus documents count: %s", scopus_count)
+        scopus_count = await asyncio.to_thread(_fetch_scopus_sync)
+        logger.info("scopus total results: %s", scopus_count)
     except Exception as exc:
         logger.error("scopus fetch failed: %s", exc)
 
