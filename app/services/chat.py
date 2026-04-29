@@ -19,7 +19,7 @@ STRICT OPERATING RULES:
 async def get_chat_reply(message: str) -> str:
     client = AsyncOpenAI(api_key=settings.OPEN_AI_KEY)
     response = await client.chat.completions.create(
-        mmodel="gpt-4o",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": message},
