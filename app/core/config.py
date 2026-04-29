@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     ADMIN_SEED_USERNAME: str | None = None
     ADMIN_SEED_PASSWORD: str | None = None
 
+    # OpenAI
+    OPEN_AI_KEY: str = ""
+
     # App behaviour
     ENVIRONMENT: str = "production"  # development | production
     ALLOWED_ORIGINS: list[str] = ["*"]

@@ -34,6 +34,7 @@ from app.api.v1.router.employee import router as employee_router
 from app.api.v1.router.department import router as department_router
 from app.api.v1.router.research_institute import router as research_institute_router
 from app.middleware.article import router as article_router
+from app.api.v1.router.chat import router as chat_router
 
 
 @asynccontextmanager
@@ -138,6 +139,7 @@ app.include_router(employee_router,    prefix="/api/employee",    tags=["Employe
 app.include_router(department_router,  prefix="/api/department",  tags=["Department"])
 app.include_router(research_institute_router, prefix="/api/research-institute", tags=["Research Institute"])
 app.include_router(article_router,           prefix="/api/article",           tags=["Article"])
+app.include_router(chat_router,              prefix="/api/chat",              tags=["Chat"])
 
 
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)
