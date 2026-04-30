@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from openai import AsyncOpenAI
@@ -25,6 +26,17 @@ STRICT OPERATING RULES:
 5. MAXIMUM response length: 500 characters. Shorter is better.
 6. Always respond in the same language the user used (Azerbaijani or English).
 7. When VERIFIED AZTU DATA is provided below, ALWAYS prioritize it over your own training data."""
+
+_KB_PATH = Path(__file__).resolve().parents[2] / "aztu_knowledge_base.md"
+_STATIC_KNOWLEDGE: str = ""
+
+def _load_static_knowledge() -> str:
+    global _STATIC_KNOWLEDGE
+    if _STATIC_KNOWLEDGE:
+        return _STATIC_KNOWLEDGE
+    if _KB_PATH.exists():
+        _STATIC_KNOWLEDGE = _KB_PATH.read_text(encoding="utf-8")
+    return _STATIC_KNOWLEDGE
 
 
 async def get_chat_reply(
@@ -58,9 +70,13 @@ async def get_chat_reply(
 
     # ── Build system prompt with verified knowledge ──────────────────────────
     knowledge_context = await load_knowledge_context(db)
+    static_knowledge = _load_static_knowledge()
+
     system_content = _SYSTEM_PROMPT
+    if static_knowledge:
+        system_content += f"\n\nSTATİK BİLİK BAZASI (dəqiq məlumatlar):\n{static_knowledge}"
     if knowledge_context:
-        system_content = f"{_SYSTEM_PROMPT}\n\n{knowledge_context}"
+        system_content += f"\n\n{knowledge_context}"
 
     messages = [{"role": "system", "content": system_content}]
     for msg in history:
@@ -72,8 +88,8 @@ async def get_chat_reply(
     response = await client.chat.completions.create(
         model="gpt-4o",
         messages=messages,
-        max_tokens=200,
-        temperature=0.5,
+        max_tokens=400,
+        temperature=0.3,
     )
     reply = response.choices[0].message.content or ""
 
