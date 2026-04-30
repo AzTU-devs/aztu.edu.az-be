@@ -986,4 +986,98 @@ Dekan:Allahverdi Şərifov Camal
 Energetika fakültəsi ölkəmizdə fəaliyyət göstərən müvafiq sənaye müəssisələrini mühəndis kadrlara olan ehtiyacını ödəmək üçün 1964-cü ildə Ç.İldırım adına Azərbaycan Politexnik İnstitutunda (indiki Azərbaycan Texniki Universiteti) Elektrotexnika adı ilə yaradılıb. Fakültə 2001-ci ildən Elektrotexnika və energetika fakültəsi adlandırılıb. Azərbaycan Respublikası müstəqillik qazandıqdan sonra ölkə iqtisadiyyatında baş verən köklü dəyişikliklər, enerji sahələrinin idarəedilməsinin intellektuallaşdırılması, ekoloji problemlərin həlli və yaşıl enerji texnologiyalarının enerjisistemə inteqrasiyası kadr hazırlığı strategiyasına yenidən baxılması fakültənin strukturunda dəyişikliklərin edilməsi və genişləndirilməsi zəruriliyini nəzərə alarq, 2021-ci ildə universitetin Elmi şurasının qərarı ilə fakültə Energetika və avtomatika, 05.07.2025-ci il tarixli 08 nömrəli qərarı ilə isə, əmək bazarının tələbləri nəzərə alınaraq fakültənin strukturunda yenidən əhəmiyyətli dəyişikliklər edilərək, fakültə “Energetika” olaraq adlandırılıb. Fakültədə üç kafedra fəaliyyət göstərir: 1. Elektrotexnika kafedrası; 2. Enerji effektivliyi və yaşıl enerji texnologiyaları kafedrası; 3. Mühəndis fizikası və elektronika. Təhsil Azərbaycan, türk, ingilis və rus dillərində aparılır. Energetika fakültəsi müasir mühəndislik təhsilinin tələblərinə uyğun kadr hazırlığını həyata keçirir. Fakültədə tələbələr enerji sistemləri və onların intellektual idarə olunması, rejim və əks-qəza avtomatikası, elektrotexnika, yaşıl enerji texnologiyaları və intellektual elektrik şəbəkələri sahələrində dərin nəzəri biliklər və güclü praktiki bacarıqlar əldə edirlər. Tədris prosesi dual təhsil modeli əsasında qurulub – bu yanaşma tələbələrin həm universitetdə, həm də real sənaye mühitində təcrübə keçməsinə şərait yaradır. Fakültədə yerli və beynəlxalq tələbələrə geniş imkanlar təqdim olunur. Təcrübə yönümlü laboratoriyalar, universitet həyətində quraşdırılmış günəş və külək enerji qurğuları, eləcə də sənaye tərəfdaşlıqları tələbələrin yaşıl enerji və ağıllı texnologiyalar üzrə biliklərini tətbiq etməyə imkan verir. Fakültə dünyanın aparıcı universitet və tədqiqat institutları ilə əməkdaşlıq edir, tələbələrə beynəlxalq təhsil proqramlarında, o cümlədən ikili diplom layihələrində iştirak imkanı yaradır.
 Dekan:Hüseynqulu Quliyev Bayram
 
+#Tedqiqat Prioritetleri
 
+Məlumat Analitikası, Süni İntellekt və Kibertəhlükəsizlik
+Azərbaycan Texniki Universitetində bu istiqamət üzrə aparılan tədqiqatlar müasir dövrün mürəkkəb çağırışlarına cavab verən texnoloji həllərin hazırlanmasına yönəlib. Tədqiqatçılar məlumat analitikası, süni intellekt və kibertəhlükəsizlik sahələrində qabaqcıl elmi yanaşmaları tətbiq etməklə innovativ və praktik nəticələr əldə etməyə çalışırlar.
+
+Bu sahədə həyata keçirilən layihələr məlumatların emalı və təhlili üçün maşın öyrənməsi alqoritmlərini, süni intellekt əsaslı kibertəhlükəsizlik həllərini, həmçinin məxfiliyin qorunması və informasiya təhlükəsizliyi üsullarını əhatə edir. Universitet elmi nəticələrin real sektorda tətbiqini genişləndirmək, qərar qəbuletmə proseslərini təkmilləşdirmək və rəqəmsal təhlükəsizliyi gücləndirmək məqsədilə sənaye tərəfdaşları ilə səmərəli əməkdaşlıq qurur.
+
+Eyni zamanda, bu istiqamət üzrə təşkil olunan elmi konfranslar və seminarlar alimlər, tədqiqatçılar və praktik mütəxəssislər üçün aktual məsələlərin müzakirəsi, qabaqcıl təcrübələrin paylaşılması və innovativ həllərin təqdimatı baxımından mühüm platforma rolunu oynayır.
+
+Enerji, Nəqliyyat və Ətraf Mühit Texnologiyaları
+Bu prioritet istiqamət üzrə aparılan tədqiqatların əsas məqsədi davamlı enerji istehsalının təşviqi, səmərəli nəqliyyat sistemlərinin inkişafı və ətraf mühitin mühafizəsi üçün innovativ həllərin hazırlanmasıdır. Universitet bu sahədə texnoloji yeniliklərin yaradılmasını və onların praktik tətbiqini əsas strateji hədəflərdən biri kimi müəyyən edir.
+
+Tədqiqat istiqamətlərinə bərpa olunan enerji texnologiyaları, ağıllı nəqliyyat sistemləri, ətraf mühitin monitorinqi və resurslardan səmərəli istifadə yanaşmaları daxildir. Sənaye tərəfdaşları ilə həyata keçirilən əməkdaşlıqlar elmi nəticələrin tətbiqinə, enerji səmərəliliyinin artırılmasına və ekoloji davamlılığın gücləndirilməsinə mühüm töhfə verir.
+
+Bu sahə üzrə təşkil olunan elmi konfranslar və simpoziumlar yerli və beynəlxalq experləri bir araya gətirərək yeni tendensiyaların müzakirəsinə, qabaqcıl təcrübələrin paylaşılmasına və sahələrarası elmi əməkdaşlığın inkişafına geniş imkan yaradır.
+
+Robototexnika və Sənaye Əşyaların İnterneti
+Robototexnika və sənaye əşyaların interneti istiqaməti müasir sənaye proseslərinin transformasiyası, avtomatlaşdırmanın inkişafı və istehsalın səmərəliliyinin artırılması baxımından xüsusi əhəmiyyət daşıyır. Universitet bu sahədə gələcəyin ağıllı istehsal sistemlərinin formalaşdırılmasına yönəlmiş tədqiqatlara geniş yer ayırır.
+
+Bu istiqamət çərçivəsində həyata keçirilən layihələr avtonom robot sistemlərini, sensor şəbəkələrini, ağıllı istehsal texnologiyalarını və sənaye əşyaların interneti əsaslı həlləri əhatə edir. Sənaye tərəfdaşları ilə reallaşdırılan birgə təşəbbüslər texnologiya transferini sürətləndirir, innovativ həllərin tətbiqini təşviq edir və istehsalatda rəqəmsal transformasiyanı dəstəkləyir.
+
+Universitet tərəfindən bu istiqamət üzrə keçirilən elmi seminar və konfranslar tədqiqatçılara əldə olunan nəticələri təqdim etmək, yeni əməkdaşlıqlar qurmaq və bilik mübadiləsini gücləndirmək üçün əlverişli mühit yaradır.
+
+Qabaqcıl Materiallar və Nanotexnologiya
+Qabaqcıl materiallar və nanotexnologiya istiqaməti üzrə aparılan tədqiqatlar yeni nəsil materialların hazırlanması, onların funksional xüsusiyyətlərinin təkmilləşdirilməsi və nanoölçülü proseslərin dərindən öyrənilməsinə yönəlmişdir. Bu sahə elm, sənaye və texnologiyanın kəsişməsində yerləşərək yüksək innovasiya potensialına malikdir.
+
+Burada həyata keçirilən tədqiqatlar nanomaterialların sintezi, xarakterizasiya üsulları və onların elektronika, səhiyyə, energetika və digər sahələrdə tətbiqlərini əhatə edir. Universitet sənaye müəssisələri və tədqiqat institutları ilə strateji tərəfdaşlıqlar quraraq texnologiyanın inkişafını, innovasiyaların kommersiyalaşdırılmasını və elmi nəticələrin praktik istifadəsini dəstəkləyir.
+
+Bu istiqamət üzrə keçirilən konfrans və simpoziumlar tədqiqatçılar üçün elmi yenilikləri nümayiş etdirmək, mövcud çağırışları müzakirə etmək və gələcək əməkdaşlıq imkanlarını dəyərləndirmək baxımından mühüm əhəmiyyət kəsb edir.
+
+Dayanıqlı İnkişaf və Mobillik
+Dayanıqlı inkişaf və mobillik istiqaməti üzrə tədqiqat təşəbbüsləri cəmiyyətin artan ehtiyaclarını qarşılamaqla yanaşı, ətraf mühitə təsirin minimuma endirilməsini və resurslardan səmərəli istifadəni hədəfləyir. Universitet bu istiqamətdə iqtisadi, sosial və ekoloji tarazlığın qorunmasına xidmət edən elmi yanaşmaları dəstəkləyir.
+
+Bu sahədə aparılan layihələr şəhərsalma, dayanıqlı infrastruktur, alternativ nəqliyyat həlləri, ağıllı şəhər texnologiyaları və ekoloji idarəetmə istiqamətlərini əhatə edir. Sənaye qurumları, dövlət təşkilatları və qeyri-kommersiya strukturları ilə qurulan əməkdaşlıqlar dayanıqlı siyasətlərin və innovativ həllərin tətbiqinə, eyni zamanda iqtisadi inkişaf ilə ekoloji mühafizənin uzlaşdırılmasına şərait yaradır.
+
+Bu istiqamət üzrə təşkil olunan konfranslar, forumlar və müzakirə platformaları müxtəlif sahələrdən olan experləri bir araya gətirərək dayanıqlı inkişaf və mobillik üçün yeni yanaşmaların formalaşdırılmasına töhfə verir.
+
+#####################################
+
+Xarici Tələbələrin Qəbulu
+Azərbaycan Texniki Universiteti xarici tələbələrin müraciətlərini məmnuniyyətlə qəbul edir. Qəbul prosesi Beynəlxalq Qəbul İdarəsi tərəfindən koordinasiya edilir və Azərbaycan Respublikası Elm və Təhsil Nazirliyinin tənzimləmələrinə uyğun aparılır.
+
+Tələb olunan sənədlər
+Doldurulmuş ərizə forması
+Orta təhsil diplomu və ya müvafiq sənəd (Azərbaycan və ya rus dilinə notarial təsdiqli tərcüməsi ilə birlikdə)
+Əvvəlki təhsilin akademik cədvəli
+Etibarlı pasportun surəti (bütün səhifələr)
+Ərizəçinin yoluxucu xəstəlikdən azad olduğunu təsdiq edən tibbi arayış
+4 ədəd pasport formatında foto (3×4 sm)
+Tədris dilini bilmə sertifikatı (tətbiq olunarsa)
+AzTU tərəfindən verilmiş dəvətnamə (qəbulun təsdiqindən sonra təqdim edilir)
+
+Müraciət Prosesi
+Bakalavr proqramları üçün müraciətlər Tələbə Qəbulu üzrə Dövlət Komissiyasının (TQDK) portalı vasitəsilə həyata keçirilir. Magistratura proqramları üçün ərizəçilər birbaşa Beynəlxalq Qəbul İdarəsi ilə əlaqə saxlayır. Təqdim edilən bütün sənədlər qəbul komitəsi tərəfindən nəzərdən keçirilir, müvəffəq olan ərizəçilərə rəsmi dəvətnamə göndərilir.
+
+Sənədlərin Yoxlanması
+Təqdim edilən bütün sənədlər Beynəlxalq Qəbul İdarəsi tərəfindən diqqətlə yoxlanır. Tam sənəd paketi təqdim edildikdən sonra 10–15 iş günü ərzində qərar barədə məlumatlandırılacaqsınız.
+
+Dil Tələbləri
+AzTU-da tədris Azərbaycan və rus dillərində aparılır. Xarici tələbələrin seçdikləri proqramın tədris dilini kifayət qədər bilmələri gözlənilir.
+
+Dil tələbini ödəməyən ərizəçilər dərəcə proqramına başlamazdan əvvəl universitetin təklif etdiyi bir illik hazırlıq dil kursuna yazıla bilərlər.
+
+Vacib Qeyd
+AzTU-da oxumaq istəyən bütün xarici vətəndaşlar Azərbaycana gəlməzdən əvvəl müvafiq tələbə vizasını almalıdırlar. AzTU-nun Beynəlxalq Qəbul İdarəsi viza dəvəti prosesində yardım göstərir.
+
+Ətraflı və aktual qəbul tələbləri haqqında məlumat almaq üçün Beynəlxalq Qəbul İdarəsi ilə əlaqə saxlayın və ya TQDK-nın rəsmi saytına daxil olun.
+
+#########################################
+AzTU İdman Klubu
+Tələbələrin sağlam həyat tərzi və idman nailiyyətləri üçün yaradılmış mərkəz
+Klubun Tarixi və Fəaliyyəti
+Azərbaycan Texniki Universitetinin (AzTU) "Bədən tərbiyəsi və idman" kafedrası 1950-ci ildə yaradılmışdır. Kafedranın ilk müdiri dövrünün tanınmış idman mütəxəssisi O.M.Sarkisov olmuşdur.
+
+2015-ci ildə Təhsil Nazirliyinin əmri ilə kafedra ləğv edilmiş və onun bazasında "AzTU İdman Klubu" yaradılmışdır. Klubun əsas məqsədi tələbələr arasında bədən tərbiyəsi və idmanın kütləviliyini təmin etmək, onları sağlam həyat tərzinə cəlb etməkdir.
+
+Klub universitetin daxili yarışlarını təşkil etməklə yanaşı, həm də AzTU-nu respublika səviyyəli çempionatlarda, universiadalarda və beynəlxalq turnirlərdə təmsil edir.
+
+İdman Bölmələri
+Klubda 10-dan çox idman növü üzrə məşqlər və bölmələr fəaliyyət göstərir:
+
+Basketbol
+Sərbəst güləş
+Yunan-Roma güləşi
+Cüdo
+Boks
+Voleybol
+Futbol / Futzal
+Stolüstü tennis
+Kikboksing
+Şahmat
+Dama
+Badminton
+Atletika
+#################################
