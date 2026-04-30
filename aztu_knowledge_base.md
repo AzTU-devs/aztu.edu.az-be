@@ -908,3 +908,82 @@ GIZ (Germany) and the Ministry of Economy of Azerbaijan.
 Aliyev has participated in international training and conferences across the United States,
 Turkey, Qatar, Germany, Italy, Poland, the Czech Republic, and other European countries,
 and is fluent in English, Turkish,
+
+
+#Metrics
+6
+Fakültə
+
+Tədris fakültəsi
+
+36
++
+Bakalavr
+
+İxtisas
+
+126
++
+Magistr
+
+İxtisas
+
+10,000
++
+Tələbə
+
+Aktiv tələbə
+
+1,000
++
+Müəllim
+
+Akademik heyət
+
+150
++
+Tərəfdaş
+
+Beynəlxalq əməkdaşlıq
+
+100
++
+İllik Tarix
+
+1920-ci ildən bəri
+
+###########################
+
+## Fakulteler haqqinda
+İnformasiya Texnologiyaları və Telekommunikasiya fakültəsi ölkəmizdə sürətlə inkişaf edən rəqəmsal iqtisadiyyatın və telekommunikasiya sənayesinin yüksək ixtisaslı mühəndis kadrlarla təmin edilməsinə olan ehtiyacını qarşılamaq məqsədilə yaradılıb. Fakültənin əsası Azərbaycan Texniki Universitetində informasiya texnologiyaları, kompüter mühəndisliyi və telekommunikasiya istiqamətlərində aparılan mühəndis hazırlığının genişləndirilməsi zəruriliyindən irəli gələrək qoyulub. 1961-ci ildə Azərbaycan Politexnik İnstitutunda (indiki Azərbaycan Texniki Universiteti) Avtomatika və hesablama texnikası fakültəsi yaradılmışdır. Azərbaycan Texniki Universitetinin 05.02.2025-ci il tarixli Elmi Şurasının əmri ilə fakültənin adı dəyişdirilərək İnformasiya Texnologiyaları və Telekommunikasiya fakültəsi adlandırılmışdır. Fakültənin strukturu müasir tələblərə uyğun yenilənmiş, əmək bazarının ehtiyaclarına cavab verən geniş ixtisas spektri formalaşdırılmışdır. Bu dəyişikliklər nəticəsində fakültə hazırda informasiya texnologiyaları, telekommunikasiya sistemləri, kompüter mühəndisliyi və süni intellekt sahələrində yüksək ixtisaslı mütəxəssis hazırlığını həyata keçirən əsas mərkəzlərdən birinə çevrilmişdir. Fakültənin nəzdində 4 kafedra fəaliyyət göstərir: Kibertəhlükəsizlik; Kompüter texnologiyaları; Mühəndis riyaziyyatı və süni intellekt; Radiotexnika və telekommunikasiya. Hazırda fakültənin nəzdində fəaliyyət göstərən 4 kafedrada bakalavr təhsil səviyyəsində 7 ixtisas, magistr təhsil səviyyəsində isə 5 ixtisas üzrə kadr hazırlığı həyata keçirilir. Fakültədə bakalavr təhsil səviyyəsi üzrə ixtisas istiqamətləri: Kompüter elmləri, İnformasiya texnologiyaları, Kompüter mühəndisliyi, İnformasiya təhlükəsizliyi, Radiotexnika və telekommunikasiya mühəndisliyi, Proqram təminatı mühəndisliyi, Data Analitika. Fakültədə magistr təhsil səviyyəsi üzrə ixtisas istiqamətləri: Kompüter mühəndisliyi, İnformasiya texnologiyaları, İnformasiya təhlükəsizliyi, Kompüter elmləri, Radiotexnika və telekommunikasiya mühəndisliyi, Data elmləri. Tədris Azərbaycan, ingilis və rus dillərində aparılır. İnformasiya Texnologiyaları və Telekommunikasiya fakültəsi müasir rəqəmsal mühəndislik təhsilinin tələblərinə uyğun olaraq tələbələrə riyazi, proqramlaşdırma, informasiya sistemləri arxitekturası, şəbəkə texnologiyaları, süni intellekt, böyük verilənlər, kibertəhlükəsizlik, simsiz rabitə sistemləri, 5G/6G telekommunikasiya texnologiyaları, IoT (Internet of Things) və bulud texnologiyaları üzrə geniş nəzəri və praktiki biliklər təqdim edir. Tədris prosesi dual təhsil modelinə əsaslanır – tələbələr həm fakültənin müasir laboratoriyalarında, həm də real istehsalat mühitində təcrübə keçməklə tətbiqi biliklərini möhkəmləndirirlər. Fakültənin texnoloji şirkətlərlə əməkdaşlığı, startap mühiti, inkubasiya proqramları, beynəlxalq layihələrdə iştirak imkanları tələbələrin innovativ mühəndis kimi formalaşmasına əhəmiyyətli töhfə verir. İTT-nin nəzdində Kompüter mühəndisliyi, İnformasiya texnologiyaları, İnformasiya təhlükəsizliyi, Kompüter elmləri ixtisasları üzrə SABAH qrupları fəaliyyət göstərir. Fakültə xarici universitetlərlə akademik əlaqələrə malikdir və tələbələrə beynəlxalq mübadilə, həmçinin Ankara Universiteti ilə ikili diplom və sertifikatlaşdırma proqramlarında iştirak imkanı yaradır.
+Dekan:Leyla Məmmədova Məzdək
+
+Sənaye iqtisadiyyatı və menecment fakültəsi
+1995-ci ildə Azərbaycan Texniki Universitetində texniki ixtisaslar üzrə təhsil alan tələbələrə iqtisadiyyat və menecment sahəsində fundamental və tətbiqi biliklərin verilməsi, eyni zamanda sənaye iqtisadiyyatı üzrə ixtisaslaşmış yüksəkixtisaslı mütəxəssislərin hazırlanması məqsədilə Biznes Mühəndisliyi və Menecment fakültəsi yaradılmışdır. Fakültə yarandığı gündən etibarən texniki təhsil ilə iqtisadi və idarəetmə biliklərinin inteqrasiyasını əsas fəaliyyət istiqaməti kimi müəyyən etmiş, əmək bazarının tələblərinə uyğun müasir kadrların hazırlanmasına yönəlmişdir. Fakültə fəaliyyət göstərdiyi müddətdə tədris proqramlarının təkmilləşdirilməsi, müasir təhsil metodlarının tətbiqi və sənaye ilə əməkdaşlığın genişləndirilməsi sahəsində mühüm nailiyyətlər əldə etmişdir. Burada tələbələr iqtisadiyyat, menecment və sənaye sahələri üzrə nəzəri biliklərlə yanaşı, praktiki bacarıqlar əldə edərək analitik düşüncə və qərarvermə qabiliyyətlərini inkişaf etdirirlər. 2025-ci ildə Azərbaycan Texniki Universitetinin Akademik Şurasının qərarı ilə fakültənin adı dəyişdirilərək Sənaye İqtisadiyyatı və Menecment fakültəsi adlandırılmışdır. Yeni ad fakültənin fəaliyyət istiqamətlərini daha dəqiq ifadə etməklə yanaşı, sənaye yönümlü iqtisadi təhsil və müasir menecment yanaşmalarının inkişafına yönəlmiş strateji məqsədlərini əks etdirir.
+Dekan: Fərqanə Qəzənfər Musayeva
+
+Xüsusi texnika və texnologiya fakültəsi Xüsusi texnika və texnologiya fakültəsi Azərbaycan Respublikası müdafiə sənayesi kompleksi üçün yüksəkixtisaslı kadrların hazırlanması məqsədilə Nazirlər Kabinetinin 07 iyun 2011-ci il tarixli 91 nömrəli qərarı ilə yaradılmışdır. Fakültədə tədris prosesi nəzəri biliklərlə yanaşı, praktik hazırlığa əsaslanır. Dərslər universitetdə aparılmaqla yanaşı, həftənin müəyyən günlərində Müdafiə Sənayesi Nazirliyinin tabeliyində olan zavodlarda və sənaye müəssisələrinin təlim mərkəzlərində təşkil olunur ki, bu da tələbələrin real istehsalat mühitində təcrübə qazanmasına imkan yaradır. Yuxarı kurs tələbələri müdafiə sənayesi müəssisələrində istehsalat təcrübəsinə cəlb olunur, kurs layihələri və buraxılış işləri vasitəsilə istehsalat proseslərinin təkmilləşdirilməsinə dair praktiki təkliflər irəli sürürlər. Fakültədə qəbul yalnız dövlət sifarişi əsasında həyata keçirilir. Fakültənin əsas məqsədi müdafiə və yüksək texnologiyalar sənayesi üçün nəzəri biliklərlə yanaşı, praktik bacarıqlara malik, innovativ düşüncəli və rəqabətqabiliyyətli mütəxəssislər hazırlamaqdır. Eyni zamanda, elmi-tədqiqat və ixtiraçılıq fəaliyyətlərinin təşviqi, sənayeyönümlü layihələrin inkişafı və tələbə potensialının müasir texnologiyalarla vəhdətdə inkişafı fakültənin prioritet istiqamətlərini təşkil edir. Fakültə regionda və beynəlxalq səviyyədə müdafiə və xüsusi texnologiyalar üzrə qabaqcıl tədris və tədqiqat mərkəzinə çevrilməyi, sənaye ilə sıx əməkdaşlıq edən və innovasiya ekosistemində fəal iştirak edən akademik mühit formalaşdırmağı hədəfləyir. Fakültədə informasiya təhlükəsizliyi, silah sistemləri mühəndisliyi, mexatronika və robototexnika mühəndisliyi, maşın mühəndisliyi, materiallar mühəndisliyi, kimya mühəndisliyi, xüsusi rabitə vasitələri mühəndisliyi, sistemlər mühəndisliyi, aerokosmik mühəndislik, optotexnika mühəndisliyi, hərbi kompozisiya materialları mühəndisliyi və pirotexniki və partladıcı vasitələr mühəndisliyi ixtisasları üzrə tədris aparılır.
+Dekan:Yadullah Babayev Əbilfət oğlu
+
+Maşınqayırma və metallurgiya fakültəsi Azərbaycan Texniki Universitetinin Elmi Şurasının 09 iyul 2025-ci il tarixli qərarına əsasən yaradılmışdır. Universitetin aparıcı fakültəsi kimi ölkəmizdə onlarla elm xadimi və minlərlə yüksək ixtisaslı kadrların yetişdirilməsində mühüm rol oynamışdır.
+
+Maşınqayırma və metallurgiya fakültəsinin ixtisas kafedralarının hazırlıq profili üzrə klassik mühəndislik elm sahələri maşınların, mühərriklərin, ötürmələrin, qurğu, tikili və konstruksiyaların hazırlanması ilə məhdudlaşmır, eyni zamanda müasir texnika və texnologiyaların kəsişməsində yaranmış yeni istiqamətləri də əhatə edir. Bu sahələr üzrə mühəndis hazırlığının dizayn, maşın öyrənməsi və süni intellekt, konstruksiyaetmədə mühəndis hesablamaları, simulyasiya və modelləşdirmə, additiv texnologiyalar və istehsalın konstruktor-texnoloji hazırlığının rəqəmsal dizaynı, sənayenin avtomatlaşdırılması, yeni proqramlaşdırma metodları kimi müasir təlim metodlarını özündə birləşdirir.
+
+Son 5 ildə fakültədə müxtəlif ixtisaslar üzrə təhsil almış 2050-dən çox tələbə məzun olmuşdur. Onların böyük əksəriyyəti respublikanın nüfuzlu dövlət və özəl müəsissələrində, həmçinin xarici dövlətlərdə karyera qurmuşdur.
+
+Fakültənin fəaliyyət istiqamətləri
+Maşınqayırma və metallurgiya fakültəsi sənayenin müxtəlif sahələri üçün əmək bazarının tələblərinə cavab verən müasir mühəndis kadrların hazırlanmasını həyata keçirir. Fakültə tədris, elmi-tədqiqat, sənaye ilə əməkdaşlıq və beynəlxalq əlaqələrin inkişafını əsas fəaliyyət istiqamətləri kimi müəyyənləşdirir. Müasir texnologiyaların və innovativ yanaşmaların tədris prosesinə tətbiqi istiqamətində zəruri işlər görür.
+
+Maşınqayırma və metallurgiya fakültəsinin əsas fəaliyyət istiqamətləri aşağıdakılardır: Kimya texnologiyaları, ətraf mühitin mühafizəsi, qida sənayesi, maşınqayırma, mexatronika, robototexnika, maşınların, avadanlıqların və cihazların layihələndirilməsi və istismarı ilə bağlı nəzəri və praktiki biliklərə malik müasir mühəndis kadr hazırlığı üzrə keyfiyyətli tədrisin təşkili; Kafedralarda elmi-tədqiqat və innovasiya fəaliyyəti; Beynəlxalq əməkdaşlıq; Professor-müəllim heyətinin və tələbələrin beynəlxalq mübadilə və tədqiqat proqramlarında iştirakının koordinasiyası; Sənaye müəssisələri ilə əməkdaşlıq və istehsalat təcrübələrinin təşkili üçün əlaqələrin yaradılması; İnnovativ təhsil sisteminin yaradılması üçün müasir avadanlıqlarla təchiz edilmiş auditoriyaların formalaşdırılması; Sosial və təşkilati işlərlə bağlı fəaliyyət.
+
+Fakültədə aşağıdakı ixtisaslar üzrə kadr hazırlığı aparılır: Mexatronika və robototexnika mühəndisliyi, Sənaye mühəndisliyi, Qida mühəndisliyi, Maşın mühəndisliyi, Mexanika mühəndisliyi, Cihaz mühəndisliyi, Proseslərin avtomatlaşdırılması mühəndisliyi, Ekologiya mühəndisliyi, Həyat fəaliyyətinin təhlükəsizliyi mühəndisliyi, Kimya mühəndisliyi, Metallurgiya mühəndisliyi, Mədən mühəndisliyi, Materiallar mühəndisliyi.
+Dekan: Malik Qarayev Fikrət oğlu
+
+Nəqliyyat və logistika fakültəsi 1950-ci ildən fəaliyyətə başlayıb. 1950-ci ildə Azərbaycan Politexnik İnstitutu (indiki Azərbaycan Texniki Universiteti) fəaliyyətə başladığı zaman bu fakültə Mexanika adlanıb. Sonralar fakültənin adı dəyişdirilərək Avtonəqliyyat, Avtomexanika, Dəmir yolu nəqliyyatı və Nəqliyyat adlanıb. 2019-cu ildən fakültə Nəqliyyat və logistika adı ilə fəaliyyət göstərir. Təhsil azərbaycan və rus dillərində aparılır. Fakültənin nəzdində 2 kafedra fəaliyyət göstərir: • Nəqliyyat logistikası və hərəkətin təhlükəsizliyi; • Nəqliyyat texnikası və idarəetmə texnologiyaları. Hazırda fakültənin nəzdində fəaliyyət göstərən 2 kafedrada 3 ixtisas üzrə bakalavr səviyyəsində kadr hazırlığı həyata keçirilir.
+Dekan:Allahverdi Şərifov Camal
+
+
+Energetika fakültəsi ölkəmizdə fəaliyyət göstərən müvafiq sənaye müəssisələrini mühəndis kadrlara olan ehtiyacını ödəmək üçün 1964-cü ildə Ç.İldırım adına Azərbaycan Politexnik İnstitutunda (indiki Azərbaycan Texniki Universiteti) Elektrotexnika adı ilə yaradılıb. Fakültə 2001-ci ildən Elektrotexnika və energetika fakültəsi adlandırılıb. Azərbaycan Respublikası müstəqillik qazandıqdan sonra ölkə iqtisadiyyatında baş verən köklü dəyişikliklər, enerji sahələrinin idarəedilməsinin intellektuallaşdırılması, ekoloji problemlərin həlli və yaşıl enerji texnologiyalarının enerjisistemə inteqrasiyası kadr hazırlığı strategiyasına yenidən baxılması fakültənin strukturunda dəyişikliklərin edilməsi və genişləndirilməsi zəruriliyini nəzərə alarq, 2021-ci ildə universitetin Elmi şurasının qərarı ilə fakültə Energetika və avtomatika, 05.07.2025-ci il tarixli 08 nömrəli qərarı ilə isə, əmək bazarının tələbləri nəzərə alınaraq fakültənin strukturunda yenidən əhəmiyyətli dəyişikliklər edilərək, fakültə “Energetika” olaraq adlandırılıb. Fakültədə üç kafedra fəaliyyət göstərir: 1. Elektrotexnika kafedrası; 2. Enerji effektivliyi və yaşıl enerji texnologiyaları kafedrası; 3. Mühəndis fizikası və elektronika. Təhsil Azərbaycan, türk, ingilis və rus dillərində aparılır. Energetika fakültəsi müasir mühəndislik təhsilinin tələblərinə uyğun kadr hazırlığını həyata keçirir. Fakültədə tələbələr enerji sistemləri və onların intellektual idarə olunması, rejim və əks-qəza avtomatikası, elektrotexnika, yaşıl enerji texnologiyaları və intellektual elektrik şəbəkələri sahələrində dərin nəzəri biliklər və güclü praktiki bacarıqlar əldə edirlər. Tədris prosesi dual təhsil modeli əsasında qurulub – bu yanaşma tələbələrin həm universitetdə, həm də real sənaye mühitində təcrübə keçməsinə şərait yaradır. Fakültədə yerli və beynəlxalq tələbələrə geniş imkanlar təqdim olunur. Təcrübə yönümlü laboratoriyalar, universitet həyətində quraşdırılmış günəş və külək enerji qurğuları, eləcə də sənaye tərəfdaşlıqları tələbələrin yaşıl enerji və ağıllı texnologiyalar üzrə biliklərini tətbiq etməyə imkan verir. Fakültə dünyanın aparıcı universitet və tədqiqat institutları ilə əməkdaşlıq edir, tələbələrə beynəlxalq təhsil proqramlarında, o cümlədən ikili diplom layihələrində iştirak imkanı yaradır.
+Dekan:Hüseynqulu Quliyev Bayram
+
+
