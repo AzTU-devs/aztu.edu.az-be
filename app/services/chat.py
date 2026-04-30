@@ -1,5 +1,14 @@
+import uuid
+from datetime import datetime, timezone
+from typing import Optional
+
 from openai import AsyncOpenAI
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import settings
+from app.models.chat.chat_session import ChatSession
+from app.models.chat.chat_message import ChatMessage
 
 _SYSTEM_PROMPT = """You are the official AI assistant of Azerbaijan Technical University (AzTU).
 Your sole purpose is to provide information about AzTU (admissions, faculties,
@@ -16,15 +25,54 @@ STRICT OPERATING RULES:
 6. Always respond in the same language the user used (Azerbaijani or English)."""
 
 
-async def get_chat_reply(message: str) -> str:
+async def get_chat_reply(
+    message: str,
+    session_id: Optional[str],
+    ip_address: str,
+    db: AsyncSession,
+) -> tuple[str, str]:
+    # ── Resolve or create session ────────────────────────────────────────────
+    session: Optional[ChatSession] = None
+
+    if session_id:
+        result = await db.execute(
+            select(ChatSession).where(ChatSession.session_id == session_id)
+        )
+        session = result.scalar_one_or_none()
+
+    if session is None:
+        session_id = str(uuid.uuid4())
+        session = ChatSession(session_id=session_id, ip_address=ip_address)
+        db.add(session)
+        await db.flush()
+
+    # ── Load conversation history ────────────────────────────────────────────
+    result = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.session_id == session.session_id)
+        .order_by(ChatMessage.created_at)
+    )
+    history = result.scalars().all()
+
+    messages = [{"role": "system", "content": _SYSTEM_PROMPT}]
+    for msg in history:
+        messages.append({"role": msg.role, "content": msg.content})
+    messages.append({"role": "user", "content": message})
+
+    # ── Call OpenAI ──────────────────────────────────────────────────────────
     client = AsyncOpenAI(api_key=settings.OPEN_AI_KEY)
     response = await client.chat.completions.create(
         model="gpt-4o",
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": message},
-        ],
+        messages=messages,
         max_tokens=200,
         temperature=0.5,
     )
-    return response.choices[0].message.content or ""
+    reply = response.choices[0].message.content or ""
+
+    # ── Persist messages ────────────────────────────────────────────────────
+    db.add(ChatMessage(session_id=session.session_id, role="user", content=message))
+    db.add(ChatMessage(session_id=session.session_id, role="assistant", content=reply))
+    session.last_active_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    return reply, session.session_id
