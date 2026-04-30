@@ -696,3 +696,215 @@ C: Yüksək Təhsil İnstitutunun direktoru İsmayılova Aynurə Manaf qızıdı
 
 **S: AzTU nə vaxt yaradılıb?**  
 C: AzTU-nun tarixi 1887-ci ilə gedib çıxır. Azərbaycan Texniki Universiteti adını isə 1991-ci ildə almışdır.
+
+
+
+## Prorektorlar
+
+Prof. Sübhan Namazov
+Azərbaycan Texniki Universitetinin Elm və innovasiyalar üzrə prorektoru
+Prof. Sübhan Namazov materialşünaslıq, metallurgiya və ali təhsil sahəsində nüfuzlu alim və
+akademik liderdir. O, texnika elmləri doktoru və professor elmi dərəcələrinə malik olmaqla, elmi-
+tədqiqat, innovasiya və ali təhsilin inkişafı istiqamətində uzunillik təcrübəyə sahibdir. 1994-cü ildə
+Azərbaycan Texniki Universitetini fərqlənmə diplomu ilə bitirmiş, 1997-ci ildə fəlsəfə doktoru,
+2007-ci ildə isə texnika elmləri doktoru elmi dərəcələrini əldə etmişdir. Tələbəlik illərində ISESKO
+beynəlxalq təqaüdünə layiq görülmüşdür.
+Prof. Namazov Azərbaycan Texniki Universitetində müxtəlif akademik və idarəetmə vəzifələrində
+çalışaraq ali təhsilin keyfiyyətinin yüksəldilməsinə mühüm töhfələr vermişdir. O, Tədris şöbəsinin
+müdiri (2003–2011) və “Metallurgiya və materialşünaslıq” kafedrasının müdiri (2011–2020) kimi
+fəaliyyət göstərmiş, çoxsaylı mütəxəssislərin hazırlanmasında və elmi kadr potensialının
+formalaşdırılmasında mühüm rol oynamışdır. Onun rəhbərliyi ilə bir sıra fəlsəfə doktorları
+yetişdirilmişdir.
+Beynəlxalq akademik fəaliyyət çərçivəsində o, DAAD proqramı üzrə Almaniyanın aparıcı
+universitetlərində, o cümlədən RWTH Aachen və Rostok Universitetlərində elmi tədqiqatlar aparmış,
+TEMPUS və ERASMUS+ layihələri çərçivəsində beynəlxalq təhsil və tədqiqat layihələrinin həyata
+keçirilməsində aktiv iştirak etmişdir. O, həmçinin Azərbaycan Elm Fondu və Elm və Təhsil Nazirliyi
+tərəfindən maliyyələşdirilən bir sıra layihələrin elmi rəhbəri və meneceri olmuşdur.
+2018–2022-ci illərdə Beynəlxalq əlaqələr üzrə prorektor kimi universitetin qlobal akademik
+inteqrasiyasının gücləndirilməsinə töhfə vermiş, 2022-ci ildən etibarən Elm və innovasiyalar üzrə
+prorektor kimi universitetin elmi və innovasiya strategiyasına rəhbərlik edir.
+Prof. Namazov 220-dən çox elmi əsərin, monoqrafiya, dərslik və ixtiraların müəllifidir. Onun elmi
+işləri beynəlxalq səviyyədə tanınmış, müxtəlif ölkələrdə nəşr olunmuş və təqdim edilmişdir. O, 2016-
+cı ildə Beynəlxalq Mühəndislik Akademiyasının akademiki seçilmiş, həmçinin “Əməkdar müəllim”
+fəxri adına layiq görülmüşdür.
+
+Prof. Subhan Namazov
+Vice-Rector for Science and Innovation, Azerbaijan Technical University
+Prof. Subhan Namazov is a distinguished scholar and academic leader in materials science,
+metallurgy, and higher education development. He holds a Doctor of Technical Sciences degree and
+the academic title of Professor, with extensive experience in research, innovation, and academic
+leadership. He graduated with distinction from Azerbaijan Technical University in 1994, obtained his
+PhD in 1997, and his Doctor of Sciences degree in 2007. During his student years, he was awarded
+the prestigious ISESCO international scholarship.
+Prof. Namazov has built a strong academic and leadership career at Azerbaijan Technical University,
+serving in key roles including Head of the Teaching Department (2003–2011) and Head of the
+Department of Metallurgy and Materials Science (2011–2020). He has made significant contributions
+to the development of academic capacity, supervising and mentoring numerous undergraduate,
+graduate, and doctoral students, including several PhD graduates.
+Internationally, he has conducted advanced research under the DAAD program at leading German
+institutions, including RWTH Aachen University and the University of Rostock. He has actively
+contributed to TEMPUS and ERASMUS+ projects, playing a key role in international collaboration,
+
+quality assurance, and higher education development. He has also led and managed research projects
+funded by the Azerbaijan Science Foundation and the Ministry of Science and Education.
+He served as Vice-Rector for International Relations (2018–2022), significantly strengthening the
+university’s global engagement and international visibility. Since 2022, he has been serving as Vice-
+Rector for Science and Innovation, leading the university’s research and innovation strategy.
+Prof. Namazov is the author of over 220 scientific publications, including monographs, textbooks,
+and patents. His research has been widely published internationally and presented at numerous global
+conferences. He was elected a full member (academician) of the International Engineering Academy
+in 2016 and has been awarded the honorary title of “Honored Teacher of Azerbaijan.”
+
+
+Dr. Fəriz Məmmədov
+Azərbaycan Texniki Universitetinin Beynəlxalq əlaqələr üzrə prorektoru
+Dr. Fəriz Məmmədov ali təhsil idarəçiliyi, enerji siyasəti və strateji inkişaf sahəsində geniş
+təcrübəyə malik tanınmış mütəxəssisdir. O, hazırda Azərbaycan Texniki Universitetində
+Beynəlxalq əlaqələr üzrə prorektor vəzifəsində çalışır və universitetin beynəlmiləlləşmə
+strategiyasına rəhbərlik edir. Bu çərçivədə o, xarici ali təhsil müəssisələri ilə strateji
+tərəfdaşlıqların qurulması, beynəlxalq akademik şəbəkələrdə iştirak, ikili diplom
+proqramlarının inkişafı, eləcə də beynəlxalq tədris, tədqiqat və akademik mobillik
+layihələrinin həyata keçirilməsini təmin edir. O, eyni zamanda AzTU-nun nəzdində fəaliyyət
+göstərən MBA proqramının rəhbəridir.
+Dr. Məmmədov enerji siyasəti, strateji planlaşdırma, iqtisadi təhlil və ali təhsil idarəçiliyi
+istiqamətlərində çoxşaxəli peşəkar təcrübəyə malikdir. O, əvvəlki fəaliyyətində Azərbaycan
+Respublikası İqtisadiyyat Nazirliyinin İqtisadi İslahatlar Elmi-Tədqiqat İnstitutunda tədqiqat
+fəaliyyəti ilə məşğul olmuş, həmçinin “Azərenerji” ASC-də rəhbər vəzifələrdə çalışmışdır.
+O, Dünya Bankı, Asiya İnkişaf Bankı, Avropa İttifaqı və BMT-nin İnkişaf Proqramı kimi
+nüfuzlu beynəlxalq təşkilatlarla əməkdaşlıq çərçivəsində bir sıra mühüm layihələrdə enerji
+eksperti, milli məsləhətçi, iqtisadçı və layihə əlaqələndiricisi kimi iştirak etmişdir. Bu
+fəaliyyət çərçivəsində Azərbaycanın enerji siyasətinin inkişafı, enerji sektorunun
+modernləşdirilməsi, iqlim fəaliyyət planları və strateji islahat təşəbbüslərinə mühüm töhfələr
+vermişdir.
+Dr. Məmmədov iqtisad elmləri üzrə fəlsəfə doktorudur (ekonometrika və iqtisadi statistika).
+O, ADA Universiteti və Maastricht İdarəetmə Məktəbinin (Niderland) birgə proqramı üzrə
+Biznesin təşkili və idarə olunması üzrə magistr dərəcəsinə, həmçinin Bakı Dövlət
+Universitetində Siyasi elmlər üzrə magistr dərəcəsinə malikdir.
+O, Beynəlxalq Enerji İqtisadçıları Assosiasiyasının (IAEE) üzvüdür və ISO 50001 Enerji
+Menecment Sistemi, ISO/IEC 42001 Süni İntellekt Menecment Sistemi, eləcə də IPMA
+sertifikatlı layihə menecmenti mütəxəssisi kimi beynəlxalq sertifikatlara malikdir.
+
+Dr. Fariz Mammadov
+Vice-Rector for International Relations, Azerbaijan Technical University
+Dr. Fariz Mammadov is a senior academic leader and expert in international relations, with
+extensive experience in higher education management, energy policy, and strategic
+development. He currently serves as Vice-Rector for International Relations at Azerbaijan
+Technical University (AzTU), where he leads the university’s internationalization strategy,
+including the development of global partnerships, engagement in international academic
+networks, and the implementation of joint degree programs, academic mobility, and
+international research initiatives. He also serves as Head of the MBA Program at AzTU’s
+Institute of Higher Education.
+Dr. Mammadov has a strong multidisciplinary background in energy policy, strategic
+planning, economic analysis, and higher education governance. Prior to his current role, he
+
+conducted research at the Economic Reforms Scientific Research Institute under the Ministry
+of Economy of Azerbaijan and held senior management positions at Azerenerji JSC.
+He has actively contributed to major international projects in collaboration with leading
+organizations such as the World Bank, Asian Development Bank, European Union, and
+UNDP, serving as an energy expert, national consultant, economist, and project coordinator.
+His work has supported the advancement of Azerbaijan’s energy policy, sector
+modernization, climate action planning, and strategic reform initiatives.
+Dr. Mammadov holds a PhD in Economics (Econometrics and Economic Statistics) and a
+Master’s degree in Business Administration from a joint program of ADA University and
+Maastricht School of Management (Netherlands). He also holds a Master’s degree in Political
+Science from Baku State University.
+He is a member of the International Association for Energy Economics (IAEE) and holds
+internationally recognized certifications, including ISO 50001 Energy Management Systems,
+ISO/IEC 42001 Artificial Intelligence Management Systems, and IPMA Certified Project
+Management Professional.
+
+Prof. Nurəli Yusifbəyli
+Azərbaycan Texniki Universitetinin Tədris işləri üzrə prorektoru
+Prof. Nurəli Yusifbəyli Azərbaycan Texniki Universitetinin Tədris işləri üzrə prorektoru, enerji sistemləri
+və strateji planlaşdırma sahəsində tanınmış alim və yüksək səviyyəli idarəçidir. O, texnika elmləri
+doktoru və professor elmi dərəcələrinə malikdir və elektroenergetika, enerji təhlükəsizliyi və dayanıqlı
+enerji sistemləri sahəsində geniş elmi və praktiki təcrübəyə sahibdir. 18 yanvar 2021-ci il tarixində
+Azərbaycan Respublikası Təhsil Nazirinin K-44 nömrəli əmrinə əsasən Azərbaycan Texniki
+Universitetinin Tədris işləri üzrə prorektoru vəzifəsinə təyin olunmuşdur.
+Prof. Yusifbəyli enerji sektorunda uzunmüddətli peşəkar fəaliyyətə malik olmaqla, “Azərenerji” ASC-də
+yüksək rəhbər vəzifələrdə, o cümlədən Mərkəzi Dispetçer İdarəsinin rəisi kimi çalışmış, enerji
+sistemlərinin idarə olunması və inkişafında mühüm rol oynamışdır. Daha sonra o, dövlət idarəçiliyində
+fəaliyyətini davam etdirərək Azərbaycan Respublikasının İqtisadiyyat və Sənaye Nazirliyində strateji
+planlaşdırma istiqamətinə rəhbərlik etmiş, həmçinin Alternativ və Bərpaolunan Enerji Mənbələri üzrə
+Dövlət Agentliyi sədrinin müavini vəzifəsində çalışmışdır.
+Onun elmi fəaliyyəti enerji təhlükəsizliyi, elektroenergetika sistemlərinin inkişafı və bərpaolunan enerji
+mənbələrinin inteqrasiyası sahələrini əhatə edir. Prof. Yusifbəyli 200-dən çox elmi əsərin, 8 kitabın,
+patentlərin və standartların müəllifidir və bir sıra beynəlxalq layihələrə, o cümlədən ECO regionunun
+enerji strategiyası və Xəzər regionunun enerji təhlükəsizliyi layihələrinə rəhbərlik etmişdir.
+O, “Electroenergetics, Technics, Mechanics + Control” beynəlxalq jurnalının baş redaktoru, IEEE üzvü
+və “ECO Academy”nin akademikidir. Onun elmi və təşkilati fəaliyyəti yüksək qiymətləndirilmiş,
+“Əməkdar mühəndis”, “Əməkdar elm xadimi” və “MDB-nin Əməkdar energetiki” kimi nüfuzlu fəxri
+adlara layiq görülmüşdür.
+
+Prof. Nureli Yusifbeyli
+Vice-Rector for Academic Affairs, Azerbaijan Technical University
+Prof. Nureli Yusifbeyli is Vice-Rector for Academic Affairs at Azerbaijan Technical University and a
+distinguished scholar in energy systems and strategic planning. He holds a Doctor of Technical Sciences
+degree and the academic title of Professor, with extensive expertise in electroenergetics, energy security,
+and sustainable energy systems. He was appointed to his current position on January 18, 2021, by the
+order of the Ministry of Education of the Republic of Azerbaijan.
+Prof. Yusifbeyli brings decades of leadership experience in the energy sector, having held senior
+positions at Azerenerji JSC, including Head of the Central Dispatch Administration, where he played a
+key role in the management and development of national energy systems. He later served in public
+administration at the Ministry of Economy and Industry of Azerbaijan, leading strategic planning
+initiatives, and as Deputy Chairman of the State Agency for Alternative and Renewable Energy Sources.
+His research focuses on energy security, power system development, and the integration of renewable
+energy sources. He is the author of over 200 scientific publications, 8 books, patents, and national
+standards, and has led major international projects, including the ECO regional energy strategy and
+Caspian region energy security initiatives.
+Prof. Yusifbeyli serves as Editor-in-Chief of the international journal “Electroenergetics, Technics,
+Mechanics + Control”, is a member of IEEE, and an academician of the ECO Academy. His
+contributions have been recognized with prestigious honors, including the titles of Honored Engineer,
+Honored Scientist of Azerbaijan, and Honored Power Engineer of the CIS.
+
+Rəşad Əliyev
+Azərbaycan Texniki Universitetinin Maliyyə-təsərrüfat işləri üzrə prorektoru
+Rəşad Əliyev idarəetmə, maliyyə, informasiya texnologiyaları və innovasiya sahələrində 20
+ilə yaxın təcrübəyə malik təcrübəli rəhbər və mütəxəssisdir. O, hazırda Azərbaycan Texniki
+Universitetində Maliyyə-təsərrüfat işləri üzrə prorektor kimi universitetin maliyyə
+strategiyasının formalaşdırılmasına, əməliyyat səmərəliliyinin artırılmasına və institusional
+inkişafın təmin edilməsinə rəhbərlik edir.
+Peşəkar fəaliyyəti ərzində o, bankçılıq, korporativ idarəetmə və biznesin inkişafı sahələrində
+geniş təcrübə qazanmış, Azersun Holding, ASB Bank, Royal Bank, Performance Center
+(Chevrolet Azerbaijan) kimi nüfuzlu qurumlarda rəhbər vəzifələrdə çalışmışdır. Son olaraq
+AAAF Holding-də İdarə Heyətinin sədri kimi fəaliyyət göstərmiş, strateji idarəetmə və
+təşkilati transformasiya sahələrində mühüm nəticələr əldə etmişdir.
+Rəşad Əliyev innovasiya və startap ekosistemində də fəal iştirak edir, xüsusilə fintech
+sahəsində həm öz layihələrini inkişaf etdirmiş, həm də müxtəlif təşəbbüslərə ekspert dəstəyi
+göstərmişdir. O, 11 avqust 2021-ci ildə Rəqəmsallaşma və layihələr üzrə prorektor, 22 fevral
+2023-cü ildən isə Maliyyə-təsərrüfat işləri üzrə prorektor vəzifələrinə təyin olunmuşdur. Eyni
+zamanda, 2022-ci ildən etibarən ictimai əsaslarla AzTU Basketbol Klubunun prezidenti kimi
+fəaliyyət göstərir.
+Təhsilini İstanbul Universitetində bakalavr (Politologiya), Azərbaycan Dövlət İqtisad
+Universitetində MBA, və Bakı Mühəndislik Universitetində PhD (ekonometriya) üzrə
+tamamlamışdır. O, həmçinin GIZ və Azərbaycan Respublikası İqtisadiyyat Nazirliyinin
+dəstəyi ilə Menecer Təlim Proqramını uğurla bitirmişdir.
+Beynəlxalq təcrübəyə malik olan Rəşad Əliyev ABŞ, Türkiyə, Qətər, Almaniya, İtaliya,
+Polşa, Çexiya və digər Avropa ölkələrində keçirilən təlim və konfranslarda iştirak etmişdir.
+İngilis, türk və rus dillərini sərbəst bilir.
+
+Rashad Aliyev
+Vice-Rector for Finance and Operations, Azerbaijan Technical University
+Rashad Aliyev is a senior executive with nearly two decades of experience in management,
+finance, information technologies, marketing, and innovation. He currently serves as Vice-
+Rector for Finance and Operations at Azerbaijan Technical University, where he leads
+financial strategy, enhances operational efficiency, and drives institutional development.
+Throughout his career, he has built extensive experience across banking, corporate
+governance, and business development, holding leadership positions at Azersun Holding,
+ASB Bank, Royal Bank, and Performance Center (Chevrolet Azerbaijan). He most recently
+served as Chairman of the Board at AAAF Holding, demonstrating strong expertise in
+strategic management and organizational transformation.
+Aliyev is also actively engaged in the startup and innovation ecosystem, particularly in the
+fintech sector, where he has led his own initiatives and supported emerging entrepreneurs as
+an expert.
+
+He was appointed Vice-Rector for Digitalization and Projects on August 11, 2021, and Vice-
+Rector for Finance and Operations on February 22, 2023. Since 2022, he has also served as
+President of the AzTU Basketball Club on a voluntary basis.
+He holds a Bachelor’s degree in Political Science from Istanbul University, an MBA from
+Azerbaijan State University of Economics, and a PhD in Econometrics from Baku
+Engineering University. He has also completed the Manager Training Program supported by
+GIZ (Germany) and the Ministry of Economy of Azerbaijan.
+Aliyev has participated in international training and conferences across the United States,
+Turkey, Qatar, Germany, Italy, Poland, the Czech Republic, and other European countries,
+and is fluent in English, Turkish,
