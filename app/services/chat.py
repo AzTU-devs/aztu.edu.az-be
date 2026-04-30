@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.chat.chat_session import ChatSession
 from app.models.chat.chat_message import ChatMessage
+from app.services.chatbot_scraper import load_knowledge_context
 
 _SYSTEM_PROMPT = """You are the official AI assistant of Azerbaijan Technical University (AzTU).
 Your sole purpose is to provide information about AzTU (admissions, faculties,
@@ -22,7 +23,8 @@ STRICT OPERATING RULES:
    If the user uses such language, state that you cannot assist with requests of that nature.
 4. Do not engage in casual conversation or answer non-university related prompts.
 5. MAXIMUM response length: 500 characters. Shorter is better.
-6. Always respond in the same language the user used (Azerbaijani or English)."""
+6. Always respond in the same language the user used (Azerbaijani or English).
+7. When VERIFIED AZTU DATA is provided below, ALWAYS prioritize it over your own training data."""
 
 
 async def get_chat_reply(
@@ -54,7 +56,13 @@ async def get_chat_reply(
     )
     history = result.scalars().all()
 
-    messages = [{"role": "system", "content": _SYSTEM_PROMPT}]
+    # ── Build system prompt with verified knowledge ──────────────────────────
+    knowledge_context = await load_knowledge_context(db)
+    system_content = _SYSTEM_PROMPT
+    if knowledge_context:
+        system_content = f"{_SYSTEM_PROMPT}\n\n{knowledge_context}"
+
+    messages = [{"role": "system", "content": system_content}]
     for msg in history:
         messages.append({"role": msg.role, "content": msg.content})
     messages.append({"role": "user", "content": message})
@@ -69,7 +77,7 @@ async def get_chat_reply(
     )
     reply = response.choices[0].message.content or ""
 
-    # ── Persist messages ────────────────────────────────────────────────────
+    # ── Persist messages ─────────────────────────────────────────────────────
     db.add(ChatMessage(session_id=session.session_id, role="user", content=message))
     db.add(ChatMessage(session_id=session.session_id, role="assistant", content=reply))
     session.last_active_at = datetime.now(timezone.utc)
