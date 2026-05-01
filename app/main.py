@@ -54,9 +54,9 @@ app = FastAPI(
     description="Backend API for AzTU website (news, announcements, hero, etc.)",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 # ── Rate limiting ──────────────────────────────────────────────────────────────
