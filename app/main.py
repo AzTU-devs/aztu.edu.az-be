@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import settings
 from app.core.logger import get_logger
@@ -60,6 +61,10 @@ app = FastAPI(
 # ── Rate limiting ──────────────────────────────────────────────────────────────
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# SlowAPIMiddleware applies the limiter's `default_limits` to EVERY request
+# (not just routes decorated with @limiter.limit). This protects all pages
+# from brute-force / DoS / scraping by IP.
+app.add_middleware(SlowAPIMiddleware)
 
 # ── Security headers ───────────────────────────────────────────────────────────
 app.add_middleware(SecurityHeadersMiddleware)
