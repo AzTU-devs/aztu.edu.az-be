@@ -256,7 +256,9 @@ async def get_news_details(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        news = (await db.execute(select(News).where(News.news_id == news_id))).scalar_one_or_none()
+        news = (await db.execute(
+            select(News).where(News.news_id == news_id)
+        )).scalar_one_or_none()
 
         if not news:
             return JSONResponse(
@@ -265,11 +267,17 @@ async def get_news_details(
             )
 
         tr_az = (await db.execute(
-            select(NewsTranslation).where(NewsTranslation.news_id == news_id, NewsTranslation.lang_code == "az")
+            select(NewsTranslation).where(
+                NewsTranslation.news_id == news_id,
+                NewsTranslation.lang_code == "az"
+            )
         )).scalar_one_or_none()
 
         tr_en = (await db.execute(
-            select(NewsTranslation).where(NewsTranslation.news_id == news_id, NewsTranslation.lang_code == "en")
+            select(NewsTranslation).where(
+                NewsTranslation.news_id == news_id,
+                NewsTranslation.lang_code == "en"
+            )
         )).scalar_one_or_none()
 
         category = (await db.execute(
@@ -279,12 +287,22 @@ async def get_news_details(
             )
         )).scalar_one_or_none()
 
+        # ✅ FIXED: deterministic cover selection
         cover = (await db.execute(
-            select(NewsGallery).where(NewsGallery.news_id == news_id).order_by(NewsGallery.id).limit(1)
+            select(NewsGallery)
+            .where(NewsGallery.news_id == news_id)
+            .order_by(NewsGallery.is_cover.desc(), NewsGallery.id.asc())
+            .limit(1)
         )).scalar_one_or_none()
 
+        # ✅ FIXED: deterministic gallery order
         gallery = (await db.execute(
-            select(NewsGallery).where(NewsGallery.news_id == news_id, NewsGallery.is_cover == False)  # noqa: E712
+            select(NewsGallery)
+            .where(
+                NewsGallery.news_id == news_id,
+                NewsGallery.is_cover == False  # noqa: E712
+            )
+            .order_by(NewsGallery.id.asc())
         )).scalars().all()
 
         return JSONResponse(
@@ -299,7 +317,10 @@ async def get_news_details(
                     "en_html_content": tr_en.html_content if tr_en else None,
                     "category_id": category.title if category else None,
                     "cover_image": cover.image if cover else None,
-                    "gallery_images": [{"image_id": g.id, "image": g.image} for g in gallery],
+                    "gallery_images": [
+                        {"image_id": g.id, "image": g.image}
+                        for g in gallery
+                    ],
                 }
             }
         )
