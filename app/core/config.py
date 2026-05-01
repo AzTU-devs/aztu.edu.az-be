@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # Randomized docs path; if unset, docs are disabled
     DOCS_TOKEN: str | None = None
 
+    # Public base URL used to build absolute media URLs (no trailing slash)
+    PUBLIC_BASE_URL: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

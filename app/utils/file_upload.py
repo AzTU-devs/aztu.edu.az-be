@@ -85,7 +85,9 @@ async def save_upload(
             detail="Could not save file. Please check permissions."
         )
 
-    return f"static/{subdirectory}/{filename}"
+    relative = f"static/{subdirectory}/{filename}"
+    base = (settings.PUBLIC_BASE_URL or "").rstrip("/")
+    return f"{base}/{relative}" if base else relative
 
 
 # Startup check
@@ -105,8 +107,18 @@ def safe_delete_file(relative_path: str) -> None:
     if not relative_path:
         return
 
+    # Accept either a stored relative path ("static/...") or a full URL
+    # ("https://host/static/..."). Strip the scheme+host so we resolve
+    # against the local filesystem.
+    path = relative_path
+    if "://" in path:
+        path = path.split("://", 1)[1]
+        path = path.split("/", 1)[1] if "/" in path else ""
+    if not path:
+        return
+
     app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    resolved = os.path.abspath(os.path.join(app_dir, relative_path))
+    resolved = os.path.abspath(os.path.join(app_dir, path))
 
     if not resolved.startswith(STATIC_BASE):
         logger.error("Path traversal attempt: %s", relative_path)
