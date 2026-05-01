@@ -17,6 +17,7 @@ from app.core.logger import get_logger
 from app.core.rate_limit import limiter
 from app.core.startup import seed_admin_user
 from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.middleware.rate_limit import RateLimitMiddleware
 
 logger = get_logger("aztu.api")
 
@@ -61,10 +62,20 @@ app = FastAPI(
 # ── Rate limiting ──────────────────────────────────────────────────────────────
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-# SlowAPIMiddleware applies the limiter's `default_limits` to EVERY request
-# (not just routes decorated with @limiter.limit). This protects all pages
-# from brute-force / DoS / scraping by IP.
+# SlowAPIMiddleware keeps stricter @limiter.limit(...) decorators working
+# (e.g. auth login: 5/min, chat: tighter quotas).
 app.add_middleware(SlowAPIMiddleware)
+
+# Global per-IP rate limit for every /api/* route in api/v1/router/*.
+# 50 requests / minute / IP. /api/auth/* is exempted because auth.py
+# already enforces stricter per-route limits via @limiter.limit.
+app.add_middleware(
+    RateLimitMiddleware,
+    max_requests=50,
+    window_seconds=60,
+    path_prefixes=("/api/",),
+    exempt_paths=("/api/auth/",),
+)
 
 # ── Security headers ───────────────────────────────────────────────────────────
 app.add_middleware(SecurityHeadersMiddleware)

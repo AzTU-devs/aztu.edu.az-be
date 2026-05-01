@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Response, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.rate_limit import limiter
@@ -20,6 +20,7 @@ def _get_client_ip(request: Request) -> str:
 @limiter.limit("20/minute")
 async def chat_message(
     request: Request,
+    response: Response,
     body: ChatRequest,
     db: AsyncSession = Depends(get_db),
 ):
