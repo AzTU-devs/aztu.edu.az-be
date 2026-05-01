@@ -71,7 +71,7 @@ app.add_middleware(SlowAPIMiddleware)
 # already enforces stricter per-route limits via @limiter.limit.
 app.add_middleware(
     RateLimitMiddleware,
-    max_requests=50,
+    max_requests=100,
     window_seconds=60,
     path_prefixes=("/api/",),
     exempt_paths=("/api/auth/",),
