@@ -60,22 +60,22 @@ app = FastAPI(
 )
 
 # ── Rate limiting ──────────────────────────────────────────────────────────────
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-# SlowAPIMiddleware keeps stricter @limiter.limit(...) decorators working
-# (e.g. auth login: 5/min, chat: tighter quotas).
-app.add_middleware(SlowAPIMiddleware)
-
-# Global per-IP rate limit for every /api/* route in api/v1/router/*.
-# 50 requests / minute / IP. /api/auth/* is exempted because auth.py
-# already enforces stricter per-route limits via @limiter.limit.
-app.add_middleware(
-    RateLimitMiddleware,
-    max_requests=100,
-    window_seconds=60,
-    path_prefixes=("/api/",),
-    exempt_paths=("/api/auth/",),
-)
+# app.state.limiter = limiter
+# app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# # SlowAPIMiddleware keeps stricter @limiter.limit(...) decorators working
+# # (e.g. auth login: 5/min, chat: tighter quotas).
+# app.add_middleware(SlowAPIMiddleware)
+#
+# # Global per-IP rate limit for every /api/* route in api/v1/router/*.
+# # 100 requests / minute / IP. /api/auth/* is exempted because auth.py
+# # already enforces stricter per-route limits via @limiter.limit.
+# app.add_middleware(
+#     RateLimitMiddleware,
+#     max_requests=100,
+#     window_seconds=60,
+#     path_prefixes=("/api/",),
+#     exempt_paths=("/api/auth/",),
+# )
 
 # ── Security headers ───────────────────────────────────────────────────────────
 app.add_middleware(SecurityHeadersMiddleware)
