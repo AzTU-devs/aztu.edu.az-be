@@ -81,10 +81,9 @@ app = FastAPI(
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
-# allow_origin_regex=".*" allows all origins while remaining compatible with allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=".*",
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
