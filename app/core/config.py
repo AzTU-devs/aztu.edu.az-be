@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: list[str] = ["*"]
     MAX_UPLOAD_SIZE_BYTES: int = 20 * 1024 * 1024  # 10 MB
 
+    # Randomized docs path; if unset, docs are disabled
+    DOCS_TOKEN: str | None = None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
