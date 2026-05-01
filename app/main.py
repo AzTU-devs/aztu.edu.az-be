@@ -54,9 +54,9 @@ app = FastAPI(
     description="Backend API for AzTU website (news, announcements, hero, etc.)",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url=None,
-    redoc_url=None,
-    openapi_url=None,
+    docs_url=f"/docs-{os.getenv('DOCS_TOKEN', '')}" if os.getenv("DOCS_TOKEN") else None,
+    redoc_url=f"/redoc-{os.getenv('DOCS_TOKEN', '')}" if os.getenv("DOCS_TOKEN") else None,
+    openapi_url=f"/openapi-{os.getenv('DOCS_TOKEN', '')}.json" if os.getenv("DOCS_TOKEN") else None,
 )
 
 # ── Rate limiting ──────────────────────────────────────────────────────────────
