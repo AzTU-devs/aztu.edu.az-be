@@ -17,7 +17,6 @@ from app.core.logger import get_logger
 from app.core.rate_limit import limiter
 from app.core.startup import seed_admin_user
 from app.middleware.security_headers import SecurityHeadersMiddleware
-from app.middleware.rate_limit import RateLimitMiddleware
 
 logger = get_logger("aztu.api")
 
@@ -60,22 +59,12 @@ app = FastAPI(
 )
 
 # ── Rate limiting ──────────────────────────────────────────────────────────────
-# app.state.limiter = limiter
-# app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-# # SlowAPIMiddleware keeps stricter @limiter.limit(...) decorators working
-# # (e.g. auth login: 5/min, chat: tighter quotas).
-# app.add_middleware(SlowAPIMiddleware)
-#
-# # Global per-IP rate limit for every /api/* route in api/v1/router/*.
-# # 100 requests / minute / IP. /api/auth/* is exempted because auth.py
-# # already enforces stricter per-route limits via @limiter.limit.
-# app.add_middleware(
-#     RateLimitMiddleware,
-#     max_requests=100,
-#     window_seconds=60,
-#     path_prefixes=("/api/",),
-#     exempt_paths=("/api/auth/",),
-# )
+# slowapi backed by Redis: per-route @limiter.limit(...) decorators (e.g. auth
+# login 5/min, chat 20/min) and global default_limits enforce DoS protection
+# consistently across all uvicorn workers.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # ── Security headers ───────────────────────────────────────────────────────────
 app.add_middleware(SecurityHeadersMiddleware)
@@ -85,9 +74,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Accept-Language"],
 )
 
 
@@ -120,10 +108,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         request.url.path,
         exc.errors(),
     )
-    return JSONResponse(
-        status_code=422,
-        content=jsonable_encoder({"status_code": 422, "detail": exc.errors()}),
-    )
+    if settings.ENVIRONMENT == "production":
+        body = {"status_code": 422, "detail": "Invalid request"}
+    else:
+        body = {"status_code": 422, "detail": exc.errors()}
+    return JSONResponse(status_code=422, content=jsonable_encoder(body))
 
 
 # ── Global exception handler ───────────────────────────────────────────────────

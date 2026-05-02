@@ -6,7 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: api-aztu-edu-az
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --no-access-log --proxy-headers --forwarded-allow-ips "*"
+    # --forwarded-allow-ips uses TRUSTED_PROXY_IPS (set in Dockerfile, override
+    # in .env if your edge isn't Cloudflare).
+    command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --no-access-log --proxy-headers --forwarded-allow-ips ${TRUSTED_PROXY_IPS}"
     volumes:
       - ./app:/code/app
     ports:

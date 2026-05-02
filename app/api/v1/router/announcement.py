@@ -37,7 +37,7 @@ async def get_announcements_endpoint_admin(
     end: int = Query(4, gt=0, le=100),
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin)
+    _: AdminUser = Depends(require_admin),
 ):
     return await get_announcements_admin(start=start, end=end, lang=lang, db=db)
 
@@ -49,7 +49,7 @@ async def create_announcement_endpoint(
     en_title: str = Form(...),
     en_html_content: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin)
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_announcement(image=image, az_title=az_title, az_html_content=az_html_content, en_title=en_title, en_html_content=en_html_content, db=db)
 
@@ -57,7 +57,7 @@ async def create_announcement_endpoint(
 async def activate_announcement_endpoint(
     announcement_id: int,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin)
+    _: AdminUser = Depends(require_admin),
 ):
     return await activate_announcement(announcement_id=announcement_id, db=db)
 
@@ -65,7 +65,7 @@ async def activate_announcement_endpoint(
 async def deactivate_announcement_endpoint(
     announcement_id: int,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin)
+    _: AdminUser = Depends(require_admin),
 ):
     return await deactivate_announcement(announcement_id=announcement_id, db=db)
 
@@ -73,6 +73,6 @@ async def deactivate_announcement_endpoint(
 async def reorder_announcement_endpoint(
     request: ReOrderAnnouncement,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin)
+    _: AdminUser = Depends(require_admin),
 ):
     return await reorder_announcement(request=request, db=db)

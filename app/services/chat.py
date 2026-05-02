@@ -53,6 +53,11 @@ async def get_chat_reply(
             select(ChatSession).where(ChatSession.session_id == session_id)
         )
         session = result.scalar_one_or_none()
+        # Bind sessions to their originating IP so a stolen session_id from
+        # one client cannot be replayed from another IP to read or extend
+        # someone else's chat history.
+        if session is not None and session.ip_address != ip_address:
+            session = None
 
     if session is None:
         session_id = str(uuid.uuid4())

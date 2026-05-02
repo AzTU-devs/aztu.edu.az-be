@@ -1,10 +1,12 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, ConfigDict, HttpUrl
 from typing import Optional
 from datetime import datetime
 
 
 class KnowledgeSourceCreate(BaseModel):
-    url: str
+    model_config = ConfigDict(extra="forbid")
+
+    url: HttpUrl
     label: Optional[str] = None
 
 
@@ -16,4 +18,4 @@ class KnowledgeSourceResponse(BaseModel):
     last_scraped_at: Optional[datetime]
     created_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)

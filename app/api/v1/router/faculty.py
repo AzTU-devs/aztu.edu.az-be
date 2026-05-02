@@ -18,6 +18,7 @@ from app.services.faculty import (
     create_direction_of_action,
     update_direction_of_action,
     delete_direction_of_action,
+    create_worker,
 )
 from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction, Worker
 
@@ -30,7 +31,7 @@ async def get_faculties_endpoint_admin(
     end: int = Query(10, gt=0, description="End index"),
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await get_faculties(
         start=start,
@@ -86,23 +87,9 @@ async def patch_faculty_endpoint(
 async def create_faculty_endpoint(
     request: CreateFaculty,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_faculty(
-        request=request,
-        db=db,
-    )
-
-
-@router.patch("/{faculty_code}")
-async def update_faculty_endpoint(
-    faculty_code: str,
-    request: UpdateFaculty,
-    db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
-):
-    return await update_faculty(
-        faculty_code=faculty_code,
         request=request,
         db=db,
     )
@@ -112,7 +99,7 @@ async def update_faculty_endpoint(
 async def delete_faculty_endpoint(
     faculty_code: str,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_faculty(
         faculty_code=faculty_code,
@@ -125,7 +112,7 @@ async def upload_director_image_endpoint(
     faculty_code: str,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await upload_director_profile_image(
         faculty_code=faculty_code,
@@ -139,7 +126,7 @@ async def upload_deputy_dean_image_endpoint(
     deputy_dean_id: int,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await upload_deputy_dean_profile_image(
         deputy_dean_id=deputy_dean_id,
@@ -153,7 +140,7 @@ async def upload_worker_image_endpoint(
     worker_id: int,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await upload_worker_profile_image(
         worker_id=worker_id,
@@ -167,9 +154,8 @@ async def create_worker_endpoint(
     faculty_code: str,
     request: Worker,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
-    from app.services.faculty import create_worker
     return await create_worker(
         faculty_code=faculty_code,
         request=request,
@@ -195,7 +181,7 @@ async def create_direction_of_action_endpoint(
     faculty_code: str,
     request: CreateDirectionOfAction,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_direction_of_action(
         faculty_code=faculty_code,
@@ -210,7 +196,7 @@ async def update_direction_of_action_endpoint(
     direction_id: int,
     request: UpdateDirectionOfAction,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await update_direction_of_action(
         direction_id=direction_id,
@@ -224,7 +210,7 @@ async def delete_direction_of_action_endpoint(
     faculty_code: str,
     direction_id: int,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_direction_of_action(
         direction_id=direction_id,

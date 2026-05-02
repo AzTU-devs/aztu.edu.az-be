@@ -2,6 +2,8 @@ from typing import Optional, List
 from fastapi import UploadFile
 from app.services.news import *
 from app.core.session import get_db
+from app.core.auth_dependency import require_admin
+from app.models.admin.admin_user import AdminUser
 from app.api.v1.schema.news import *
 from app.utils.language import get_language
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,13 +37,14 @@ async def get_news_details_endpoint(
 ):
     return await get_news_details(news_id=news_id, db=db)
 
-# ── Admin endpoints (no auth required as requested) ───────────────────────────
+# ── Admin endpoints (require JWT) ──────────────────────────────────────────────
 
 @router.get("/admin/all")
 async def get_news_admin_endpoint(
     news_data: NewsGetter = Depends(),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await get_admin_news(category_id=news_data.category_id, start=news_data.start, end=news_data.end, lang_code=lang_code, db=db)
 
@@ -55,6 +58,7 @@ async def create_news_endpoint(
     gallery_images: Optional[List[UploadFile]] = File(None),
     category_id: int = Form(...),
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_news(az_title=az_title, en_title=en_title, az_html_content=az_html_content, en_html_content=en_html_content, cover_image=cover_image, gallery_images=gallery_images, category_id=category_id, db=db)
 
@@ -62,6 +66,7 @@ async def create_news_endpoint(
 async def activate_news_endpoint(
     news_id: int,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await activate_news(news_id=news_id, db=db)
 
@@ -69,6 +74,7 @@ async def activate_news_endpoint(
 async def deactivate_news_endpoint(
     news_id: int,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await deactivate_news(news_id=news_id, db=db)
 
@@ -76,6 +82,7 @@ async def deactivate_news_endpoint(
 async def reorder_news_endpoint(
     request: ReOrderNews,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await reorder_news(request=request, db=db)
 
@@ -83,5 +90,6 @@ async def reorder_news_endpoint(
 async def delete_news_endpoint(
     news_id: int,
     db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_news(news_id=news_id, db=db)

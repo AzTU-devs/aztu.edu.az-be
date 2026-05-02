@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, Cookie
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -72,7 +72,7 @@ async def login(
 
     # Store hashed refresh token for rotation/revocation
     user.refresh_token_hash = hash_password(refresh_token)
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
 
     logger.info(
@@ -148,7 +148,7 @@ async def refresh(
     new_refresh_token = create_refresh_token(user.username)
 
     user.refresh_token_hash = hash_password(new_refresh_token)
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
     response.set_cookie(
@@ -174,16 +174,16 @@ async def logout(
         try:
             payload = decode_token(refresh_token)
             username = payload.get("sub")
-            if username:
-                result = await db.execute(
-                    select(AdminUser).where(AdminUser.username == username)
-                )
-                user = result.scalar_one_or_none()
-                if user:
-                    user.refresh_token_hash = None
-                    await db.commit()
-        except (JWTError, Exception):
-            pass  # Token already invalid — just clear cookie
+        except (JWTError, ValueError, KeyError):
+            username = None
+        if username:
+            result = await db.execute(
+                select(AdminUser).where(AdminUser.username == username)
+            )
+            user = result.scalar_one_or_none()
+            if user:
+                user.refresh_token_hash = None
+                await db.commit()
 
     response.delete_cookie(
         key=REFRESH_COOKIE_NAME,

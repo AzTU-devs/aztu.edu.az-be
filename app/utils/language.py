@@ -34,15 +34,16 @@ async def get_optional_language(
 ) -> Optional[str]:
     """Returns None when no language is explicitly provided (bilingual mode)."""
 
+    language: Optional[str] = None
+
     if lang and lang.strip():
         language = lang.strip().lower()
     elif accept_language:
         primary_lang = accept_language.split(",")[0].split("-")[0].strip().lower()
         if primary_lang:
             language = primary_lang
-        else:
-            return None
-    else:
+
+    if language is None:
         return None
 
     if language not in ALLOWED_LANGUAGES:

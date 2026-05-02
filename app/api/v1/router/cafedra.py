@@ -33,7 +33,7 @@ async def get_cafedras_endpoint_admin(
     faculty_code: str | None = Query(None),
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await get_cafedras(
         start=start,
@@ -106,7 +106,7 @@ async def get_cafedra_laboratories_endpoint(
 async def create_cafedra_endpoint(
     request: CreateCafedra,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_cafedra(
         request=request,
@@ -119,7 +119,7 @@ async def create_laboratory_endpoint(
     cafedra_code: str,
     request: LaboratoryItem,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_laboratory(
         cafedra_code=cafedra_code,
@@ -133,7 +133,7 @@ async def update_cafedra_endpoint(
     cafedra_code: str,
     request: UpdateCafedra,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await update_cafedra(
         cafedra_code=cafedra_code,
@@ -146,7 +146,7 @@ async def update_cafedra_endpoint(
 async def delete_cafedra_endpoint(
     cafedra_code: str,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_cafedra(
         cafedra_code=cafedra_code,
@@ -159,7 +159,7 @@ async def upload_cafedra_director_image_endpoint(
     cafedra_code: str,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await upload_cafedra_director_image(
         cafedra_code=cafedra_code,
@@ -173,7 +173,7 @@ async def upload_cafedra_deputy_director_image_endpoint(
     deputy_director_id: int,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await upload_cafedra_deputy_director_image(
         deputy_director_id=deputy_director_id,
@@ -187,7 +187,7 @@ async def upload_cafedra_worker_image_endpoint(
     worker_id: int,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await upload_cafedra_worker_image(
         worker_id=worker_id,
@@ -201,7 +201,7 @@ async def upload_laboratory_image_endpoint(
     laboratory_id: int,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await upload_laboratory_image(
         laboratory_id=laboratory_id,
@@ -215,7 +215,7 @@ async def upload_laboratory_gallery_image_endpoint(
     laboratory_id: int,
     image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await upload_laboratory_gallery_image(
         laboratory_id=laboratory_id,
@@ -228,7 +228,7 @@ async def upload_laboratory_gallery_image_endpoint(
 async def delete_laboratory_gallery_image_endpoint(
     gallery_image_id: int,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_laboratory_gallery_image(
         gallery_image_id=gallery_image_id,

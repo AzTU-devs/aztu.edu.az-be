@@ -26,7 +26,7 @@ async def get_employees_admin(
     cafedra_code: Optional[str] = Query(None, description="Filter by cafedra code"),
     lang: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await get_employees(
         start=start,
@@ -74,7 +74,7 @@ async def get_employee_detail(
 async def create_employee_endpoint(
     request: CreateEmployee = Depends(CreateEmployee.as_form),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await create_employee(
         request=request,
@@ -87,7 +87,7 @@ async def update_employee_endpoint(
     employee_code: str,
     request: UpdateEmployee = Depends(UpdateEmployee.as_form),
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await update_employee(
         employee_code=employee_code,
@@ -100,7 +100,7 @@ async def update_employee_endpoint(
 async def delete_employee_endpoint(
     employee_code: str,
     db: AsyncSession = Depends(get_db),
-    # _: AdminUser = Depends(require_admin),
+    _: AdminUser = Depends(require_admin),
 ):
     return await delete_employee(
         employee_code=employee_code,

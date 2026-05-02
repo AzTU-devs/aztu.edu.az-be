@@ -1,7 +1,8 @@
 import secrets
 from datetime import datetime, timezone
 from typing import List, Optional
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
+from sqlalchemy.orm import selectinload
 from app.core.session import get_db
 from app.core.logger import get_logger
 
@@ -49,11 +50,10 @@ async def create_news(
         saved_files.append(image_path)
 
         try:
-            result = await db.execute(select(News))
-            existing_news = result.scalars().all()
-            for n in existing_news:
-                n.display_order = (n.display_order or 0) + 1
-                db.add(n)
+            # Single statement instead of fetching every row + per-row update.
+            await db.execute(
+                update(News).values(display_order=func.coalesce(News.display_order, 0) + 1)
+            )
             display_order = 1
         except UndefinedTableError:
             display_order = 1
@@ -157,21 +157,28 @@ async def get_public_news(
         if not fetched_news:
             return JSONResponse(content={"status_code": 204}, status_code=status.HTTP_204_NO_CONTENT)
 
+        news_ids = [n.news_id for n in fetched_news]
+
+        translations = (await db.execute(
+            select(NewsTranslation).where(
+                NewsTranslation.news_id.in_(news_ids),
+                NewsTranslation.lang_code == lang_code,
+            )
+        )).scalars().all()
+        tr_by_id = {t.news_id: t for t in translations}
+
+        # Earliest gallery row per news_id is the cover.
+        covers = (await db.execute(
+            select(NewsGallery).where(NewsGallery.news_id.in_(news_ids)).order_by(NewsGallery.id)
+        )).scalars().all()
+        cover_by_id: dict[int, NewsGallery] = {}
+        for g in covers:
+            cover_by_id.setdefault(g.news_id, g)
+
         news_arr = []
         for news in fetched_news:
-            tr = (await db.execute(
-                select(NewsTranslation).where(
-                    NewsTranslation.news_id == news.news_id,
-                    NewsTranslation.lang_code == lang_code
-                )
-            )).scalar_one_or_none()
-
-            cover = (await db.execute(
-                select(NewsGallery).where(
-                    NewsGallery.news_id == news.news_id
-                ).order_by(NewsGallery.id).limit(1)
-            )).scalar_one_or_none()
-
+            tr = tr_by_id.get(news.news_id)
+            cover = cover_by_id.get(news.news_id)
             news_arr.append({
                 "news_id": news.news_id,
                 "category_id": news.category_id,
@@ -220,15 +227,18 @@ async def get_admin_news(
         if not fetched_news:
             return JSONResponse(content={"status_code": 204}, status_code=status.HTTP_204_NO_CONTENT)
 
+        news_ids = [n.news_id for n in fetched_news]
+        translations = (await db.execute(
+            select(NewsTranslation).where(
+                NewsTranslation.news_id.in_(news_ids),
+                NewsTranslation.lang_code == lang_code,
+            )
+        )).scalars().all()
+        tr_by_id = {t.news_id: t for t in translations}
+
         news_arr = []
         for news in fetched_news:
-            tr = (await db.execute(
-                select(NewsTranslation).where(
-                    NewsTranslation.news_id == news.news_id,
-                    NewsTranslation.lang_code == lang_code
-                )
-            )).scalar_one_or_none()
-
+            tr = tr_by_id.get(news.news_id)
             news_arr.append({
                 "news_id": news.news_id,
                 "category_id": news.category_id,
@@ -417,7 +427,10 @@ async def reorder_news(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        news_to_move = (await db.execute(select(News).where(News.news_id == request.news_id))).scalar_one_or_none()
+        # Lock the target row first so concurrent reorder requests serialize.
+        news_to_move = (await db.execute(
+            select(News).where(News.news_id == request.news_id).with_for_update()
+        )).scalar_one_or_none()
         if not news_to_move:
             return JSONResponse(content={"status_code": 404, "error": "News not found"}, status_code=404)
 
@@ -428,19 +441,17 @@ async def reorder_news(
             return JSONResponse(content={"status_code": 200, "message": "No change"}, status_code=200)
 
         if new_order < old_order:
-            rows = (await db.execute(
-                select(News).where(News.display_order >= new_order, News.display_order < old_order)
-            )).scalars().all()
-            for r in rows:
-                r.display_order += 1
-                db.add(r)
+            await db.execute(
+                update(News)
+                .where(News.display_order >= new_order, News.display_order < old_order)
+                .values(display_order=News.display_order + 1)
+            )
         else:
-            rows = (await db.execute(
-                select(News).where(News.display_order <= new_order, News.display_order > old_order)
-            )).scalars().all()
-            for r in rows:
-                r.display_order -= 1
-                db.add(r)
+            await db.execute(
+                update(News)
+                .where(News.display_order <= new_order, News.display_order > old_order)
+                .values(display_order=News.display_order - 1)
+            )
 
         news_to_move.display_order = new_order
         db.add(news_to_move)

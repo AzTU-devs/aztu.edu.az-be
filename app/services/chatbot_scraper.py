@@ -1,4 +1,8 @@
+import asyncio
+import ipaddress
+import socket
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -14,6 +18,7 @@ logger = get_logger("aztu.scraper")
 
 _MAX_CHARS_PER_SOURCE = 8000
 _HEADERS = {"User-Agent": "AzTU-Bot/1.0 (university knowledge scraper)"}
+_ALLOWED_SCHEMES = {"http", "https"}
 
 
 def _extract_text(html: str) -> str:
@@ -25,10 +30,51 @@ def _extract_text(html: str) -> str:
     return "\n".join(lines)[:_MAX_CHARS_PER_SOURCE]
 
 
+async def _assert_public_url(url: str) -> None:
+    """Reject URLs that target private/loopback/link-local/reserved IP space.
+
+    Mitigates SSRF: an attacker could otherwise point the scraper at
+    169.254.169.254 (cloud metadata), localhost, or an internal service.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_SCHEMES:
+        raise ValueError(f"Disallowed URL scheme: {parsed.scheme!r}")
+    host = parsed.hostname
+    if not host:
+        raise ValueError("URL is missing a hostname")
+
+    loop = asyncio.get_running_loop()
+    addrinfo = await loop.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    seen: set[str] = set()
+    for entry in addrinfo:
+        ip_str = entry[4][0]
+        if ip_str in seen:
+            continue
+        seen.add(ip_str)
+        ip = ipaddress.ip_address(ip_str)
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise ValueError(f"Refusing to fetch internal address {ip_str} for host {host!r}")
+
+
 async def scrape_source(source: ChatbotKnowledgeSource, db: AsyncSession) -> bool:
     try:
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True, headers=_HEADERS) as client:
+        await _assert_public_url(source.url)
+        async with httpx.AsyncClient(
+            timeout=30,
+            follow_redirects=True,
+            max_redirects=3,
+            headers=_HEADERS,
+        ) as client:
             response = await client.get(source.url)
+            for redirect in response.history:
+                await _assert_public_url(str(redirect.headers.get("location") or redirect.url))
             response.raise_for_status()
         content = _extract_text(response.text)
     except Exception as exc:
