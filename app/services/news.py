@@ -336,6 +336,7 @@ async def get_news_details(
                         {"image_id": g.id, "image": g.image}
                         for g in gallery
                     ],
+                    "created_at": news.created_at.isoformat() if news.created_at else None,
                 }
             }
         )
