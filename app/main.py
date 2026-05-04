@@ -83,6 +83,10 @@ app.add_middleware(
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = time.monotonic()
+    # slowapi's SlowAPIMiddleware unconditionally reads request.state.view_rate_limit
+    # to inject headers; if the limiter check is skipped (exempt route, early error)
+    # the attribute is never set and Starlette raises AttributeError. Pre-seed it.
+    request.state.view_rate_limit = None
     response = await call_next(request)
     elapsed_ms = (time.monotonic() - start) * 1000
     level = logging.ERROR if response.status_code >= 500 else logging.DEBUG
