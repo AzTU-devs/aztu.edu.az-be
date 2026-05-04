@@ -24,7 +24,7 @@ _storage_uri = settings.REDIS_URL if settings.ENVIRONMENT == "production" else "
 limiter = Limiter(
     key_func=_client_key,
     default_limits=["100/minute", "1000/hour"],
-    headers_enabled=True,
+    headers_enabled=False,
     storage_uri=_storage_uri,
     # Fail open if storage is briefly unreachable instead of returning 500 to
     # every caller. Storage errors are logged.
