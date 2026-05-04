@@ -1,7 +1,7 @@
 # AzTU Bilik Bazası — AI Training Sənədi
 
 Bu sənəd Azərbaycan Texniki Universitetinin (AzTU) rəsmi veb-saytından əldə edilmiş statik məlumatları əhatə edir.
-Rəsmi sayt: https://v2.aztu.edu.az
+Rəsmi sayt: https://aztu.edu.az
 
 ---
 
@@ -12,7 +12,7 @@ Rəsmi sayt: https://v2.aztu.edu.az
 **Ünvan:** H.Cavid prospekti 25, Bakı, Azərbaycan AZ 1073  
 **Telefon:** (+994 12) 539-13-05  
 **E-poçt:** aztu@aztu.edu.az  
-**Sayt:** https://v2.aztu.edu.az  
+**Sayt:** https://aztu.edu.az  
 
 **Tarix:**  
 - 1887 — Bakıda 4 sinifli texniki məktəb yaradıldı  
@@ -64,7 +64,7 @@ Beynəlxalq Enerji İqtisadçıları Assosiasiyasının (IAEE) üzvü olmüş, 2
 - Əhmədov Nicat — Rektor köməkçisi | nijat.ahmadov@aztu.edu.az | +994 12 538 32 80  
 - Əliyeva Mehriban — Rektor referenti | mehriban.aliyeva@aztu.edu.az | +994 12 537 01 12  
 
-**Səhifə URL:** https://v2.aztu.edu.az/about/rehbetlik-ve-idareetme/rektor
+**Səhifə URL:** https://aztu.edu.az/about/rehbetlik-ve-idareetme/rektor
 
 ---
 
@@ -85,7 +85,7 @@ Beynəlxalq Enerji İqtisadçıları Assosiasiyasının (IAEE) üzvü olmüş, 2
 **Prorektorlar haqqında:**  
 Hər bir Prorektor bilavasitə Rektora hesabat verərək müəyyən bir əməliyyat portfoliosu üçün nümayəndəlik səlahiyyəti və məsuliyyəti daşıyır.
 
-**Səhifə URL:** https://v2.aztu.edu.az/about/vice-rector
+**Səhifə URL:** https://aztu.edu.az/about/vice-rector
 
 ---
 
@@ -93,7 +93,7 @@ Hər bir Prorektor bilavasitə Rektora hesabat verərək müəyyən bir əməliy
 
 Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və strateji inkişafını istiqamətləndirən ali kollegial idarəetmə orqanıdır.
 
-**Səhifə URL:** https://v2.aztu.edu.az/about/scientific-board
+**Səhifə URL:** https://aztu.edu.az/about/scientific-board
 
 | № | Soyadı, adı və atasının adı | Vəzifəsi |
 |---|---|---|
@@ -153,12 +153,12 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 ## 5. İdarəetmə Şöbələri (Administration Departments)
 
-**Səhifə URL:** https://v2.aztu.edu.az/administration
+**Səhifə URL:** https://aztu.edu.az/administration
 
 ### 5.1. Elmi Tədqiqat və Reputasiya İdarəsi
 
 **Slug:** research-development  
-**URL:** https://v2.aztu.edu.az/administration/research-development  
+**URL:** https://aztu.edu.az/administration/research-development  
 
 **İdarə rəisi:** Əliyev Tərlan Rauf oğlu  
 - Elmi dərəcəsi: t.f.d. (texnika üzrə fəlsəfə doktoru), dosent  
@@ -185,7 +185,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 ### 5.2. Beynəlxalq Əlaqələr İdarəsi
 
 **Slug:** international-affairs  
-**URL:** https://v2.aztu.edu.az/administration/international-affairs  
+**URL:** https://aztu.edu.az/administration/international-affairs  
 
 **İdarə rəisi:** Hüseynova Gülnar Elçin qızı  
 - E-poçt: g.huseynova@aztu.edu.az  
@@ -211,7 +211,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 ### 5.3. Katiblik və Hüquq Şöbəsi
 
 **Slug:** secretaries-counsels  
-**URL:** https://v2.aztu.edu.az/administration/secretaries-counsels  
+**URL:** https://aztu.edu.az/administration/secretaries-counsels  
 
 **Şöbə rəisi:** Mustafayev İlham Azər oğlu  
 - Elmi dərəcəsi: Hüquq üzrə fəlsəfə doktoru  
@@ -236,13 +236,13 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 ## 6. Fakültələr (Faculties)
 
-**Fakültələr səhifəsi URL:** https://v2.aztu.edu.az/akademik/fakulteler
+**Fakültələr səhifəsi URL:** https://aztu.edu.az/akademik/fakulteler
 
 ### 6.1. İnformasiya Texnologiyaları və Telekommunikasiya Fakültəsi
 
 **Qısaltma:** ITT  
 **Faculty ID:** 1  
-**URL:** https://v2.aztu.edu.az/akademik/fakulteler/1  
+**URL:** https://aztu.edu.az/akademik/fakulteler/1  
 **Dekan:** Şirinov Taleh Voraşil oğlu (f-r.e.n., dosent)  
 
 **Haqqında:** AzTU-nun aparıcı tədris mərkəzlərindən biri. Müasir informasiya texnologiyaları, telekommunikasiya sistemləri və rəqəmsal transformasiya istiqamətlərində yüksək ixtisaslı kadrlar hazırlanır.
@@ -258,7 +258,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 **Qısaltma:** NL  
 **Faculty ID:** 2  
-**URL:** https://v2.aztu.edu.az/akademik/fakulteler/2  
+**URL:** https://aztu.edu.az/akademik/fakulteler/2  
 **Dekan:** Şərifov Allahverdi Camal oğlu (t.f.d., dosent)  
 
 **Haqqında:** 1950-ci ildən fəaliyyətə başlayıb. 2019-cu ildən "Nəqliyyat və logistika" adı ilə fəaliyyət göstərir. Tədris azərbaycan və rus dillərində aparılır.
@@ -272,7 +272,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 ### 6.3. Energetika Fakültəsi
 
 **Faculty ID:** 3  
-**URL:** https://v2.aztu.edu.az/akademik/fakulteler/3  
+**URL:** https://aztu.edu.az/akademik/fakulteler/3  
 **Dekan:** Quliyev Hüseynqulu Bayram oğlu (t.e.n., dosent)  
 
 **Haqqında:** 1964-cü ildə "Elektrotexnika" adı ilə yaradılıb. 2021-ci ildə "Energetika və avtomatika", 2025-ci ildə "Energetika" adlandırılıb.
@@ -287,7 +287,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 **Qısaltma:** EEF  
 **Faculty ID:** 4  
-**URL:** https://v2.aztu.edu.az/akademik/fakulteler/4  
+**URL:** https://aztu.edu.az/akademik/fakulteler/4  
 **Dekan:** (Maşınqayırma və robototexnika fakültəsi dekanı: Qarayev Malik Fikrət oğlu, t.e.n., dosent | Metallurgiya və materialşünaslıq fakültəsi dekanı: Poladov Nizami Qədim oğlu, t.f.d., dosent)
 
 **Haqqında:** 1982-ci ildə "Maşınqayırma fakültəsi" adı altında yaradılmışdır. AzTU Elmi şurasının 05.07.2025-ci il qərarı ilə "Maşınqayırma və metallurgiya" adlandırılıb.
@@ -302,7 +302,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 **Qısaltma:** XTT  
 **Faculty ID:** 5  
-**URL:** https://v2.aztu.edu.az/akademik/fakulteler/5  
+**URL:** https://aztu.edu.az/akademik/fakulteler/5  
 **Dekan:** Rzayev Elçin David oğlu (t.e.n., dosent)  
 
 **Haqqında:** Azərbaycan Respublikası müdafiə sənayesi kompleksi üçün yüksək ixtisaslı kadrların hazırlanması məqsədilə Nazirlər Kabinetinin 07.06.2011-ci il tarixli 91 nömrəli qərarı ilə yaradılıb.
@@ -316,7 +316,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 **Qısaltma:** NMM  
 **Faculty ID:** 6  
-**URL:** https://v2.aztu.edu.az/akademik/fakulteler/6  
+**URL:** https://aztu.edu.az/akademik/fakulteler/6  
 **Dekan:** Musayeva Fərqanə Qəzənfər qızı (i.f.d., dosent)  
 
 **Haqqında:** 1995-ci ildə "Mühəndis biznesi və menecment fakültəsi" adı ilə yaradılmışdır.
@@ -329,12 +329,12 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 ## 7. Kafedralar (Departments) — Müdirlər
 
-**Kafedralar səhifəsi URL:** https://v2.aztu.edu.az/akademik/cafedras
+**Kafedralar səhifəsi URL:** https://aztu.edu.az/akademik/cafedras
 
 ### 7.1. Kibertəhlükəsizlik Kafedras (KTK)
 
 **Cafedra ID:** 103 | **Faculty ID:** 1  
-**URL:** https://v2.aztu.edu.az/akademik/cafedras/103  
+**URL:** https://aztu.edu.az/akademik/cafedras/103  
 
 **Kafedra müdiri:** İmamverdiyev Yadigar Nəsib oğlu  
 - Elmi dərəcəsi: Texnika elmləri doktoru, dosent  
@@ -381,7 +381,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 ### 7.2. Kompüter Elmləri Kafedras (KEK)
 
 **Cafedra ID:** 101 | **Faculty ID:** 1  
-**URL:** https://v2.aztu.edu.az/akademik/cafedras/101  
+**URL:** https://aztu.edu.az/akademik/cafedras/101  
 
 **Kafedra müdiri:** Quliyev Rauf Əli oğlu  
 - Elmi dərəcəsi: Texnika elmləri doktoru  
@@ -396,7 +396,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 ### 7.3. İnformasiya Sistemləri Kafedras (İSK)
 
 **Cafedra ID:** 102 | **Faculty ID:** 1  
-**URL:** https://v2.aztu.edu.az/akademik/cafedras/102  
+**URL:** https://aztu.edu.az/akademik/cafedras/102  
 
 **Kafedra müdiri:** Cəfərov Mübariz Həsən oğlu  
 - Elmi dərəcəsi: Elmlər namizədi  
@@ -499,7 +499,7 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 ## 8. Yüksək Təhsil İnstitutu (YTİ)
 
-**URL:** https://v2.aztu.edu.az/about/hei  
+**URL:** https://aztu.edu.az/about/hei  
 
 **Direktoru:** İsmayılova Aynurə Manaf qızı  
 - Elmi dərəcəsi: İqtisad üzrə fəlsəfə doktoru, dosent  
@@ -526,104 +526,104 @@ Azərbaycan Texniki Universitetinin Elmi Şurası universitetin akademik və str
 
 | Qurum | URL | Rəsmi Sayt |
 |---|---|---|
-| Türkiyə–Azərbaycan Universiteti (TAU) | https://v2.aztu.edu.az/about/tau | https://tau.edu.az/ |
-| İnformasiya Texnologiyaları İnstitutu (İTİ) | https://v2.aztu.edu.az/about/iit | https://ict.az/ |
-| İdarəetmə Sistemləri İnstitutu (İSİ) | https://v2.aztu.edu.az/about/ics | https://isi.az/ |
-| Bakı Texniki Kolleci | https://v2.aztu.edu.az/about/baku-technical-colleges | https://bakitexnikikolleci.edu.az/ |
-| Bakı Dövlət Rabitə və Nəqliyyat Kolleci | https://v2.aztu.edu.az/about/baku-state-colleges | https://rabitakolleci.edu.az/ |
+| Türkiyə–Azərbaycan Universiteti (TAU) | https://aztu.edu.az/about/tau | https://tau.edu.az/ |
+| İnformasiya Texnologiyaları İnstitutu (İTİ) | https://aztu.edu.az/about/iit | https://ict.az/ |
+| İdarəetmə Sistemləri İnstitutu (İSİ) | https://aztu.edu.az/about/ics | https://isi.az/ |
+| Bakı Texniki Kolleci | https://aztu.edu.az/about/baku-technical-colleges | https://bakitexnikikolleci.edu.az/ |
+| Bakı Dövlət Rabitə və Nəqliyyat Kolleci | https://aztu.edu.az/about/baku-state-colleges | https://rabitakolleci.edu.az/ |
 
 ---
 
-## 10. Sayt URL-ləri (v2.aztu.edu.az)
+## 10. Sayt URL-ləri (aztu.edu.az)
 
 ### HAQQIMIZDA bölməsi
 | Səhifə | URL |
 |---|---|
-| Ana səhifə | https://v2.aztu.edu.az/ |
-| AzTU-nun Tarixi | https://v2.aztu.edu.az/about/vizyon-ve-missiya/aztu-nun-tarixi |
-| Vizyon | https://v2.aztu.edu.az/about/vizyon-ve-missiya/vizyon |
-| Missiya | https://v2.aztu.edu.az/about/vizyon-ve-missiya/missiya |
-| Strateji Plan | https://v2.aztu.edu.az/about/vizyon-ve-missiya/strateji-plan |
-| 75 İllik Yubiley Filmi | https://v2.aztu.edu.az/about/vizyon-ve-missiya/75-illik-yubiley-filmi |
-| Rektor | https://v2.aztu.edu.az/about/rehbetlik-ve-idareetme/rektor |
-| Prorektorlar | https://v2.aztu.edu.az/about/vice-rector |
-| Elmi Şura | https://v2.aztu.edu.az/about/scientific-board |
-| TAU | https://v2.aztu.edu.az/about/tau |
-| İTİ | https://v2.aztu.edu.az/about/iit |
-| İSİ | https://v2.aztu.edu.az/about/ics |
-| Bakı Texniki Kolleci | https://v2.aztu.edu.az/about/baku-technical-colleges |
-| Bakı Dövlət Kollecləri | https://v2.aztu.edu.az/about/baku-state-colleges |
-| Ümumi Siyasətlər | https://v2.aztu.edu.az/about/general-policies |
-| Akademik Siyasətlər | https://v2.aztu.edu.az/about/academic-policies |
-| Davamlılıq Siyasətləri | https://v2.aztu.edu.az/about/sustainability-policies |
-| Prosedurlar & Qaydalar | https://v2.aztu.edu.az/about/procedure-guidelines |
-| Reytinqlər | https://v2.aztu.edu.az/about/reytinqler |
-| YTİ | https://v2.aztu.edu.az/about/hei |
+| Ana səhifə | https://aztu.edu.az/ |
+| AzTU-nun Tarixi | https://aztu.edu.az/about/vizyon-ve-missiya/aztu-nun-tarixi |
+| Vizyon | https://aztu.edu.az/about/vizyon-ve-missiya/vizyon |
+| Missiya | https://aztu.edu.az/about/vizyon-ve-missiya/missiya |
+| Strateji Plan | https://aztu.edu.az/about/vizyon-ve-missiya/strateji-plan |
+| 75 İllik Yubiley Filmi | https://aztu.edu.az/about/vizyon-ve-missiya/75-illik-yubiley-filmi |
+| Rektor | https://aztu.edu.az/about/rehbetlik-ve-idareetme/rektor |
+| Prorektorlar | https://aztu.edu.az/about/vice-rector |
+| Elmi Şura | https://aztu.edu.az/about/scientific-board |
+| TAU | https://aztu.edu.az/about/tau |
+| İTİ | https://aztu.edu.az/about/iit |
+| İSİ | https://aztu.edu.az/about/ics |
+| Bakı Texniki Kolleci | https://aztu.edu.az/about/baku-technical-colleges |
+| Bakı Dövlət Kollecləri | https://aztu.edu.az/about/baku-state-colleges |
+| Ümumi Siyasətlər | https://aztu.edu.az/about/general-policies |
+| Akademik Siyasətlər | https://aztu.edu.az/about/academic-policies |
+| Davamlılıq Siyasətləri | https://aztu.edu.az/about/sustainability-policies |
+| Prosedurlar & Qaydalar | https://aztu.edu.az/about/procedure-guidelines |
+| Reytinqlər | https://aztu.edu.az/about/reytinqler |
+| YTİ | https://aztu.edu.az/about/hei |
 
 ### TƏDRİS bölməsi
 | Səhifə | URL |
 |---|---|
-| Fakültələr | https://v2.aztu.edu.az/akademik/fakulteler |
-| Kafedralar | https://v2.aztu.edu.az/akademik/cafedras |
-| MBA | https://v2.aztu.edu.az/akademik/mba |
-| Ömür Boyu Öyrənmə | https://v2.aztu.edu.az/akademik/life-long-learning |
+| Fakültələr | https://aztu.edu.az/akademik/fakulteler |
+| Kafedralar | https://aztu.edu.az/akademik/cafedras |
+| MBA | https://aztu.edu.az/akademik/mba |
+| Ömür Boyu Öyrənmə | https://aztu.edu.az/akademik/life-long-learning |
 
 ### İDARƏETMƏ bölməsi
 | Səhifə | URL |
 |---|---|
-| Elmi Tədqiqat və Reputasiya İdarəsi | https://v2.aztu.edu.az/administration/research-development |
-| Beynəlxalq Əlaqələr İdarəsi | https://v2.aztu.edu.az/administration/international-affairs |
-| Katiblik və Hüquq Şöbəsi | https://v2.aztu.edu.az/administration/secretaries-counsels |
+| Elmi Tədqiqat və Reputasiya İdarəsi | https://aztu.edu.az/administration/research-development |
+| Beynəlxalq Əlaqələr İdarəsi | https://aztu.edu.az/administration/international-affairs |
+| Katiblik və Hüquq Şöbəsi | https://aztu.edu.az/administration/secretaries-counsels |
 
 ### TƏLƏBƏLƏRs bölməsi
 | Səhifə | URL |
 |---|---|
-| Akademik Təqvim 2026-2027 | https://v2.aztu.edu.az/students/academic-calendar-2026 |
-| Akademik Təqvim 2025-2026 | https://v2.aztu.edu.az/students/academic-calendar-2025 |
-| Bakalavr İxtisaslar | https://v2.aztu.edu.az/students/undergraduate-specialties |
-| Bakalavr Tədris Planı | https://v2.aztu.edu.az/students/undergraduate-curriculum |
-| Bakalavr Öyrənmə Nəticələri | https://v2.aztu.edu.az/students/undergraduate-outcomes |
-| Bakalavr Tədris Haqqı | https://v2.aztu.edu.az/students/undergraduate-tuition |
-| Magistratura İxtisaslar | https://v2.aztu.edu.az/students/postgraduate-specialties |
-| Magistratura Tədris Planı | https://v2.aztu.edu.az/students/postgraduate-curriculum |
-| CDIO | https://v2.aztu.edu.az/students/cdio |
-| Beynəlxalq Tələbələr | https://v2.aztu.edu.az/students/international-students |
-| Mübadilə Proqramları | https://v2.aztu.edu.az/students/exchange-programs |
-| LMS Qaydaları | https://v2.aztu.edu.az/students/lms-guidelines |
+| Akademik Təqvim 2026-2027 | https://aztu.edu.az/students/academic-calendar-2026 |
+| Akademik Təqvim 2025-2026 | https://aztu.edu.az/students/academic-calendar-2025 |
+| Bakalavr İxtisaslar | https://aztu.edu.az/students/undergraduate-specialties |
+| Bakalavr Tədris Planı | https://aztu.edu.az/students/undergraduate-curriculum |
+| Bakalavr Öyrənmə Nəticələri | https://aztu.edu.az/students/undergraduate-outcomes |
+| Bakalavr Tədris Haqqı | https://aztu.edu.az/students/undergraduate-tuition |
+| Magistratura İxtisaslar | https://aztu.edu.az/students/postgraduate-specialties |
+| Magistratura Tədris Planı | https://aztu.edu.az/students/postgraduate-curriculum |
+| CDIO | https://aztu.edu.az/students/cdio |
+| Beynəlxalq Tələbələr | https://aztu.edu.az/students/international-students |
+| Mübadilə Proqramları | https://aztu.edu.az/students/exchange-programs |
+| LMS Qaydaları | https://aztu.edu.az/students/lms-guidelines |
 
 ### TƏDQİQAT bölməsi
 | Səhifə | URL |
 |---|---|
-| Tədqiqat Fəaliyyəti | https://v2.aztu.edu.az/tedqiqat/tedqiqat-fealiyyeti |
-| Tədqiqat İnstitutları | https://v2.aztu.edu.az/tedqiqat/tedqiqat-institutlari |
-| Tədqiqat Laboratoriyaları | https://v2.aztu.edu.az/tedqiqat/tedqiqat-laboratoriyalari |
-| Tədqiqat Prioritetləri | https://v2.aztu.edu.az/tedqiqat/tedqiqat-prioritetleri |
-| Tədqiqat Layihələri | https://v2.aztu.edu.az/tedqiqat/tedqiqat-layiheleri |
-| Əqli Mülkiyyət və Patentlər | https://v2.aztu.edu.az/tedqiqat/eqli-mulkiyyet-ve-patentler |
-| Daxili Qrant Proqramları | https://v2.aztu.edu.az/tedqiqat/daxili-qrant-proqramlari |
-| Konfranslar və Tədbirlər | https://v2.aztu.edu.az/tedqiqat/konfranslar-ve-tedbirler |
+| Tədqiqat Fəaliyyəti | https://aztu.edu.az/tedqiqat/tedqiqat-fealiyyeti |
+| Tədqiqat İnstitutları | https://aztu.edu.az/tedqiqat/tedqiqat-institutlari |
+| Tədqiqat Laboratoriyaları | https://aztu.edu.az/tedqiqat/tedqiqat-laboratoriyalari |
+| Tədqiqat Prioritetləri | https://aztu.edu.az/tedqiqat/tedqiqat-prioritetleri |
+| Tədqiqat Layihələri | https://aztu.edu.az/tedqiqat/tedqiqat-layiheleri |
+| Əqli Mülkiyyət və Patentlər | https://aztu.edu.az/tedqiqat/eqli-mulkiyyet-ve-patentler |
+| Daxili Qrant Proqramları | https://aztu.edu.az/tedqiqat/daxili-qrant-proqramlari |
+| Konfranslar və Tədbirlər | https://aztu.edu.az/tedqiqat/konfranslar-ve-tedbirler |
 
 ### İCMA bölməsi
 | Səhifə | URL |
 |---|---|
-| Fəxri Doktorlar | https://v2.aztu.edu.az/icma/aztu-nun-fexrileri/fexri-doktorlar |
-| Qəhrəmanlarımız | https://v2.aztu.edu.az/icma/aztu-nun-fexrileri/qehremanlarimiz |
-| Tələbə Həyatı | https://v2.aztu.edu.az/icma/student-life |
-| Klublar | https://v2.aztu.edu.az/icma/clubs |
-| İdman | https://v2.aztu.edu.az/icma/sport |
-| Mədəni Tədbirlər | https://v2.aztu.edu.az/icma/cultural-events |
-| AzTU Poliklinikası | https://v2.aztu.edu.az/icma/polyclinic |
-| Həmkarlar İttifaqı | https://v2.aztu.edu.az/icma/trade-union |
-| Tələbə Həmkarlar İttifaqı | https://v2.aztu.edu.az/icma/student-trade-union |
-| Tələbə Gənclər Təşkilatı | https://v2.aztu.edu.az/icma/student-youth-organization |
-| Əməkdaşlıqlar | https://v2.aztu.edu.az/icma/collaborations |
+| Fəxri Doktorlar | https://aztu.edu.az/icma/aztu-nun-fexrileri/fexri-doktorlar |
+| Qəhrəmanlarımız | https://aztu.edu.az/icma/aztu-nun-fexrileri/qehremanlarimiz |
+| Tələbə Həyatı | https://aztu.edu.az/icma/student-life |
+| Klublar | https://aztu.edu.az/icma/clubs |
+| İdman | https://aztu.edu.az/icma/sport |
+| Mədəni Tədbirlər | https://aztu.edu.az/icma/cultural-events |
+| AzTU Poliklinikası | https://aztu.edu.az/icma/polyclinic |
+| Həmkarlar İttifaqı | https://aztu.edu.az/icma/trade-union |
+| Tələbə Həmkarlar İttifaqı | https://aztu.edu.az/icma/student-trade-union |
+| Tələbə Gənclər Təşkilatı | https://aztu.edu.az/icma/student-youth-organization |
+| Əməkdaşlıqlar | https://aztu.edu.az/icma/collaborations |
 
 ### Digər
 | Səhifə | URL |
 |---|---|
-| Əlaqə | https://v2.aztu.edu.az/contact |
-| Xəbərlər | https://v2.aztu.edu.az/news |
-| Elanlar | https://v2.aztu.edu.az/announcements |
+| Əlaqə | https://aztu.edu.az/contact |
+| Xəbərlər | https://aztu.edu.az/news |
+| Elanlar | https://aztu.edu.az/announcements |
 
 ---
 

@@ -10,33 +10,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.chat.chat_session import ChatSession
 from app.models.chat.chat_message import ChatMessage
-from app.services.chatbot_scraper import load_knowledge_context
 
 _SYSTEM_PROMPT = """You are the official AI assistant of Azerbaijan Technical University (AzTU).
-Your sole purpose is to provide information about AzTU (admissions, faculties,
-academic programs, campus life, administration, and university news).
+Your sole purpose is to answer questions strictly using the AZTU KNOWLEDGE BASE
+provided below. Do not rely on your own training data for AzTU facts.
 
 STRICT OPERATING RULES:
 1. ONLY answer questions directly related to Azerbaijan Technical University.
-2. For ANY question outside this scope, politely refuse by saying:
+2. ONLY use facts present in the AZTU KNOWLEDGE BASE below. If the answer is
+   not in the knowledge base, reply (in the user's language) that you do not
+   have that information.
+3. For ANY question outside the AzTU scope, politely refuse by saying:
    "I am designed to assist only with questions regarding Azerbaijan Technical University."
-3. CONTENT SAFETY: Do not respond to profanity, insults, hate speech, or offensive language.
+4. CONTENT SAFETY: Do not respond to profanity, insults, hate speech, or offensive language.
    If the user uses such language, state that you cannot assist with requests of that nature.
-4. Do not engage in casual conversation or answer non-university related prompts.
-5. MAXIMUM response length: 500 characters. Shorter is better.
-6. Always respond in the same language the user used (Azerbaijani or English).
-7. When VERIFIED AZTU DATA is provided below, ALWAYS prioritize it over your own training data."""
+5. Do not engage in casual conversation or answer non-university related prompts.
+6. MAXIMUM response length: 500 characters. Shorter is better.
+7. Always respond in the same language the user used (Azerbaijani or English)."""
 
 _KB_PATH = Path(__file__).resolve().parents[2] / "aztu_knowledge_base.md"
-_STATIC_KNOWLEDGE: str = ""
+
 
 def _load_static_knowledge() -> str:
-    global _STATIC_KNOWLEDGE
-    if _STATIC_KNOWLEDGE:
-        return _STATIC_KNOWLEDGE
     if _KB_PATH.exists():
-        _STATIC_KNOWLEDGE = _KB_PATH.read_text(encoding="utf-8")
-    return _STATIC_KNOWLEDGE
+        return _KB_PATH.read_text(encoding="utf-8")
+    return ""
+
+
+# Parsed once per process (i.e. per deploy). Restart the service to pick up
+# changes to aztu_knowledge_base.md.
+_STATIC_KNOWLEDGE: str = _load_static_knowledge()
 
 
 async def get_chat_reply(
@@ -74,14 +77,12 @@ async def get_chat_reply(
     history = result.scalars().all()
 
     # ── Build system prompt with verified knowledge ──────────────────────────
-    knowledge_context = await load_knowledge_context(db)
-    static_knowledge = _load_static_knowledge()
-
     system_content = _SYSTEM_PROMPT
-    if static_knowledge:
-        system_content += f"\n\nSTATİK BİLİK BAZASI (dəqiq məlumatlar):\n{static_knowledge}"
-    if knowledge_context:
-        system_content += f"\n\n{knowledge_context}"
+    if _STATIC_KNOWLEDGE:
+        system_content += (
+            "\n\nAZTU KNOWLEDGE BASE (yeganə icazə verilən məlumat mənbəyi):\n"
+            f"{_STATIC_KNOWLEDGE}"
+        )
 
     messages = [{"role": "system", "content": system_content}]
     for msg in history:
