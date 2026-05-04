@@ -263,6 +263,7 @@ async def get_admin_news(
 
 async def get_news_details(
     news_id: int,
+    lang_code: str = "az",
     db: AsyncSession = Depends(get_db)
 ):
     try:
@@ -290,10 +291,12 @@ async def get_news_details(
             )
         )).scalar_one_or_none()
 
+        tr = tr_en if lang_code == "en" else tr_az
+
         category = (await db.execute(
             select(NewsCategoryTranslation).where(
                 NewsCategoryTranslation.category_id == news.category_id,
-                NewsCategoryTranslation.lang_code == "az"
+                NewsCategoryTranslation.lang_code == lang_code
             )
         )).scalar_one_or_none()
 
@@ -321,6 +324,8 @@ async def get_news_details(
                 "message": "News details fetched successfully.",
                 "news": {
                     "news_id": news.news_id,
+                    "title": tr.title if tr else None,
+                    "html_content": tr.html_content if tr else None,
                     "az_title": tr_az.title if tr_az else None,
                     "az_html_content": tr_az.html_content if tr_az else None,
                     "en_title": tr_en.title if tr_en else None,
