@@ -87,6 +87,41 @@ async def reorder_news_endpoint(
 ):
     return await reorder_news(request=request, db=db)
 
+@router.patch("/{news_id}")
+async def update_news_endpoint(
+    news_id: int,
+    az_title: Optional[str] = Form(None),
+    en_title: Optional[str] = Form(None),
+    az_html_content: Optional[str] = Form(None),
+    en_html_content: Optional[str] = Form(None),
+    category_id: Optional[int] = Form(None),
+    is_active: Optional[bool] = Form(None),
+    cover_image: Optional[UploadFile] = File(None),
+    new_gallery_images: Optional[List[UploadFile]] = File(None),
+    removed_image_ids: Optional[str] = Form(None),
+    gallery_order: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    import json as _json
+    parsed_removed = _json.loads(removed_image_ids) if removed_image_ids else None
+    parsed_order = _json.loads(gallery_order) if gallery_order else None
+    return await update_news(
+        news_id=news_id,
+        az_title=az_title,
+        en_title=en_title,
+        az_html_content=az_html_content,
+        en_html_content=en_html_content,
+        category_id=category_id,
+        is_active=is_active,
+        cover_image=cover_image,
+        new_gallery_images=new_gallery_images,
+        removed_image_ids=parsed_removed,
+        gallery_order=parsed_order,
+        db=db,
+    )
+
+
 @router.delete("/{news_id}/delete")
 async def delete_news_endpoint(
     news_id: int,

@@ -1,7 +1,8 @@
+import json
 import secrets
 from datetime import datetime, timezone
 from typing import List, Optional
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, delete
 from sqlalchemy.orm import selectinload
 from app.core.session import get_db
 from app.core.logger import get_logger
@@ -215,7 +216,7 @@ async def get_admin_news(
 
         query = (
             select(News)
-            .order_by(News.display_order.asc())
+            .order_by(News.created_at.desc())
             .offset(start)
             .limit(end - start)
         )
@@ -236,15 +237,26 @@ async def get_admin_news(
         )).scalars().all()
         tr_by_id = {t.news_id: t for t in translations}
 
+        covers = (await db.execute(
+            select(NewsGallery)
+            .where(NewsGallery.news_id.in_(news_ids))
+            .order_by(NewsGallery.is_cover.desc(), NewsGallery.display_order.asc(), NewsGallery.id.asc())
+        )).scalars().all()
+        cover_by_id: dict[int, NewsGallery] = {}
+        for g in covers:
+            cover_by_id.setdefault(g.news_id, g)
+
         news_arr = []
         for news in fetched_news:
             tr = tr_by_id.get(news.news_id)
+            cover = cover_by_id.get(news.news_id)
             news_arr.append({
                 "news_id": news.news_id,
                 "category_id": news.category_id,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
                 "title": tr.title if tr else None,
+                "cover_image": cover.image if cover else None,
                 "created_at": news.created_at.isoformat() if news.created_at else None,
             })
 
@@ -300,22 +312,20 @@ async def get_news_details(
             )
         )).scalar_one_or_none()
 
-        # ✅ FIXED: deterministic cover selection
         cover = (await db.execute(
             select(NewsGallery)
             .where(NewsGallery.news_id == news_id)
-            .order_by(NewsGallery.is_cover.desc(), NewsGallery.id.asc())
+            .order_by(NewsGallery.is_cover.desc(), NewsGallery.display_order.asc(), NewsGallery.id.asc())
             .limit(1)
         )).scalar_one_or_none()
 
-        # ✅ FIXED: deterministic gallery order
         gallery = (await db.execute(
             select(NewsGallery)
             .where(
                 NewsGallery.news_id == news_id,
                 NewsGallery.is_cover == False  # noqa: E712
             )
-            .order_by(NewsGallery.id.asc())
+            .order_by(NewsGallery.display_order.asc(), NewsGallery.id.asc())
         )).scalars().all()
 
         return JSONResponse(
@@ -330,13 +340,18 @@ async def get_news_details(
                     "az_html_content": tr_az.html_content if tr_az else None,
                     "en_title": tr_en.title if tr_en else None,
                     "en_html_content": tr_en.html_content if tr_en else None,
-                    "category_id": category.title if category else None,
+                    "category_id": news.category_id,
+                    "category_title": category.title if category else None,
+                    "is_active": news.is_active,
+                    "display_order": news.display_order,
                     "cover_image": cover.image if cover else None,
+                    "cover_image_id": cover.id if cover else None,
                     "gallery_images": [
-                        {"image_id": g.id, "image": g.image}
+                        {"image_id": g.id, "image": g.image, "display_order": g.display_order}
                         for g in gallery
                     ],
                     "created_at": news.created_at.isoformat() if news.created_at else None,
+                    "updated_at": news.updated_at.isoformat() if news.updated_at else None,
                 }
             }
         )
@@ -406,7 +421,9 @@ async def get_news_gallery(
             )
 
         gallery = (await db.execute(
-            select(NewsGallery).where(NewsGallery.news_id == news_id)
+            select(NewsGallery)
+            .where(NewsGallery.news_id == news_id)
+            .order_by(NewsGallery.is_cover.desc(), NewsGallery.display_order.asc(), NewsGallery.id.asc())
         )).scalars().all()
 
         if not gallery:
@@ -470,6 +487,164 @@ async def reorder_news(
         return JSONResponse(
             content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+async def update_news(
+    news_id: int,
+    az_title: Optional[str] = None,
+    en_title: Optional[str] = None,
+    az_html_content: Optional[str] = None,
+    en_html_content: Optional[str] = None,
+    category_id: Optional[int] = None,
+    is_active: Optional[bool] = None,
+    cover_image: Optional[UploadFile] = None,
+    new_gallery_images: Optional[List[UploadFile]] = None,
+    removed_image_ids: Optional[List[int]] = None,
+    gallery_order: Optional[List[dict]] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    saved_files: list[str] = []
+    files_to_delete_after_commit: list[str] = []
+    try:
+        news = (await db.execute(select(News).where(News.news_id == news_id))).scalar_one_or_none()
+        if not news:
+            return JSONResponse(
+                content={"status_code": 404, "message": "News not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if category_id is not None:
+            cat = (await db.execute(
+                select(NewsCategory).where(NewsCategory.category_id == category_id)
+            )).scalar_one_or_none()
+            if not cat:
+                return JSONResponse(
+                    content={"status_code": 404, "message": "News category not found."},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+            news.category_id = category_id
+
+        if is_active is not None:
+            news.is_active = is_active
+
+        if az_title is not None or az_html_content is not None:
+            tr_az = (await db.execute(
+                select(NewsTranslation).where(
+                    NewsTranslation.news_id == news_id,
+                    NewsTranslation.lang_code == "az",
+                )
+            )).scalar_one_or_none()
+            if tr_az:
+                if az_title is not None:
+                    tr_az.title = az_title
+                if az_html_content is not None:
+                    tr_az.html_content = sanitize_html(az_html_content)
+            else:
+                db.add(NewsTranslation(
+                    news_id=news_id,
+                    lang_code="az",
+                    title=az_title or "",
+                    html_content=sanitize_html(az_html_content or ""),
+                ))
+
+        if en_title is not None or en_html_content is not None:
+            tr_en = (await db.execute(
+                select(NewsTranslation).where(
+                    NewsTranslation.news_id == news_id,
+                    NewsTranslation.lang_code == "en",
+                )
+            )).scalar_one_or_none()
+            if tr_en:
+                if en_title is not None:
+                    tr_en.title = en_title
+                if en_html_content is not None:
+                    tr_en.html_content = sanitize_html(en_html_content)
+            else:
+                db.add(NewsTranslation(
+                    news_id=news_id,
+                    lang_code="en",
+                    title=en_title or "",
+                    html_content=sanitize_html(en_html_content or ""),
+                ))
+
+        if cover_image is not None:
+            old_cover = (await db.execute(
+                select(NewsGallery).where(
+                    NewsGallery.news_id == news_id,
+                    NewsGallery.is_cover == True,  # noqa: E712
+                )
+            )).scalar_one_or_none()
+            new_cover_path = await save_upload(cover_image, "news", ALLOWED_IMAGE_MIMES)
+            saved_files.append(new_cover_path)
+            if old_cover:
+                files_to_delete_after_commit.append(old_cover.image)
+                old_cover.image = new_cover_path
+            else:
+                db.add(NewsGallery(news_id=news_id, image=new_cover_path, is_cover=True, display_order=0))
+
+        if removed_image_ids:
+            to_remove = (await db.execute(
+                select(NewsGallery).where(
+                    NewsGallery.id.in_(removed_image_ids),
+                    NewsGallery.news_id == news_id,
+                    NewsGallery.is_cover == False,  # noqa: E712
+                )
+            )).scalars().all()
+            for g in to_remove:
+                files_to_delete_after_commit.append(g.image)
+                await db.delete(g)
+
+        if new_gallery_images:
+            max_order_q = await db.execute(
+                select(func.coalesce(func.max(NewsGallery.display_order), 0)).where(
+                    NewsGallery.news_id == news_id,
+                    NewsGallery.is_cover == False,  # noqa: E712
+                )
+            )
+            next_order = (max_order_q.scalar() or 0) + 1
+            for img in new_gallery_images:
+                path = await save_upload(img, "news", ALLOWED_IMAGE_MIMES)
+                saved_files.append(path)
+                db.add(NewsGallery(
+                    news_id=news_id,
+                    image=path,
+                    is_cover=False,
+                    display_order=next_order,
+                ))
+                next_order += 1
+
+        if gallery_order:
+            order_map = {int(item["image_id"]): int(item["display_order"]) for item in gallery_order}
+            rows = (await db.execute(
+                select(NewsGallery).where(
+                    NewsGallery.id.in_(list(order_map.keys())),
+                    NewsGallery.news_id == news_id,
+                )
+            )).scalars().all()
+            for r in rows:
+                r.display_order = order_map[r.id]
+
+        news.updated_at = datetime.now(timezone.utc)
+
+        await db.commit()
+
+        for path in files_to_delete_after_commit:
+            safe_delete_file(path)
+
+        return JSONResponse(
+            content={"status_code": 200, "message": "News updated successfully."},
+            status_code=status.HTTP_200_OK,
+        )
+
+    except Exception:
+        await db.rollback()
+        for f in saved_files:
+            safe_delete_file(f)
+        logger.exception("Failed to update news")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 

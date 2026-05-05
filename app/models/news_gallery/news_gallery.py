@@ -9,3 +9,4 @@ class NewsGallery(Base):
     news_id = Column(Integer, nullable=False)
     image = Column(Text, nullable=False)
     is_cover = Column(Boolean, nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
