@@ -49,7 +49,7 @@ async def create_news(
         saved_files.append(image_path)
 
         try:
-            # Single statement instead of fetching every row + per-row update.
+            # Bump every existing row by 1 so the new one can take slot 1 (newest first).
             await db.execute(
                 update(News).values(display_order=func.coalesce(News.display_order, 0) + 1)
             )
@@ -214,7 +214,7 @@ async def get_admin_news(
 
         query = (
             select(News)
-            .order_by(News.created_at.desc())
+            .order_by(News.display_order.asc(), News.created_at.desc())
             .offset(start)
             .limit(end - start)
         )
@@ -448,39 +448,33 @@ async def reorder_news(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        # Lock the target row first so concurrent reorder requests serialize.
-        news_to_move = (await db.execute(
-            select(News).where(News.news_id == request.news_id).with_for_update()
-        )).scalar_one_or_none()
-        if not news_to_move:
+        all_rows = (await db.execute(
+            select(News).order_by(News.display_order.asc(), News.created_at.desc()).with_for_update()
+        )).scalars().all()
+
+        target = next((n for n in all_rows if n.news_id == request.news_id), None)
+        if not target:
             return JSONResponse(content={"status_code": 404, "error": "News not found"}, status_code=404)
 
-        old_order = news_to_move.display_order
-        new_order = request.new_order
-
-        if new_order == old_order:
+        total = len(all_rows)
+        if total == 0:
             return JSONResponse(content={"status_code": 200, "message": "No change"}, status_code=200)
 
-        if new_order < old_order:
-            await db.execute(
-                update(News)
-                .where(News.display_order >= new_order, News.display_order < old_order)
-                .values(display_order=News.display_order + 1)
-            )
-        else:
-            await db.execute(
-                update(News)
-                .where(News.display_order <= new_order, News.display_order > old_order)
-                .values(display_order=News.display_order - 1)
-            )
+        new_order = max(1, min(int(request.new_order), total))
 
-        news_to_move.display_order = new_order
-        db.add(news_to_move)
+        ordered = [n for n in all_rows if n.news_id != request.news_id]
+        ordered.insert(new_order - 1, target)
+
+        for idx, n in enumerate(ordered, start=1):
+            if n.display_order != idx:
+                n.display_order = idx
+
         await db.commit()
 
         return JSONResponse(content={"status_code": 200, "message": "News reordered successfully"})
 
     except Exception:
+        await db.rollback()
         logger.exception("Failed to reorder news")
         return JSONResponse(
             content={"status_code": 500, "error": "Internal server error"},
