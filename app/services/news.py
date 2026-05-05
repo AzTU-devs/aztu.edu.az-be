@@ -1,9 +1,7 @@
-import json
 import secrets
 from datetime import datetime, timezone
 from typing import List, Optional
-from sqlalchemy import select, func, update, delete
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, func, update
 from app.core.session import get_db
 from app.core.logger import get_logger
 
@@ -146,7 +144,7 @@ async def get_public_news(
         query = (
             select(News)
             .where(News.is_active == True)  # noqa: E712
-            .order_by(News.created_at.desc())
+            .order_by(News.display_order.asc(), News.created_at.desc())
             .offset(start)
             .limit(end - start)
         )
