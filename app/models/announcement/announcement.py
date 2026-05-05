@@ -15,7 +15,7 @@ class Announcement(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     announcement_id = Column(Integer, nullable=False, unique=True)
-    image = Column(Text, nullable=False)
+    image = Column(Text, nullable=True)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

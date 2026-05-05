@@ -4,6 +4,7 @@ from app.utils.language import get_language
 from app.services.announcement import *
 from app.core.auth_dependency import require_admin
 from app.models.admin.admin_user import AdminUser
+from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.schema.announcement import *
@@ -43,7 +44,7 @@ async def get_announcements_endpoint_admin(
 
 @router.post("/create")
 async def create_announcement_endpoint(
-    image: UploadFile = File(...),
+    image: Optional[UploadFile] = File(None),
     az_title: str = Form(...),
     az_html_content: str = Form(...),
     en_title: str = Form(...),
@@ -52,6 +53,15 @@ async def create_announcement_endpoint(
     _: AdminUser = Depends(require_admin),
 ):
     return await create_announcement(image=image, az_title=az_title, az_html_content=az_html_content, en_title=en_title, en_html_content=en_html_content, db=db)
+
+
+@router.delete("/{announcement_id}/delete")
+async def delete_announcement_endpoint(
+    announcement_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_announcement(announcement_id=announcement_id, db=db)
 
 @router.post("/activate")
 async def activate_announcement_endpoint(

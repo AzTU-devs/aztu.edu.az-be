@@ -1,4 +1,5 @@
 import secrets
+from typing import Optional
 from datetime import datetime, timezone
 from sqlalchemy import select, func
 from app.core.session import get_db
@@ -12,7 +13,7 @@ from app.api.v1.schema.announcement import *
 from app.utils.file_upload import save_upload, safe_delete_file, ALLOWED_IMAGE_MIMES
 from app.utils.html_sanitizer import sanitize_html
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, status, Query, File
+from fastapi import Depends, status, Query, File, Form, UploadFile
 from asyncpg.exceptions import UndefinedTableError
 from app.models.announcement.announcement import Announcement
 from app.models.announcement.announcement_translation import AnnouncementTranslation
@@ -23,7 +24,7 @@ def announcement_id_generator() -> int:
 
 
 async def create_announcement(
-    image: UploadFile = File(...),
+    image: Optional[UploadFile] = File(None),
     az_title: str = Form(...),
     az_html_content: str = Form(...),
     en_title: str = Form(...),
@@ -37,8 +38,10 @@ async def create_announcement(
         az_html_content = sanitize_html(az_html_content)
         en_html_content = sanitize_html(en_html_content)
 
-        image_path = await save_upload(image, "announcements", ALLOWED_IMAGE_MIMES)
-        saved_files.append(image_path)
+        image_path: Optional[str] = None
+        if image is not None and getattr(image, "filename", None):
+            image_path = await save_upload(image, "announcements", ALLOWED_IMAGE_MIMES)
+            saved_files.append(image_path)
 
         try:
             result = await db.execute(select(Announcement))
@@ -88,7 +91,7 @@ async def get_announcements_admin(
         total = (await db.execute(select(func.count()).select_from(Announcement))).scalar() or 0
 
         announcements = (await db.execute(
-            select(Announcement).order_by(Announcement.published_date.desc().nullslast()).offset(start).limit(end - start)
+            select(Announcement).order_by(Announcement.display_order.asc(), Announcement.published_date.desc().nullslast()).offset(start).limit(end - start)
         )).scalars().all()
 
         if not announcements:
@@ -136,7 +139,7 @@ async def get_announcements_user(
         announcements = (await db.execute(
             select(Announcement)
             .where(Announcement.is_active == True)  # noqa: E712
-            .order_by(Announcement.published_date.desc().nullslast())
+            .order_by(Announcement.display_order.asc(), Announcement.published_date.desc().nullslast())
             .offset(start).limit(end - start)
         )).scalars().all()
 
@@ -250,37 +253,74 @@ async def reorder_announcement(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        a = (await db.execute(select(Announcement).where(Announcement.announcement_id == request.announcement_id))).scalars().first()
-        if not a:
+        all_rows = (await db.execute(
+            select(Announcement)
+            .order_by(Announcement.display_order.asc(), Announcement.created_at.desc())
+            .with_for_update()
+        )).scalars().all()
+
+        target = next((a for a in all_rows if a.announcement_id == request.announcement_id), None)
+        if not target:
             return JSONResponse(content={"status_code": 404, "error": "Announcement not found"}, status_code=404)
 
-        old_order = a.display_order
-        new_order = request.new_order
-
-        if new_order == old_order:
+        total = len(all_rows)
+        if total == 0:
             return JSONResponse(content={"status_code": 200, "message": "No change"})
 
-        if new_order < old_order:
-            rows = (await db.execute(
-                select(Announcement).where(Announcement.display_order >= new_order, Announcement.display_order < old_order)
-            )).scalars().all()
-            for r in rows:
-                r.display_order += 1
-                db.add(r)
-        else:
-            rows = (await db.execute(
-                select(Announcement).where(Announcement.display_order <= new_order, Announcement.display_order > old_order)
-            )).scalars().all()
-            for r in rows:
-                r.display_order -= 1
-                db.add(r)
+        new_order = max(1, min(int(request.new_order), total))
 
-        a.display_order = new_order
-        db.add(a)
+        ordered = [a for a in all_rows if a.announcement_id != request.announcement_id]
+        ordered.insert(new_order - 1, target)
+
+        for idx, a in enumerate(ordered, start=1):
+            if a.display_order != idx:
+                a.display_order = idx
+
         await db.commit()
-
         return JSONResponse(content={"status_code": 200, "message": "Announcement reordered successfully"})
 
     except Exception:
+        await db.rollback()
         logger.exception("Failed to reorder announcement")
         return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=500)
+
+
+async def delete_announcement(
+    announcement_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        a = (await db.execute(
+            select(Announcement).where(Announcement.announcement_id == announcement_id)
+        )).scalars().first()
+        if not a:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Announcement not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        image_path = a.image
+
+        translations = (await db.execute(
+            select(AnnouncementTranslation).where(
+                AnnouncementTranslation.announcement_id == announcement_id
+            )
+        )).scalars().all()
+        for tr in translations:
+            await db.delete(tr)
+
+        await db.delete(a)
+        await db.commit()
+
+        if image_path:
+            safe_delete_file(image_path)
+
+        return JSONResponse(content={"status_code": 200, "message": "Announcement deleted successfully."})
+
+    except Exception:
+        await db.rollback()
+        logger.exception("Failed to delete announcement")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
