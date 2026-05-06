@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: list[str] = [
         "https://aztu.edu.az",
         "https://www.aztu.edu.az",
+        "https://admin.aztu.edu.az",
+        "https://www.admin.aztu.edu.az"
     ]
     MAX_UPLOAD_SIZE_BYTES: int = 20 * 1024 * 1024  # 10 MB
 
@@ -42,6 +44,14 @@ class Settings(BaseSettings):
 
     # Randomized docs path; if unset, docs are disabled
     DOCS_TOKEN: str | None = None
+
+    # API key required for public GET endpoints (skipped for aztu.edu.az domain)
+    PUBLIC_API_KEY: str = ""
+    # Domains exempt from the public GET API-key check (Origin/Referer host match)
+    PUBLIC_API_KEY_EXEMPT_HOSTS: list[str] = [
+        "aztu.edu.az",
+        "www.aztu.edu.az",
+    ]
 
     # Public base URL used to build absolute media URLs (no trailing slash)
     PUBLIC_BASE_URL: str = ""

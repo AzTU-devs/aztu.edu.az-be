@@ -17,6 +17,7 @@ from app.core.logger import get_logger
 from app.core.rate_limit import limiter
 from app.core.startup import seed_admin_user
 from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.middleware.api_key import PublicApiKeyMiddleware
 
 logger = get_logger("aztu.api")
 
@@ -68,6 +69,12 @@ app.add_middleware(SlowAPIMiddleware)
 
 # ── Security headers ───────────────────────────────────────────────────────────
 app.add_middleware(SecurityHeadersMiddleware)
+
+# ── Public GET API-key gate ────────────────────────────────────────────────────
+# GET endpoints require X-API-Key, unless the request originates from
+# aztu.edu.az (Origin/Referer match). Non-GET endpoints are protected by the
+# JWT `require_admin` dependency at the route level.
+app.add_middleware(PublicApiKeyMiddleware)
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
 app.add_middleware(
