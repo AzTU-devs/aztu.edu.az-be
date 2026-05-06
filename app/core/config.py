@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     PUBLIC_API_KEY_EXEMPT_HOSTS: list[str] = [
         "aztu.edu.az",
         "www.aztu.edu.az",
+        "admin.aztu.edu.az",
+        "www.admin.aztu.edu.az",
     ]
 
     # Public base URL used to build absolute media URLs (no trailing slash)
