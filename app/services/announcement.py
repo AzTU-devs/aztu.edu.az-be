@@ -17,6 +17,7 @@ from fastapi import Depends, status, Query, File, Form, UploadFile
 from asyncpg.exceptions import UndefinedTableError
 from app.models.announcement.announcement import Announcement
 from app.models.announcement.announcement_translation import AnnouncementTranslation
+from app.services.search import on_announcement_change, on_announcement_delete
 
 
 def announcement_id_generator() -> int:
@@ -64,6 +65,7 @@ async def create_announcement(
         db.add(AnnouncementTranslation(announcement_id=announcement_id, lang_code="az", title=az_title, html_content=az_html_content))
         db.add(AnnouncementTranslation(announcement_id=announcement_id, lang_code="en", title=en_title, html_content=en_html_content))
         await db.commit()
+        await on_announcement_change(db, announcement_id)
 
         return JSONResponse(
             content={"status_code": 201, "message": "Announcement created successfully."},
@@ -226,6 +228,7 @@ async def deactivate_announcement(
             return JSONResponse(content={"status_code": 404, "message": "Announcement not found."}, status_code=status.HTTP_404_NOT_FOUND)
         a.is_active = False
         await db.commit()
+        await on_announcement_change(db, announcement_id)
         return JSONResponse(content={"status_code": 200, "message": "Announcement deactivated successfully."})
     except Exception:
         logger.exception("Failed to deactivate announcement")
@@ -242,6 +245,7 @@ async def activate_announcement(
             return JSONResponse(content={"status_code": 404, "message": "Announcement not found."}, status_code=status.HTTP_404_NOT_FOUND)
         a.is_active = True
         await db.commit()
+        await on_announcement_change(db, announcement_id)
         return JSONResponse(content={"status_code": 200, "message": "Announcement activated successfully."})
     except Exception:
         logger.exception("Failed to activate announcement")
@@ -311,6 +315,7 @@ async def delete_announcement(
 
         await db.delete(a)
         await db.commit()
+        await on_announcement_delete(announcement_id)
 
         if image_path:
             safe_delete_file(image_path)

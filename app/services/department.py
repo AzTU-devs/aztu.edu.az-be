@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.schema.department import CreateDepartment, UpdateDepartment
 from app.core.logger import get_logger
+from app.services.search import on_department_change, on_department_delete
 from app.models.departments.department import Department
 from app.models.departments.department_tr import DepartmentTr
 from app.models.departments.department_section import (
@@ -391,6 +392,7 @@ async def create_department(request: CreateDepartment, db: AsyncSession):
 
         await db.commit()
         await db.refresh(department)
+        await on_department_change(db, department.department_code)
 
         return JSONResponse(
             content={
@@ -587,6 +589,7 @@ async def update_department(department_code: str, request: UpdateDepartment, db:
 
         department.updated_at = now
         await db.commit()
+        await on_department_change(db, department_code)
 
         return JSONResponse(
             content={
@@ -623,6 +626,7 @@ async def delete_department(department_code: str, db: AsyncSession):
 
         await db.execute(sqlalchemy_delete(Department).where(Department.department_code == department_code))
         await db.commit()
+        await on_department_delete(department_code)
 
         return JSONResponse(
             content={"status_code": 200, "message": "Department deleted successfully."},

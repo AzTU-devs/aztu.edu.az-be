@@ -23,6 +23,7 @@ from app.models.research_institute.institute import (
     InstituteStaffTr,
 )
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
+from app.services.search import on_research_institute_change, on_research_institute_delete
 
 logger = get_logger(__name__)
 
@@ -282,6 +283,7 @@ async def create_research_institute(request: CreateResearchInstitute, db: AsyncS
 
         await db.commit()
         await db.refresh(institute)
+        await on_research_institute_change(db, institute.institute_code)
 
         return JSONResponse(
             content={
@@ -450,6 +452,7 @@ async def update_research_institute(institute_code: str, request: UpdateResearch
 
         institute.updated_at = now
         await db.commit()
+        await on_research_institute_change(db, institute_code)
 
         return JSONResponse(
             content={
@@ -480,6 +483,7 @@ async def delete_research_institute(institute_code: str, db: AsyncSession):
 
         await db.execute(sqlalchemy_delete(ResearchInstitute).where(ResearchInstitute.institute_code == institute_code))
         await db.commit()
+        await on_research_institute_delete(institute_code)
 
         return JSONResponse(
             content={"status_code": 200, "message": "Research Institute deleted successfully."},

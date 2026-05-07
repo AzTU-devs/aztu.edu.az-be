@@ -15,6 +15,7 @@ from app.models.project.project import Project
 from sqlalchemy.ext.asyncio import AsyncSession
 from asyncpg.exceptions import UndefinedTableError
 from app.models.project.project_tr import ProjectTranslation
+from app.services.search import on_project_change, on_project_delete
 
 
 def project_id_generator() -> int:
@@ -60,6 +61,7 @@ async def create_project(
             html_content=sanitize_html(request.en.content_html)
         ))
         await db.commit()
+        await on_project_change(db, project_id)
 
         return JSONResponse(
             content={"status_code": 201, "message": "Project created successfully."},
@@ -204,6 +206,7 @@ async def delete_project(
         await db.execute(sqlalchemy_delete(ProjectTranslation).where(ProjectTranslation.project_id == project_id))
         await db.execute(sqlalchemy_delete(Project).where(Project.project_id == project_id))
         await db.commit()
+        await on_project_delete(project_id)
 
         safe_delete_file(bg_image_path)
 

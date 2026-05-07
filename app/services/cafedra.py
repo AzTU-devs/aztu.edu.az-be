@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.schema.cafedra import CreateCafedra, UpdateCafedra, LaboratoryItem
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
+from app.services.search import on_cafedra_change, on_cafedra_delete
 from app.core.logger import get_logger
 from app.core.session import get_db
 from app.models.faculties.faculties import Faculty
@@ -682,6 +683,7 @@ async def create_cafedra(
 
         await db.commit()
         await db.refresh(cafedra)
+        await on_cafedra_change(db, cafedra.cafedra_code)
 
         return JSONResponse(
             content={
@@ -956,6 +958,7 @@ async def update_cafedra(
 
         cafedra.updated_at = now
         await db.commit()
+        await on_cafedra_change(db, cafedra_code)
 
         return JSONResponse(content={"status_code": 200, "message": "Cafedra updated successfully."}, status_code=status.HTTP_200_OK)
     except Exception as e:
@@ -973,6 +976,7 @@ async def delete_cafedra(cafedra_code: str, db: AsyncSession = Depends(get_db)):
         await db.execute(sqlalchemy_delete(CafedraTr).where(CafedraTr.cafedra_code == cafedra_code))
         await db.execute(sqlalchemy_delete(Cafedra).where(Cafedra.cafedra_code == cafedra_code))
         await db.commit()
+        await on_cafedra_delete(cafedra_code)
         return JSONResponse(content={"status_code": 200, "message": "Cafedra deleted successfully."}, status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.exception("500 Internal Server Error")

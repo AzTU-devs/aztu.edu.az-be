@@ -20,6 +20,7 @@ from app.models.employee.education_tr import EducationTr
 from app.models.employee.teaching_course import TeachingCourse, EducationLevel
 from app.models.employee.teaching_course_tr import TeachingCourseTr
 from app.api.v1.schema.employee import CreateEmployee, UpdateEmployee
+from app.services.search import on_employee_change, on_employee_delete
 
 logger = get_logger(__name__)
 
@@ -398,6 +399,7 @@ async def create_employee(request: CreateEmployee, db: AsyncSession):
                 ))
 
         await db.commit()
+        await on_employee_change(db, employee_code)
 
         # Fetch full response
         emp_q = await db.execute(_full_load_query(Employee.employee_code == employee_code))
@@ -746,6 +748,7 @@ async def update_employee(employee_code: str, request: UpdateEmployee, db: Async
 
         emp.updated_at = now
         await db.commit()
+        await on_employee_change(db, employee_code)
 
         emp_q = await db.execute(_full_load_query(Employee.employee_code == employee_code))
         emp = emp_q.scalar_one()
@@ -802,6 +805,7 @@ async def delete_employee(employee_code: str, db: AsyncSession):
         # Delete employee (cascades: employee_tr, contact, research, office_hours, education, courses)
         await db.execute(sqlalchemy_delete(Employee).where(Employee.employee_code == employee_code))
         await db.commit()
+        await on_employee_delete(employee_code)
 
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 

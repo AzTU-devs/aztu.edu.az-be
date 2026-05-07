@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
     REDIS_PASSWORD: str | None = None
 
+    # Elasticsearch
+    ELASTICSEARCH_URL: str = "http://localhost:9200"
+    ELASTICSEARCH_USERNAME: str | None = None
+    ELASTICSEARCH_PASSWORD: str | None = None
+    SEARCH_INDEX_PREFIX: str = "aztu"
+
     # JWT
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"

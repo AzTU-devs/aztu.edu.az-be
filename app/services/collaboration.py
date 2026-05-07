@@ -14,6 +14,7 @@ from app.utils.file_upload import save_upload, safe_delete_file, ALLOWED_IMAGE_M
 from app.models.collaboration.collaboration import Collaboration
 from app.models.collaboration.collaboration_tr import CollaborationTranslation
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.search import on_collaboration_change, on_collaboration_delete
 
 
 def collaboration_id_generator() -> int:
@@ -46,6 +47,7 @@ async def create_collaboration(
         db.add(CollaborationTranslation(collaboration_id=collaboration_id, lang_code="az", name=request.az.name))
         db.add(CollaborationTranslation(collaboration_id=collaboration_id, lang_code="en", name=request.en.name))
         await db.commit()
+        await on_collaboration_change(db, collaboration_id)
 
         return JSONResponse(
             content={"status_code": 201, "message": "Collaboration created successfully."},
@@ -172,6 +174,7 @@ async def update_collaboration(
                 db.add(tr)
 
         await db.commit()
+        await on_collaboration_change(db, collaboration_id)
 
         # Delete old logo only after successful commit
         if saved_files and old_logo:
@@ -237,6 +240,7 @@ async def delete_collaboration(
         await db.execute(sqlalchemy_delete(CollaborationTranslation).where(CollaborationTranslation.collaboration_id == collaboration_id))
         await db.execute(sqlalchemy_delete(Collaboration).where(Collaboration.collaboration_id == collaboration_id))
         await db.commit()
+        await on_collaboration_delete(collaboration_id)
 
         safe_delete_file(logo_path)
 

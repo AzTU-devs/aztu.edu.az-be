@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 APP_DIR := /home/projects/aztu-backend/aztu.edu.az-be
 
-.PHONY: pull restart deploy status logs
+.PHONY: pull restart deploy status logs reindex
 
 # Git pull
 pull:
@@ -22,3 +22,7 @@ status:
 # Loglara bax
 logs:
 	cd $(APP_DIR) && docker compose logs -f --tail=100
+
+# Rebuild Elasticsearch indices from Postgres
+reindex:
+	cd $(APP_DIR) && docker compose exec api-popeyes python -m app.scripts.reindex

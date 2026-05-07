@@ -19,6 +19,7 @@ from app.models.news_gallery.news_gallery import NewsGallery
 from app.models.news_category.news_category import NewsCategory
 from fastapi import Depends, UploadFile, File, Form, status, Query
 from app.models.news_category.news_category_translation import NewsCategoryTranslation
+from app.services.search import on_news_change, on_news_delete
 
 
 def news_id_generator() -> int:
@@ -113,6 +114,7 @@ async def create_news(
 
         # Single commit for the entire operation — atomic
         await db.commit()
+        await on_news_change(db, news_id)
 
         return JSONResponse(
             content={"status_code": 201, "message": "News created successfully."},
@@ -374,6 +376,7 @@ async def deactivate_news(
             )
         news.is_active = False
         await db.commit()
+        await on_news_change(db, news_id)
         return JSONResponse(content={"status_code": 200, "message": "News deactivated successfully."})
 
     except Exception:
@@ -397,6 +400,7 @@ async def activate_news(
             )
         news.is_active = True
         await db.commit()
+        await on_news_change(db, news_id)
         return JSONResponse(content={"status_code": 200, "message": "News activated successfully."})
 
     except Exception:
@@ -620,6 +624,7 @@ async def update_news(
         news.updated_at = datetime.now(timezone.utc)
 
         await db.commit()
+        await on_news_change(db, news_id)
 
         for path in files_to_delete_after_commit:
             safe_delete_file(path)
@@ -670,6 +675,7 @@ async def delete_news(
 
         await db.delete(news)
         await db.commit()
+        await on_news_delete(news_id)
 
         # Delete files after successful DB commit — safe_delete_file prevents path traversal
         for path in file_paths:

@@ -38,15 +38,24 @@ from app.api.v1.router.research_institute import router as research_institute_ro
 from app.middleware.article import router as article_router
 from app.api.v1.router.chat import router as chat_router
 from app.api.v1.router.chatbot_knowledge import router as chatbot_knowledge_router
+from app.api.v1.router.search import router as search_router
 from app.core.scheduler import start_scheduler, stop_scheduler
+from app.core.elasticsearch import get_es, close_es
+from app.services.search import ensure_indices
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await seed_admin_user()
     start_scheduler()
+    try:
+        es = await get_es()
+        await ensure_indices(es)
+    except Exception as exc:
+        logger.warning("Elasticsearch unavailable on startup: %s", exc)
     yield
     stop_scheduler()
+    await close_es()
 
 
 app = FastAPI(
@@ -160,6 +169,7 @@ app.include_router(research_institute_router, prefix="/api/research-institute", 
 app.include_router(article_router,           prefix="/api/article",           tags=["Article"])
 app.include_router(chat_router,              prefix="/api/chat",              tags=["Chat"])
 app.include_router(chatbot_knowledge_router, prefix="/api/chatbot-knowledge", tags=["Chatbot Knowledge"])
+app.include_router(search_router,            prefix="/api/search",            tags=["Search"])
 
 
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)

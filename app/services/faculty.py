@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction, Worker
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
+from app.services.search import on_faculty_change, on_faculty_delete
 from app.core.logger import get_logger
 from app.core.session import get_db
 from app.models.cafedras.cafedras import Cafedra
@@ -788,6 +789,7 @@ async def create_faculty(
 
         await db.commit()
         await db.refresh(faculty)
+        await on_faculty_change(db, faculty.faculty_code)
 
         return JSONResponse(
             content={
@@ -1208,6 +1210,7 @@ async def update_faculty(
 
         faculty.updated_at = now
         await db.commit()
+        await on_faculty_change(db, faculty_code)
 
         return JSONResponse(
             content={
@@ -1648,6 +1651,7 @@ async def delete_faculty(
         )
 
         await db.commit()
+        await on_faculty_delete(faculty_code)
 
         return JSONResponse(
             content={"status_code": 200, "message": "Faculty deleted successfully."},
