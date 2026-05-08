@@ -21,12 +21,30 @@ ALLOWED_VIDEO_MIMES: dict[str, str] = {
     "video/webm": "webm",
 }
 
+ALLOWED_DOC_MIMES: dict[str, str] = {
+    "application/pdf": "pdf",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.ms-excel": "xls",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+    "application/vnd.ms-powerpoint": "ppt",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+    "application/zip": "zip",
+    "application/x-rar-compressed": "rar",
+    "application/vnd.rar": "rar",
+    "application/x-7z-compressed": "7z",
+    "text/plain": "txt",
+    "text/csv": "csv",
+    "application/rtf": "rtf",
+}
+
 
 async def save_upload(
     upload: UploadFile,
     subdirectory: str,
     allowed_mimes: dict[str, str],
     max_size: int | None = None,
+    allow_extension_fallback: bool = False,
 ) -> str:
     content = await upload.read()
 
@@ -41,18 +59,24 @@ async def save_upload(
     # 2. Detect MIME (SAFE, no system dependency)
     kind = filetype.guess(content)
 
-    if kind is None:
-        raise HTTPException(status_code=415, detail="Unknown file type")
+    detected_mime = kind.mime if kind else None
+    ext: str | None = None
 
-    detected_mime = kind.mime
+    if detected_mime and detected_mime in allowed_mimes:
+        ext = allowed_mimes[detected_mime]
+    elif allow_extension_fallback and upload.filename:
+        # Some text-based formats (txt, csv, rtf) lack magic bytes, so
+        # filetype.guess returns None — fall back to the filename extension
+        # but only against the explicit allowlist.
+        candidate = upload.filename.rsplit(".", 1)[-1].lower() if "." in upload.filename else ""
+        if candidate and candidate in set(allowed_mimes.values()):
+            ext = candidate
 
-    if detected_mime not in allowed_mimes:
+    if ext is None:
         raise HTTPException(
             status_code=415,
-            detail=f"Unsupported file type '{detected_mime}'",
+            detail=f"Unsupported file type '{detected_mime or 'unknown'}'",
         )
-
-    ext = allowed_mimes[detected_mime]
 
     # 3. Random filename
     filename = f"{secrets.token_hex(16)}.{ext}"

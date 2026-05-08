@@ -20,7 +20,7 @@ ALLOWED_TAGS = [
 ]
 
 ALLOWED_ATTRS: dict = {
-    "a": ["href", "title", "target", "rel"],
+    "a": ["href", "title", "target", "rel", "download"],
     "img": ["src", "alt", "width", "height", "loading"],
     "th": ["colspan", "rowspan", "scope"],
     "td": ["colspan", "rowspan"],

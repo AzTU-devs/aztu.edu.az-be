@@ -55,6 +55,37 @@ async def create_announcement_endpoint(
     return await create_announcement(image=image, az_title=az_title, az_html_content=az_html_content, en_title=en_title, en_html_content=en_html_content, db=db)
 
 
+@router.patch("/{announcement_id}")
+async def update_announcement_endpoint(
+    announcement_id: int,
+    image: Optional[UploadFile] = File(None),
+    az_title: Optional[str] = Form(None),
+    az_html_content: Optional[str] = Form(None),
+    en_title: Optional[str] = Form(None),
+    en_html_content: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_announcement(
+        announcement_id=announcement_id,
+        image=image,
+        az_title=az_title,
+        az_html_content=az_html_content,
+        en_title=en_title,
+        en_html_content=en_html_content,
+        db=db,
+    )
+
+
+@router.post("/upload-file")
+async def upload_announcement_file_endpoint(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await upload_announcement_attachment(file=file, db=db)
+
+
 @router.delete("/{announcement_id}/delete")
 async def delete_announcement_endpoint(
     announcement_id: int,
