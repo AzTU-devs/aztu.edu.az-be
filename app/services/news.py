@@ -58,31 +58,6 @@ async def create_news(
         except UndefinedTableError:
             display_order = 1
 
-        news_query_az = await db.execute(
-            select(News)
-            .join(NewsTranslation, NewsTranslation.news_id == News.news_id)
-            .where(
-                NewsTranslation.title == az_title,
-                NewsTranslation.lang_code == "az"
-            )
-        )
-        news_query_en = await db.execute(
-            select(News)
-            .join(NewsTranslation, NewsTranslation.news_id == News.news_id)
-            .where(
-                NewsTranslation.title == en_title,
-                NewsTranslation.lang_code == "en"
-            )
-        )
-
-        if news_query_az.scalar_one_or_none() or news_query_en.scalar_one_or_none():
-            for f in saved_files:
-                safe_delete_file(f)
-            return JSONResponse(
-                content={"status_code": 409, "message": "News title already exists."},
-                status_code=status.HTTP_409_CONFLICT
-            )
-
         category_query = await db.execute(
             select(NewsCategory).where(NewsCategory.category_id == category_id)
         )
