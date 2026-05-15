@@ -35,11 +35,25 @@ async def create_news(
     cover_image: UploadFile = File(...),
     gallery_images: Optional[List[UploadFile]] = File(None),
     category_id: int = Form(...),
+    created_at: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     saved_files: list[str] = []  # Track all saved files for cleanup on failure
     try:
         news_id = news_id_generator()
+
+        created_at_dt = datetime.now(timezone.utc)
+        if created_at:
+            try:
+                parsed = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                created_at_dt = parsed
+            except ValueError:
+                return JSONResponse(
+                    content={"status_code": 400, "message": "Invalid created_at format."},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
 
         # Sanitize HTML content before storing (prevents XSS)
         az_html_content = sanitize_html(az_html_content)
@@ -74,7 +88,7 @@ async def create_news(
             category_id=category_id,
             display_order=display_order,
             is_active=True,
-            created_at=datetime.now(timezone.utc)
+            created_at=created_at_dt
         )
         db.add(new_news)
         db.add(NewsTranslation(news_id=news_id, lang_code="az", title=az_title, html_content=az_html_content))

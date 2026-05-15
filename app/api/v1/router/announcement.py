@@ -49,10 +49,11 @@ async def create_announcement_endpoint(
     az_html_content: str = Form(...),
     en_title: str = Form(...),
     en_html_content: str = Form(...),
+    created_at: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
-    return await create_announcement(image=image, az_title=az_title, az_html_content=az_html_content, en_title=en_title, en_html_content=en_html_content, db=db)
+    return await create_announcement(image=image, az_title=az_title, az_html_content=az_html_content, en_title=en_title, en_html_content=en_html_content, created_at=created_at, db=db)
 
 
 @router.patch("/{announcement_id}")

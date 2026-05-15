@@ -58,10 +58,11 @@ async def create_news_endpoint(
     cover_image: UploadFile = File(...),
     gallery_images: Optional[List[UploadFile]] = File(None),
     category_id: int = Form(...),
+    created_at: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
-    return await create_news(az_title=az_title, en_title=en_title, az_html_content=az_html_content, en_html_content=en_html_content, cover_image=cover_image, gallery_images=gallery_images, category_id=category_id, db=db)
+    return await create_news(az_title=az_title, en_title=en_title, az_html_content=az_html_content, en_html_content=en_html_content, cover_image=cover_image, gallery_images=gallery_images, category_id=category_id, created_at=created_at, db=db)
 
 @router.post("/activate")
 async def activate_news_endpoint(

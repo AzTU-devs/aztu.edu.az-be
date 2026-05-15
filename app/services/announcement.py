@@ -30,6 +30,7 @@ async def create_announcement(
     az_html_content: str = Form(...),
     en_title: str = Form(...),
     en_html_content: str = Form(...),
+    created_at: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     saved_files: list[str] = []
@@ -38,6 +39,19 @@ async def create_announcement(
 
         az_html_content = sanitize_html(az_html_content)
         en_html_content = sanitize_html(en_html_content)
+
+        now = datetime.now(timezone.utc)
+        if created_at:
+            try:
+                parsed = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                now = parsed
+            except ValueError:
+                return JSONResponse(
+                    content={"status_code": 400, "message": "Invalid created_at format."},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
 
         image_path: Optional[str] = None
         if image is not None and getattr(image, "filename", None):
@@ -53,7 +67,6 @@ async def create_announcement(
         except UndefinedTableError:
             display_order = 1
 
-        now = datetime.now(timezone.utc)
         db.add(Announcement(
             announcement_id=announcement_id,
             image=image_path,
