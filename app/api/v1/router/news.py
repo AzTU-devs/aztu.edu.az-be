@@ -59,10 +59,35 @@ async def create_news_endpoint(
     gallery_images: Optional[List[UploadFile]] = File(None),
     category_id: int = Form(...),
     created_at: Optional[str] = Form(None),
+    sdg_numbers: Optional[str] = Form(None),
+    faculty_code: Optional[str] = Form(None),
+    cafedra_code: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
-    return await create_news(az_title=az_title, en_title=en_title, az_html_content=az_html_content, en_html_content=en_html_content, cover_image=cover_image, gallery_images=gallery_images, category_id=category_id, created_at=created_at, db=db)
+    import json as _json
+    parsed_sdgs = None
+    if sdg_numbers:
+        try:
+            parsed = _json.loads(sdg_numbers)
+            if isinstance(parsed, list):
+                parsed_sdgs = [int(x) for x in parsed]
+        except Exception:
+            parsed_sdgs = None
+    return await create_news(
+        az_title=az_title,
+        en_title=en_title,
+        az_html_content=az_html_content,
+        en_html_content=en_html_content,
+        cover_image=cover_image,
+        gallery_images=gallery_images,
+        category_id=category_id,
+        created_at=created_at,
+        sdg_numbers=parsed_sdgs,
+        faculty_code=faculty_code or None,
+        cafedra_code=cafedra_code or None,
+        db=db,
+    )
 
 @router.post("/activate")
 async def activate_news_endpoint(
@@ -101,12 +126,25 @@ async def update_news_endpoint(
     new_gallery_images: Optional[List[UploadFile]] = File(None),
     removed_image_ids: Optional[str] = Form(None),
     gallery_order: Optional[str] = Form(None),
+    sdg_numbers: Optional[str] = Form(None),
+    faculty_code: Optional[str] = Form(None),
+    cafedra_code: Optional[str] = Form(None),
+    clear_faculty: Optional[bool] = Form(False),
+    clear_cafedra: Optional[bool] = Form(False),
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
     import json as _json
     parsed_removed = _json.loads(removed_image_ids) if removed_image_ids else None
     parsed_order = _json.loads(gallery_order) if gallery_order else None
+    parsed_sdgs = None
+    if sdg_numbers is not None:
+        try:
+            parsed = _json.loads(sdg_numbers)
+            if isinstance(parsed, list):
+                parsed_sdgs = [int(x) for x in parsed]
+        except Exception:
+            parsed_sdgs = None
     return await update_news(
         news_id=news_id,
         az_title=az_title,
@@ -119,6 +157,11 @@ async def update_news_endpoint(
         new_gallery_images=new_gallery_images,
         removed_image_ids=parsed_removed,
         gallery_order=parsed_order,
+        sdg_numbers=parsed_sdgs,
+        faculty_code=faculty_code if faculty_code else None,
+        cafedra_code=cafedra_code if cafedra_code else None,
+        clear_faculty=bool(clear_faculty),
+        clear_cafedra=bool(clear_cafedra),
         db=db,
     )
 

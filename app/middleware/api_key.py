@@ -17,10 +17,12 @@ _EXEMPT_PATHS: frozenset[str] = frozenset({"/", "/health"})
 def _host_is_exempt(header_value: str | None) -> bool:
     if not header_value:
         return False
-    host = urlparse(header_value).hostname
+    parsed = urlparse(header_value)
+    host = parsed.hostname
     if not host:
         return False
-    return host.lower() in {h.lower() for h in settings.PUBLIC_API_KEY_EXEMPT_HOSTS}
+    host_lower = host.lower()
+    return host_lower in {h.lower() for h in settings.PUBLIC_API_KEY_EXEMPT_HOSTS}
 
 
 class PublicApiKeyMiddleware(BaseHTTPMiddleware):

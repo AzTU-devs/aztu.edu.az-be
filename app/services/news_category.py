@@ -52,9 +52,9 @@ async def create_news_category(
                     "message": "Category already exists."
                 }, status_code=status.HTTP_409_CONFLICT
             )
-        
+
         category_id = news_category_id_generator()
-        
+
         new_category = NewsCategory(
             category_id=category_id,
             created_at=datetime.now(timezone.utc)
@@ -77,10 +77,6 @@ async def create_news_category(
         db.add(new_category_translation_en)
 
         await db.commit()
-        
-        await db.refresh(new_category)
-        await db.refresh(new_category_translation_az)
-        await db.refresh(new_category_translation_en)
 
         return JSONResponse(
             content={
@@ -88,9 +84,9 @@ async def create_news_category(
                 "message": "News category created successfully."
             }, status_code=status.HTTP_201_CREATED
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
+
+    except Exception:
+        logger.exception("Failed to create news category")
         return JSONResponse(
             content={
                 "status_code": 500,
@@ -104,7 +100,7 @@ async def get_news_categories(
 ):
     try:
         category_query = await db.execute(
-            select(NewsCategory)
+            select(NewsCategory).order_by(NewsCategory.created_at.asc())
         )
 
         categories = category_query.scalars().all()
@@ -115,27 +111,34 @@ async def get_news_categories(
                     "status_code": 204
                 }, status_code=status.HTTP_204_NO_CONTENT
             )
-        
-        category_arr = []
 
-        for category in categories:
-            category_translation_query = await db.execute(
-                select(NewsCategoryTranslation)
-                .where(
-                    NewsCategoryTranslation.lang_code == lang_code,
-                    NewsCategoryTranslation.category_id == category.category_id
-                )
+        # Bulk fetch translations & counts (avoid N+1)
+        ids = [c.category_id for c in categories]
+
+        tr_rows = (await db.execute(
+            select(NewsCategoryTranslation).where(
+                NewsCategoryTranslation.category_id.in_(ids),
+                NewsCategoryTranslation.lang_code == lang_code,
             )
+        )).scalars().all()
+        tr_by_id = {t.category_id: t for t in tr_rows}
 
-            category_translation = category_translation_query.scalar_one_or_none()
+        count_rows = (await db.execute(
+            select(News.category_id, func.count(News.id))
+            .where(News.category_id.in_(ids))
+            .group_by(News.category_id)
+        )).all()
+        count_by_id = {cid: cnt for cid, cnt in count_rows}
 
-            category_obj = {
+        category_arr = []
+        for category in categories:
+            tr = tr_by_id.get(category.category_id)
+            category_arr.append({
                 "category_id": category.category_id,
-                "title": category_translation.title
-            }
+                "title": tr.title if tr else None,
+                "news_count": int(count_by_id.get(category.category_id, 0)),
+            })
 
-            category_arr.append(category_obj)
-        
         return JSONResponse(
             content={
                 "status_code": 200,
@@ -143,12 +146,169 @@ async def get_news_categories(
                 "news_categories": category_arr
             }, status_code=status.HTTP_200_OK
         )
-    
-    except Exception as e:
-        logger.exception("500 Internal Server Error")
+
+    except Exception:
+        logger.exception("Failed to fetch news categories")
         return JSONResponse(
             content={
                 "status_code": 500,
                 "error": "Internal server error"
             }, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+async def get_news_category_details(
+    category_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        category = (await db.execute(
+            select(NewsCategory).where(NewsCategory.category_id == category_id)
+        )).scalar_one_or_none()
+        if not category:
+            return JSONResponse(
+                content={"status_code": 404, "message": "News category not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        tr_az = (await db.execute(
+            select(NewsCategoryTranslation).where(
+                NewsCategoryTranslation.category_id == category_id,
+                NewsCategoryTranslation.lang_code == "az",
+            )
+        )).scalar_one_or_none()
+        tr_en = (await db.execute(
+            select(NewsCategoryTranslation).where(
+                NewsCategoryTranslation.category_id == category_id,
+                NewsCategoryTranslation.lang_code == "en",
+            )
+        )).scalar_one_or_none()
+
+        news_count = (await db.execute(
+            select(func.count(News.id)).where(News.category_id == category_id)
+        )).scalar() or 0
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "category": {
+                    "category_id": category.category_id,
+                    "az_title": tr_az.title if tr_az else None,
+                    "en_title": tr_en.title if tr_en else None,
+                    "news_count": int(news_count),
+                },
+            }
+        )
+    except Exception:
+        logger.exception("Failed to fetch news category details")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def update_news_category(
+    category_id: int,
+    az_title: Optional[str] = None,
+    en_title: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        category = (await db.execute(
+            select(NewsCategory).where(NewsCategory.category_id == category_id)
+        )).scalar_one_or_none()
+        if not category:
+            return JSONResponse(
+                content={"status_code": 404, "message": "News category not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if az_title is not None:
+            tr_az = (await db.execute(
+                select(NewsCategoryTranslation).where(
+                    NewsCategoryTranslation.category_id == category_id,
+                    NewsCategoryTranslation.lang_code == "az",
+                )
+            )).scalar_one_or_none()
+            if tr_az:
+                tr_az.title = az_title
+            else:
+                db.add(NewsCategoryTranslation(
+                    category_id=category_id, lang_code="az", title=az_title
+                ))
+
+        if en_title is not None:
+            tr_en = (await db.execute(
+                select(NewsCategoryTranslation).where(
+                    NewsCategoryTranslation.category_id == category_id,
+                    NewsCategoryTranslation.lang_code == "en",
+                )
+            )).scalar_one_or_none()
+            if tr_en:
+                tr_en.title = en_title
+            else:
+                db.add(NewsCategoryTranslation(
+                    category_id=category_id, lang_code="en", title=en_title
+                ))
+
+        category.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+        return JSONResponse(
+            content={"status_code": 200, "message": "News category updated successfully."}
+        )
+    except Exception:
+        await db.rollback()
+        logger.exception("Failed to update news category")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def delete_news_category(
+    category_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        category = (await db.execute(
+            select(NewsCategory).where(NewsCategory.category_id == category_id)
+        )).scalar_one_or_none()
+        if not category:
+            return JSONResponse(
+                content={"status_code": 404, "message": "News category not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Block delete if news exist for this category
+        news_count = (await db.execute(
+            select(func.count(News.id)).where(News.category_id == category_id)
+        )).scalar() or 0
+        if news_count > 0:
+            return JSONResponse(
+                content={
+                    "status_code": 409,
+                    "message": "Cannot delete category that has news.",
+                    "news_count": int(news_count),
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+
+        translations = (await db.execute(
+            select(NewsCategoryTranslation).where(
+                NewsCategoryTranslation.category_id == category_id
+            )
+        )).scalars().all()
+        for tr in translations:
+            await db.delete(tr)
+        await db.delete(category)
+        await db.commit()
+        return JSONResponse(
+            content={"status_code": 200, "message": "News category deleted successfully."}
+        )
+    except Exception:
+        await db.rollback()
+        logger.exception("Failed to delete news category")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

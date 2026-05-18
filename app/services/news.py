@@ -36,6 +36,9 @@ async def create_news(
     gallery_images: Optional[List[UploadFile]] = File(None),
     category_id: int = Form(...),
     created_at: Optional[str] = Form(None),
+    sdg_numbers: Optional[List[int]] = None,
+    faculty_code: Optional[str] = None,
+    cafedra_code: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     saved_files: list[str] = []  # Track all saved files for cleanup on failure
@@ -83,11 +86,48 @@ async def create_news(
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
+        # Validate SDG numbers (1..17)
+        clean_sdgs = None
+        if sdg_numbers:
+            try:
+                clean_sdgs = sorted({int(n) for n in sdg_numbers if 1 <= int(n) <= 17})
+            except (TypeError, ValueError):
+                clean_sdgs = None
+
+        # Validate faculty/cafedra codes if provided
+        if faculty_code:
+            from app.models.faculties.faculties import Faculty
+            f = (await db.execute(
+                select(Faculty).where(Faculty.faculty_code == faculty_code)
+            )).scalar_one_or_none()
+            if not f:
+                for fpath in saved_files:
+                    safe_delete_file(fpath)
+                return JSONResponse(
+                    content={"status_code": 404, "message": "Faculty not found."},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+        if cafedra_code:
+            from app.models.cafedras.cafedras import Cafedra
+            c = (await db.execute(
+                select(Cafedra).where(Cafedra.cafedra_code == cafedra_code)
+            )).scalar_one_or_none()
+            if not c:
+                for fpath in saved_files:
+                    safe_delete_file(fpath)
+                return JSONResponse(
+                    content={"status_code": 404, "message": "Cafedra not found."},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+
         new_news = News(
             news_id=news_id,
             category_id=category_id,
             display_order=display_order,
             is_active=True,
+            sdg_numbers=clean_sdgs,
+            faculty_code=faculty_code or None,
+            cafedra_code=cafedra_code or None,
             created_at=created_at_dt
         )
         db.add(new_news)
@@ -174,6 +214,9 @@ async def get_public_news(
                 "category_id": news.category_id,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
+                "sdg_numbers": news.sdg_numbers or [],
+                "faculty_code": news.faculty_code,
+                "cafedra_code": news.cafedra_code,
                 "title": tr.title if tr else None,
                 "html_content": tr.html_content if tr else None,
                 "cover_image": cover.image if cover else None,
@@ -244,6 +287,9 @@ async def get_admin_news(
                 "category_id": news.category_id,
                 "display_order": news.display_order,
                 "is_active": news.is_active,
+                "sdg_numbers": news.sdg_numbers or [],
+                "faculty_code": news.faculty_code,
+                "cafedra_code": news.cafedra_code,
                 "title": tr.title if tr else None,
                 "cover_image": cover.image if cover else None,
                 "created_at": news.created_at.isoformat() if news.created_at else None,
@@ -331,6 +377,9 @@ async def get_news_details(
                     "en_html_content": tr_en.html_content if tr_en else None,
                     "category_id": news.category_id,
                     "category_title": category.title if category else None,
+                    "sdg_numbers": news.sdg_numbers or [],
+                    "faculty_code": news.faculty_code,
+                    "cafedra_code": news.cafedra_code,
                     "is_active": news.is_active,
                     "display_order": news.display_order,
                     "cover_image": cover.image if cover else None,
@@ -487,6 +536,11 @@ async def update_news(
     new_gallery_images: Optional[List[UploadFile]] = None,
     removed_image_ids: Optional[List[int]] = None,
     gallery_order: Optional[List[dict]] = None,
+    sdg_numbers: Optional[List[int]] = None,
+    faculty_code: Optional[str] = None,
+    cafedra_code: Optional[str] = None,
+    clear_faculty: bool = False,
+    clear_cafedra: bool = False,
     db: AsyncSession = Depends(get_db),
 ):
     saved_files: list[str] = []
@@ -512,6 +566,41 @@ async def update_news(
 
         if is_active is not None:
             news.is_active = is_active
+
+        if sdg_numbers is not None:
+            try:
+                cleaned = sorted({int(n) for n in sdg_numbers if 1 <= int(n) <= 17})
+                news.sdg_numbers = cleaned if cleaned else None
+            except (TypeError, ValueError):
+                pass
+
+        if clear_faculty:
+            news.faculty_code = None
+        elif faculty_code is not None:
+            from app.models.faculties.faculties import Faculty
+            f = (await db.execute(
+                select(Faculty).where(Faculty.faculty_code == faculty_code)
+            )).scalar_one_or_none()
+            if not f:
+                return JSONResponse(
+                    content={"status_code": 404, "message": "Faculty not found."},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+            news.faculty_code = faculty_code
+
+        if clear_cafedra:
+            news.cafedra_code = None
+        elif cafedra_code is not None:
+            from app.models.cafedras.cafedras import Cafedra
+            c = (await db.execute(
+                select(Cafedra).where(Cafedra.cafedra_code == cafedra_code)
+            )).scalar_one_or_none()
+            if not c:
+                return JSONResponse(
+                    content={"status_code": 404, "message": "Cafedra not found."},
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+            news.cafedra_code = cafedra_code
 
         if az_title is not None or az_html_content is not None:
             tr_az = (await db.execute(

@@ -58,7 +58,7 @@ class Settings(BaseSettings):
         "aztu.edu.az",
         "www.aztu.edu.az",
         "admin.aztu.edu.az",
-        "www.admin.aztu.edu.az",
+        "www.admin.aztu.edu.az"
     ]
 
     # Public base URL used to build absolute media URLs (no trailing slash)
