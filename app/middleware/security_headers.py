@@ -38,12 +38,27 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # CSP: the API serves JSON and a single static landing page mounted at /.
         # `default-src 'none'` is safe for JSON responses; the landing page only
-        # needs same-origin assets, so 'self' covers it.
-        response.headers.setdefault(
-            "Content-Security-Policy",
-            "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-            "script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'",
-        )
+        # needs same-origin assets, so 'self' covers it. Swagger UI / ReDoc are
+        # served from randomized paths and load assets from jsdelivr, so they
+        # need a relaxed policy.
+        path = request.url.path
+        is_docs = path.startswith("/docs-") or path.startswith("/redoc-")
+        if is_docs:
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; "
+                "img-src 'self' data: https://fastapi.tiangolo.com https://cdn.redoc.ly; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+                "font-src 'self' data: https://fonts.gstatic.com; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net blob:; "
+                "worker-src 'self' blob:; "
+                "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"
+            )
+        else:
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
+                "script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'",
+            )
 
         # Enforce HTTPS for 1 year (only if secure)
         if request.url.scheme == "https":
