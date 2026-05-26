@@ -67,11 +67,17 @@ async def create_news(
         saved_files.append(image_path)
 
         try:
-            # Bump every existing row by 1 so the new one can take slot 1 (newest first).
+            # Place by created_at desc: count rows newer than this one → that many come before it.
+            newer_count = (await db.execute(
+                select(func.count()).select_from(News).where(News.created_at > created_at_dt)
+            )).scalar() or 0
+            display_order = newer_count + 1
+            # Shift down only rows that will sit at or after this slot.
             await db.execute(
-                update(News).values(display_order=func.coalesce(News.display_order, 0) + 1)
+                update(News)
+                .where(func.coalesce(News.display_order, 0) >= display_order)
+                .values(display_order=func.coalesce(News.display_order, 0) + 1)
             )
-            display_order = 1
         except UndefinedTableError:
             display_order = 1
 
