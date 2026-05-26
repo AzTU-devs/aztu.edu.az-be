@@ -39,6 +39,7 @@ async def create_news(
     sdg_numbers: Optional[List[int]] = None,
     faculty_code: Optional[str] = None,
     cafedra_code: Optional[str] = None,
+    show_in_all_news: bool = True,
     db: AsyncSession = Depends(get_db)
 ):
     saved_files: list[str] = []  # Track all saved files for cleanup on failure
@@ -134,6 +135,7 @@ async def create_news(
             sdg_numbers=clean_sdgs,
             faculty_code=faculty_code or None,
             cafedra_code=cafedra_code or None,
+            show_in_all_news=bool(show_in_all_news),
             created_at=created_at_dt
         )
         db.add(new_news)
@@ -175,12 +177,18 @@ async def get_public_news(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        total_query = await db.execute(select(func.count()).select_from(News))
+        total_query = await db.execute(
+            select(func.count())
+            .select_from(News)
+            .where(News.is_active == True)  # noqa: E712
+            .where(News.show_in_all_news == True)  # noqa: E712
+        )
         total = total_query.scalar() or 0
 
         query = (
             select(News)
             .where(News.is_active == True)  # noqa: E712
+            .where(News.show_in_all_news == True)  # noqa: E712
             .order_by(News.display_order.asc(), News.created_at.desc())
             .offset(start)
             .limit(end - start)
@@ -223,6 +231,7 @@ async def get_public_news(
                 "sdg_numbers": news.sdg_numbers or [],
                 "faculty_code": news.faculty_code,
                 "cafedra_code": news.cafedra_code,
+                "show_in_all_news": news.show_in_all_news,
                 "title": tr.title if tr else None,
                 "html_content": tr.html_content if tr else None,
                 "cover_image": cover.image if cover else None,
@@ -296,6 +305,7 @@ async def get_admin_news(
                 "sdg_numbers": news.sdg_numbers or [],
                 "faculty_code": news.faculty_code,
                 "cafedra_code": news.cafedra_code,
+                "show_in_all_news": news.show_in_all_news,
                 "title": tr.title if tr else None,
                 "cover_image": cover.image if cover else None,
                 "created_at": news.created_at.isoformat() if news.created_at else None,
@@ -386,6 +396,7 @@ async def get_news_details(
                     "sdg_numbers": news.sdg_numbers or [],
                     "faculty_code": news.faculty_code,
                     "cafedra_code": news.cafedra_code,
+                    "show_in_all_news": news.show_in_all_news,
                     "is_active": news.is_active,
                     "display_order": news.display_order,
                     "cover_image": cover.image if cover else None,
@@ -547,6 +558,7 @@ async def update_news(
     cafedra_code: Optional[str] = None,
     clear_faculty: bool = False,
     clear_cafedra: bool = False,
+    show_in_all_news: Optional[bool] = None,
     db: AsyncSession = Depends(get_db),
 ):
     saved_files: list[str] = []
@@ -572,6 +584,9 @@ async def update_news(
 
         if is_active is not None:
             news.is_active = is_active
+
+        if show_in_all_news is not None:
+            news.show_in_all_news = bool(show_in_all_news)
 
         if sdg_numbers is not None:
             try:
@@ -772,4 +787,108 @@ async def delete_news(
         return JSONResponse(
             content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+async def _get_news_by_owner(
+    owner_filter,
+    start: int,
+    end: int,
+    lang_code: str,
+    db: AsyncSession,
+):
+    total = (await db.execute(
+        select(func.count()).select_from(News)
+        .where(News.is_active == True)  # noqa: E712
+        .where(owner_filter)
+    )).scalar() or 0
+
+    fetched_news = (await db.execute(
+        select(News)
+        .where(News.is_active == True)  # noqa: E712
+        .where(owner_filter)
+        .order_by(News.created_at.desc())
+        .offset(start)
+        .limit(end - start)
+    )).scalars().all()
+
+    if not fetched_news:
+        return JSONResponse(content={"status_code": 204}, status_code=status.HTTP_204_NO_CONTENT)
+
+    news_ids = [n.news_id for n in fetched_news]
+    translations = (await db.execute(
+        select(NewsTranslation).where(
+            NewsTranslation.news_id.in_(news_ids),
+            NewsTranslation.lang_code == lang_code,
+        )
+    )).scalars().all()
+    tr_by_id = {t.news_id: t for t in translations}
+
+    covers = (await db.execute(
+        select(NewsGallery).where(NewsGallery.news_id.in_(news_ids)).order_by(NewsGallery.id)
+    )).scalars().all()
+    cover_by_id: dict[int, NewsGallery] = {}
+    for g in covers:
+        cover_by_id.setdefault(g.news_id, g)
+
+    news_arr = []
+    for news in fetched_news:
+        tr = tr_by_id.get(news.news_id)
+        cover = cover_by_id.get(news.news_id)
+        news_arr.append({
+            "news_id": news.news_id,
+            "category_id": news.category_id,
+            "display_order": news.display_order,
+            "is_active": news.is_active,
+            "show_in_all_news": news.show_in_all_news,
+            "sdg_numbers": news.sdg_numbers or [],
+            "faculty_code": news.faculty_code,
+            "cafedra_code": news.cafedra_code,
+            "title": tr.title if tr else None,
+            "html_content": tr.html_content if tr else None,
+            "cover_image": cover.image if cover else None,
+            "created_at": news.created_at.isoformat() if news.created_at else None,
+        })
+
+    return JSONResponse(
+        content={"status_code": 200, "message": "News fetched successfully.", "news": news_arr, "total": total},
+        status_code=status.HTTP_200_OK,
+    )
+
+
+async def get_faculty_news(
+    faculty_code: str,
+    start: int = 0,
+    end: int = 10,
+    lang_code: str = "az",
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await _get_news_by_owner(
+            News.faculty_code == faculty_code, start, end, lang_code, db
+        )
+    except Exception:
+        logger.exception("Failed to fetch faculty news")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def get_cafedra_news(
+    cafedra_code: str,
+    start: int = 0,
+    end: int = 10,
+    lang_code: str = "az",
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await _get_news_by_owner(
+            News.cafedra_code == cafedra_code, start, end, lang_code, db
+        )
+    except Exception:
+        logger.exception("Failed to fetch cafedra news")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

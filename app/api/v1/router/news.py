@@ -30,6 +30,32 @@ async def get_news_gallery_endpoint(
 ):
     return await get_news_gallery(news_id=news_id, db=db)
 
+@router.get("/public/faculty/{faculty_code}")
+async def get_news_by_faculty_endpoint(
+    faculty_code: str,
+    start: int = Query(0, ge=0),
+    end: int = Query(10, gt=0, le=100),
+    lang_code: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_faculty_news(
+        faculty_code=faculty_code, start=start, end=end, lang_code=lang_code, db=db
+    )
+
+
+@router.get("/public/cafedra/{cafedra_code}")
+async def get_news_by_cafedra_endpoint(
+    cafedra_code: str,
+    start: int = Query(0, ge=0),
+    end: int = Query(10, gt=0, le=100),
+    lang_code: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_cafedra_news(
+        cafedra_code=cafedra_code, start=start, end=end, lang_code=lang_code, db=db
+    )
+
+
 @router.get("/{news_id}")
 async def get_news_details_endpoint(
     news_id: int,
@@ -62,6 +88,7 @@ async def create_news_endpoint(
     sdg_numbers: Optional[str] = Form(None),
     faculty_code: Optional[str] = Form(None),
     cafedra_code: Optional[str] = Form(None),
+    show_in_all_news: Optional[bool] = Form(True),
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
@@ -86,6 +113,7 @@ async def create_news_endpoint(
         sdg_numbers=parsed_sdgs,
         faculty_code=faculty_code or None,
         cafedra_code=cafedra_code or None,
+        show_in_all_news=bool(show_in_all_news) if show_in_all_news is not None else True,
         db=db,
     )
 
@@ -131,6 +159,7 @@ async def update_news_endpoint(
     cafedra_code: Optional[str] = Form(None),
     clear_faculty: Optional[bool] = Form(False),
     clear_cafedra: Optional[bool] = Form(False),
+    show_in_all_news: Optional[bool] = Form(None),
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
@@ -162,6 +191,7 @@ async def update_news_endpoint(
         cafedra_code=cafedra_code if cafedra_code else None,
         clear_faculty=bool(clear_faculty),
         clear_cafedra=bool(clear_cafedra),
+        show_in_all_news=show_in_all_news,
         db=db,
     )
 

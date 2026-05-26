@@ -10,6 +10,7 @@ class News(Base):
     category_id = Column(Integer, nullable=False)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
+    show_in_all_news = Column(Boolean, nullable=False, default=True, server_default="true")
     sdg_numbers = Column(JSON, nullable=True)
     faculty_code = Column(String(50), nullable=True)
     cafedra_code = Column(String(50), nullable=True)
