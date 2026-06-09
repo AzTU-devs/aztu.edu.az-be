@@ -50,36 +50,44 @@ async def admin_search(
         pattern = _like_pattern(q.strip())
 
         # ── News ────────────────────────────────────────────────────────────
+        # Select only scalar columns — selecting the full News entity would put
+        # its `json` column (sdg_numbers) into SELECT DISTINCT, which Postgres
+        # rejects ("no equality operator for type json").
         news_rows = (await db.execute(
-            select(News)
+            select(News.news_id, News.is_active, News.created_at)
             .join(NewsTranslation, NewsTranslation.news_id == News.news_id)
             .where(NewsTranslation.title.ilike(pattern))
             .distinct()
             .order_by(News.created_at.desc())
             .limit(limit)
-        )).scalars().all()
+        )).all()
 
         news_results = []
         if news_rows:
-            news_ids = [n.news_id for n in news_rows]
+            news_ids = [r.news_id for r in news_rows]
             tr_by_news: dict[int, dict] = {}
             for tr in (await db.execute(
                 select(NewsTranslation).where(NewsTranslation.news_id.in_(news_ids))
             )).scalars().all():
                 tr_by_news.setdefault(tr.news_id, {})[tr.lang_code] = tr
 
-            for n in news_rows:
+            for r in news_rows:
                 news_results.append({
                     "type": "news",
-                    "id": n.news_id,
-                    "title": _pick_title(tr_by_news.get(n.news_id, {}), lang),
-                    "is_active": n.is_active,
-                    "created_at": n.created_at.isoformat() if n.created_at else None,
+                    "id": r.news_id,
+                    "title": _pick_title(tr_by_news.get(r.news_id, {}), lang),
+                    "is_active": r.is_active,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
                 })
 
         # ── Announcements ───────────────────────────────────────────────────
         ann_rows = (await db.execute(
-            select(Announcement)
+            select(
+                Announcement.announcement_id,
+                Announcement.is_active,
+                Announcement.image,
+                Announcement.created_at,
+            )
             .join(
                 AnnouncementTranslation,
                 AnnouncementTranslation.announcement_id == Announcement.announcement_id,
@@ -88,11 +96,11 @@ async def admin_search(
             .distinct()
             .order_by(Announcement.created_at.desc())
             .limit(limit)
-        )).scalars().all()
+        )).all()
 
         ann_results = []
         if ann_rows:
-            ann_ids = [a.announcement_id for a in ann_rows]
+            ann_ids = [r.announcement_id for r in ann_rows]
             tr_by_ann: dict[int, dict] = {}
             for tr in (await db.execute(
                 select(AnnouncementTranslation).where(
@@ -101,14 +109,14 @@ async def admin_search(
             )).scalars().all():
                 tr_by_ann.setdefault(tr.announcement_id, {})[tr.lang_code] = tr
 
-            for a in ann_rows:
+            for r in ann_rows:
                 ann_results.append({
                     "type": "announcement",
-                    "id": a.announcement_id,
-                    "title": _pick_title(tr_by_ann.get(a.announcement_id, {}), lang),
-                    "is_active": a.is_active,
-                    "image": a.image,
-                    "created_at": a.created_at.isoformat() if a.created_at else None,
+                    "id": r.announcement_id,
+                    "title": _pick_title(tr_by_ann.get(r.announcement_id, {}), lang),
+                    "is_active": r.is_active,
+                    "image": r.image,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
                 })
 
         results = news_results + ann_results
