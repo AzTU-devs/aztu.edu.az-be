@@ -5,7 +5,18 @@ from app.core.session import get_db
 from app.utils.language import get_language
 from app.core.auth_dependency import require_admin
 from app.models.admin.admin_user import AdminUser
-from app.api.v1.schema.cafedra import CreateCafedra, UpdateCafedra, LaboratoryItem
+from app.api.v1.schema.cafedra import (
+    CreateCafedra,
+    UpdateCafedra,
+    LaboratoryItem,
+    UpdateLaboratory,
+    Worker,
+    UpdateWorker,
+    DeputyDirector,
+    UpdateDeputyDirector,
+    ScientificCouncilMember,
+    UpdateCouncilMember,
+)
 from app.services.cafedra import (
     create_cafedra,
     delete_cafedra,
@@ -21,6 +32,17 @@ from app.services.cafedra import (
     upload_laboratory_image,
     upload_laboratory_gallery_image,
     delete_laboratory_gallery_image,
+    create_worker,
+    update_worker,
+    delete_worker,
+    create_deputy_director,
+    update_deputy_director,
+    delete_deputy_director,
+    create_council_member,
+    update_council_member,
+    delete_council_member,
+    update_laboratory,
+    delete_laboratory,
 )
 
 router = APIRouter()
@@ -234,3 +256,112 @@ async def delete_laboratory_gallery_image_endpoint(
         gallery_image_id=gallery_image_id,
         db=db,
     )
+
+
+# ── Standalone personnel CRUD ────────────────────────────────────────────────────
+
+
+@router.post("/{cafedra_code}/workers")
+async def create_worker_endpoint(
+    cafedra_code: str,
+    request: Worker,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_worker(cafedra_code=cafedra_code, request=request, db=db)
+
+
+@router.put("/workers/{worker_id}")
+async def update_worker_endpoint(
+    worker_id: int,
+    request: UpdateWorker,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_worker(worker_id=worker_id, request=request, db=db)
+
+
+@router.delete("/workers/{worker_id}")
+async def delete_worker_endpoint(
+    worker_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_worker(worker_id=worker_id, db=db)
+
+
+@router.post("/{cafedra_code}/deputy-directors")
+async def create_deputy_director_endpoint(
+    cafedra_code: str,
+    request: DeputyDirector,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_deputy_director(cafedra_code=cafedra_code, request=request, db=db)
+
+
+@router.put("/deputy-directors/{deputy_director_id}")
+async def update_deputy_director_endpoint(
+    deputy_director_id: int,
+    request: UpdateDeputyDirector,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_deputy_director(deputy_director_id=deputy_director_id, request=request, db=db)
+
+
+@router.delete("/deputy-directors/{deputy_director_id}")
+async def delete_deputy_director_endpoint(
+    deputy_director_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_deputy_director(deputy_director_id=deputy_director_id, db=db)
+
+
+@router.post("/{cafedra_code}/scientific-council")
+async def create_council_member_endpoint(
+    cafedra_code: str,
+    request: ScientificCouncilMember,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_council_member(cafedra_code=cafedra_code, request=request, db=db)
+
+
+@router.put("/scientific-council/{member_id}")
+async def update_council_member_endpoint(
+    member_id: int,
+    request: UpdateCouncilMember,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_council_member(member_id=member_id, request=request, db=db)
+
+
+@router.delete("/scientific-council/{member_id}")
+async def delete_council_member_endpoint(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_council_member(member_id=member_id, db=db)
+
+
+@router.put("/laboratories/{laboratory_id}")
+async def update_laboratory_endpoint(
+    laboratory_id: int,
+    request: UpdateLaboratory,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_laboratory(laboratory_id=laboratory_id, request=request, db=db)
+
+
+@router.delete("/laboratories/{laboratory_id}")
+async def delete_laboratory_endpoint(
+    laboratory_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_laboratory(laboratory_id=laboratory_id, db=db)

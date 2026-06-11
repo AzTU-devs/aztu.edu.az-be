@@ -7,7 +7,18 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction, Worker
+from app.api.v1.schema.faculty import (
+    CreateFaculty,
+    UpdateFaculty,
+    CreateDirectionOfAction,
+    UpdateDirectionOfAction,
+    Worker,
+    UpdateWorker,
+    DeputyDean,
+    UpdateDeputyDean,
+    ScientificCouncilMember,
+    UpdateCouncilMember,
+)
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
 from app.services.search import on_faculty_change, on_faculty_delete
 from app.core.logger import get_logger
@@ -211,6 +222,88 @@ async def _create_people(
             now,
             db,
         )
+
+
+async def _create_single_person(
+    parent_cls: Type[Any],
+    tr_cls: Type[Any],
+    person_id_field: str,
+    faculty_code: str,
+    item: Any,
+    now: datetime,
+    db: AsyncSession,
+):
+    """Create one person (worker / deputy dean / council member) + az/en translations and return it."""
+    await _create_people(parent_cls, tr_cls, person_id_field, [item], faculty_code, now, db)
+    created_q = await db.execute(
+        select(parent_cls)
+        .where(parent_cls.faculty_code == faculty_code)
+        .order_by(parent_cls.id.desc())
+        .limit(1)
+    )
+    return created_q.scalar_one()
+
+
+async def _update_person(
+    parent_cls: Type[Any],
+    tr_cls: Type[Any],
+    person_id_field: str,
+    person_id: int,
+    request: Any,
+    db: AsyncSession,
+):
+    """Partial-update one person + upsert az/en translations. Returns the person, or None if not found."""
+    person_q = await db.execute(select(parent_cls).where(parent_cls.id == person_id))
+    person = person_q.scalar_one_or_none()
+    if not person:
+        return None
+
+    now = datetime.now(timezone.utc)
+    data = request.dict(exclude_unset=True)
+
+    for field in ["first_name", "last_name", "father_name", "email", "phone"]:
+        if field in data and hasattr(parent_cls, field):
+            setattr(person, field, data[field])
+    person.updated_at = now
+
+    for lang in ["az", "en"]:
+        payload = data.get(lang)
+        if payload is None:
+            continue
+        tr_q = await db.execute(
+            select(tr_cls).where(
+                getattr(tr_cls, person_id_field) == person_id,
+                tr_cls.lang_code == lang,
+            )
+        )
+        tr = tr_q.scalar_one_or_none()
+        if tr:
+            for attr in ["duty", "scientific_name", "scientific_degree"]:
+                if attr in payload and hasattr(tr_cls, attr):
+                    setattr(tr, attr, payload[attr])
+            tr.updated_at = now
+        else:
+            fields = {person_id_field: person_id, "lang_code": lang, "created_at": now, "updated_at": now}
+            if hasattr(tr_cls, "duty"):
+                fields["duty"] = payload.get("duty", "")
+            for attr in ["scientific_name", "scientific_degree"]:
+                if hasattr(tr_cls, attr):
+                    fields[attr] = payload.get(attr)
+            db.add(tr_cls(**fields))
+
+    return person
+
+
+async def _delete_person(parent_cls: Type[Any], person_id: int, db: AsyncSession):
+    """Delete one person by id (translations cascade). Returns (faculty_code, profile_image) or (None, None) if missing."""
+    person_q = await db.execute(select(parent_cls).where(parent_cls.id == person_id))
+    person = person_q.scalar_one_or_none()
+    if not person:
+        return None, None
+    faculty_code = person.faculty_code
+    profile_image = getattr(person, "profile_image", None)
+    await db.execute(sqlalchemy_delete(parent_cls).where(parent_cls.id == person_id))
+    return faculty_code, profile_image
 
 
 async def _create_director(faculty_code: str, director_data: Any, now: datetime, db: AsyncSession):
@@ -1609,6 +1702,7 @@ async def create_worker(
             ))
 
         await db.commit()
+        await on_faculty_change(db, faculty_code)
 
         return JSONResponse(
             content={
@@ -1619,6 +1713,209 @@ async def create_worker(
             status_code=status.HTTP_201_CREATED,
         )
     except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def update_worker(worker_id: int, request: UpdateWorker, db: AsyncSession):
+    try:
+        person = await _update_person(FacultyWorker, FacultyWorkerTr, "worker_id", worker_id, request, db)
+        if person is None:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Worker not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        faculty_code = person.faculty_code
+        await db.commit()
+        await on_faculty_change(db, faculty_code)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Worker updated successfully.", "data": {"id": worker_id}},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def delete_worker(worker_id: int, db: AsyncSession):
+    try:
+        faculty_code, profile_image = await _delete_person(FacultyWorker, worker_id, db)
+        if faculty_code is None:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Worker not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        await db.commit()
+        if profile_image:
+            safe_delete_file(profile_image)
+        await on_faculty_change(db, faculty_code)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Worker deleted successfully."},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def create_deputy_dean(faculty_code: str, request: DeputyDean, db: AsyncSession):
+    try:
+        faculty_query = await db.execute(select(Faculty).where(Faculty.faculty_code == faculty_code))
+        if not faculty_query.scalar_one_or_none():
+            return JSONResponse(
+                content={"status_code": 404, "message": "Faculty not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        now = datetime.now(timezone.utc)
+        deputy = await _create_single_person(
+            FacultyDeputyDean, FacultyDeputyDeanTr, "deputy_dean_id", faculty_code, request, now, db
+        )
+        await db.commit()
+        await on_faculty_change(db, faculty_code)
+        return JSONResponse(
+            content={"status_code": 201, "message": "Deputy dean added successfully.", "data": {"id": deputy.id}},
+            status_code=status.HTTP_201_CREATED,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def update_deputy_dean(deputy_dean_id: int, request: UpdateDeputyDean, db: AsyncSession):
+    try:
+        person = await _update_person(
+            FacultyDeputyDean, FacultyDeputyDeanTr, "deputy_dean_id", deputy_dean_id, request, db
+        )
+        if person is None:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Deputy dean not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        faculty_code = person.faculty_code
+        await db.commit()
+        await on_faculty_change(db, faculty_code)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Deputy dean updated successfully.", "data": {"id": deputy_dean_id}},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def delete_deputy_dean(deputy_dean_id: int, db: AsyncSession):
+    try:
+        faculty_code, profile_image = await _delete_person(FacultyDeputyDean, deputy_dean_id, db)
+        if faculty_code is None:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Deputy dean not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        await db.commit()
+        if profile_image:
+            safe_delete_file(profile_image)
+        await on_faculty_change(db, faculty_code)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Deputy dean deleted successfully."},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def create_council_member(faculty_code: str, request: ScientificCouncilMember, db: AsyncSession):
+    try:
+        faculty_query = await db.execute(select(Faculty).where(Faculty.faculty_code == faculty_code))
+        if not faculty_query.scalar_one_or_none():
+            return JSONResponse(
+                content={"status_code": 404, "message": "Faculty not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        now = datetime.now(timezone.utc)
+        member = await _create_single_person(
+            FacultyCouncilMember, FacultyCouncilMemberTr, "council_member_id", faculty_code, request, now, db
+        )
+        await db.commit()
+        await on_faculty_change(db, faculty_code)
+        return JSONResponse(
+            content={"status_code": 201, "message": "Council member added successfully.", "data": {"id": member.id}},
+            status_code=status.HTTP_201_CREATED,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def update_council_member(member_id: int, request: UpdateCouncilMember, db: AsyncSession):
+    try:
+        person = await _update_person(
+            FacultyCouncilMember, FacultyCouncilMemberTr, "council_member_id", member_id, request, db
+        )
+        if person is None:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Council member not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        faculty_code = person.faculty_code
+        await db.commit()
+        await on_faculty_change(db, faculty_code)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Council member updated successfully.", "data": {"id": member_id}},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def delete_council_member(member_id: int, db: AsyncSession):
+    try:
+        faculty_code, _ = await _delete_person(FacultyCouncilMember, member_id, db)
+        if faculty_code is None:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Council member not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        await db.commit()
+        await on_faculty_change(db, faculty_code)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Council member deleted successfully."},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(

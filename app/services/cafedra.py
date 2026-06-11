@@ -7,7 +7,18 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.schema.cafedra import CreateCafedra, UpdateCafedra, LaboratoryItem
+from app.api.v1.schema.cafedra import (
+    CreateCafedra,
+    UpdateCafedra,
+    LaboratoryItem,
+    UpdateLaboratory,
+    Worker,
+    UpdateWorker,
+    DeputyDirector,
+    UpdateDeputyDirector,
+    ScientificCouncilMember,
+    UpdateCouncilMember,
+)
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
 from app.services.search import on_cafedra_change, on_cafedra_delete
 from app.core.logger import get_logger
@@ -316,6 +327,113 @@ async def _create_people(
                 if hasattr(tr_cls, "scientific_degree"):
                     fields["scientific_degree"] = data.scientific_degree
                 db.add(tr_cls(**fields))
+
+
+async def _create_single_person(
+    parent_cls: Type[Any],
+    tr_cls: Type[Any],
+    person_id_field: str,
+    cafedra_code: str,
+    item: Any,
+    now: datetime,
+    db: AsyncSession,
+):
+    """Create one person (worker / deputy director / council member) + az/en translations and return it.
+
+    Filters by hasattr so it is safe for council members, which have no profile_image column.
+    """
+    payload = {
+        "cafedra_code": cafedra_code,
+        "first_name": item.first_name,
+        "last_name": item.last_name,
+        "father_name": getattr(item, "father_name", None),
+        "email": getattr(item, "email", None),
+        "phone": getattr(item, "phone", None),
+        "profile_image": getattr(item, "profile_image", None),
+        "created_at": now,
+        "updated_at": now,
+    }
+    allowed = {k: v for k, v in payload.items() if hasattr(parent_cls, k)}
+    person = parent_cls(**allowed)
+    db.add(person)
+    await db.flush()
+
+    for lang in ["az", "en"]:
+        data = getattr(item, lang, None)
+        if not data:
+            continue
+        fields = {person_id_field: person.id, "lang_code": lang, "created_at": now, "updated_at": now}
+        if hasattr(tr_cls, "duty"):
+            fields["duty"] = getattr(data, "duty", None)
+        if hasattr(tr_cls, "scientific_name"):
+            fields["scientific_name"] = getattr(data, "scientific_name", None)
+        if hasattr(tr_cls, "scientific_degree"):
+            fields["scientific_degree"] = getattr(data, "scientific_degree", None)
+        db.add(tr_cls(**fields))
+
+    return person
+
+
+async def _update_person(
+    parent_cls: Type[Any],
+    tr_cls: Type[Any],
+    person_id_field: str,
+    person_id: int,
+    request: Any,
+    db: AsyncSession,
+):
+    """Partial-update one person + upsert az/en translations. Returns the person, or None if not found."""
+    person_q = await db.execute(select(parent_cls).where(parent_cls.id == person_id))
+    person = person_q.scalar_one_or_none()
+    if not person:
+        return None
+
+    now = datetime.now(timezone.utc)
+    data = request.dict(exclude_unset=True)
+
+    for field in ["first_name", "last_name", "father_name", "email", "phone"]:
+        if field in data and hasattr(parent_cls, field):
+            setattr(person, field, data[field])
+    person.updated_at = now
+
+    for lang in ["az", "en"]:
+        payload = data.get(lang)
+        if payload is None:
+            continue
+        tr_q = await db.execute(
+            select(tr_cls).where(
+                getattr(tr_cls, person_id_field) == person_id,
+                tr_cls.lang_code == lang,
+            )
+        )
+        tr = tr_q.scalar_one_or_none()
+        if tr:
+            for attr in ["duty", "scientific_name", "scientific_degree"]:
+                if attr in payload and hasattr(tr_cls, attr):
+                    setattr(tr, attr, payload[attr])
+            tr.updated_at = now
+        else:
+            fields = {person_id_field: person_id, "lang_code": lang, "created_at": now, "updated_at": now}
+            if hasattr(tr_cls, "duty"):
+                fields["duty"] = payload.get("duty", "")
+            for attr in ["scientific_name", "scientific_degree"]:
+                if hasattr(tr_cls, attr):
+                    fields[attr] = payload.get(attr)
+            db.add(tr_cls(**fields))
+
+    return person
+
+
+async def _delete_person(parent_cls: Type[Any], person_id: int, db: AsyncSession):
+    """Delete one person by id (translations cascade). Returns (cafedra_code, profile_image) or (None, None)."""
+    person_q = await db.execute(select(parent_cls).where(parent_cls.id == person_id))
+    person = person_q.scalar_one_or_none()
+    if not person:
+        return None, None
+    cafedra_code = person.cafedra_code
+    profile_image = getattr(person, "profile_image", None)
+    await db.execute(sqlalchemy_delete(parent_cls).where(parent_cls.id == person_id))
+    return cafedra_code, profile_image
 
 
 async def _fetch_people_with_tr(
@@ -1223,6 +1341,256 @@ async def delete_laboratory_gallery_image(gallery_image_id: int, db: AsyncSessio
 
         return JSONResponse(content={"status_code": 200, "message": "Gallery image deleted successfully."}, status_code=status.HTTP_200_OK)
     except Exception as e:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ── Standalone personnel CRUD ────────────────────────────────────────────────────
+
+
+async def _verify_cafedra(cafedra_code: str, db: AsyncSession) -> bool:
+    q = await db.execute(select(Cafedra).where(Cafedra.cafedra_code == cafedra_code))
+    return q.scalar_one_or_none() is not None
+
+
+async def create_worker(cafedra_code: str, request: Worker, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        now = datetime.now(timezone.utc)
+        worker = await _create_single_person(CafedraWorker, CafedraWorkerTr, "worker_id", cafedra_code, request, now, db)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 201, "message": "Worker added successfully.", "data": {"id": worker.id}}, status_code=status.HTTP_201_CREATED)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_worker(worker_id: int, request: UpdateWorker, db: AsyncSession):
+    try:
+        person = await _update_person(CafedraWorker, CafedraWorkerTr, "worker_id", worker_id, request, db)
+        if person is None:
+            return JSONResponse(content={"status_code": 404, "message": "Worker not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        cafedra_code = person.cafedra_code
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Worker updated successfully.", "data": {"id": worker_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_worker(worker_id: int, db: AsyncSession):
+    try:
+        cafedra_code, profile_image = await _delete_person(CafedraWorker, worker_id, db)
+        if cafedra_code is None:
+            return JSONResponse(content={"status_code": 404, "message": "Worker not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        await db.commit()
+        if profile_image:
+            safe_delete_file(profile_image)
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Worker deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def create_deputy_director(cafedra_code: str, request: DeputyDirector, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        now = datetime.now(timezone.utc)
+        deputy = await _create_single_person(CafedraDeputyDirector, CafedraDeputyDirectorTr, "deputy_director_id", cafedra_code, request, now, db)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 201, "message": "Deputy director added successfully.", "data": {"id": deputy.id}}, status_code=status.HTTP_201_CREATED)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_deputy_director(deputy_director_id: int, request: UpdateDeputyDirector, db: AsyncSession):
+    try:
+        person = await _update_person(CafedraDeputyDirector, CafedraDeputyDirectorTr, "deputy_director_id", deputy_director_id, request, db)
+        if person is None:
+            return JSONResponse(content={"status_code": 404, "message": "Deputy director not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        cafedra_code = person.cafedra_code
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Deputy director updated successfully.", "data": {"id": deputy_director_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_deputy_director(deputy_director_id: int, db: AsyncSession):
+    try:
+        cafedra_code, profile_image = await _delete_person(CafedraDeputyDirector, deputy_director_id, db)
+        if cafedra_code is None:
+            return JSONResponse(content={"status_code": 404, "message": "Deputy director not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        await db.commit()
+        if profile_image:
+            safe_delete_file(profile_image)
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Deputy director deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def create_council_member(cafedra_code: str, request: ScientificCouncilMember, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        now = datetime.now(timezone.utc)
+        member = await _create_single_person(CafedraCouncilMember, CafedraCouncilMemberTr, "council_member_id", cafedra_code, request, now, db)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 201, "message": "Council member added successfully.", "data": {"id": member.id}}, status_code=status.HTTP_201_CREATED)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_council_member(member_id: int, request: UpdateCouncilMember, db: AsyncSession):
+    try:
+        person = await _update_person(CafedraCouncilMember, CafedraCouncilMemberTr, "council_member_id", member_id, request, db)
+        if person is None:
+            return JSONResponse(content={"status_code": 404, "message": "Council member not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        cafedra_code = person.cafedra_code
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Council member updated successfully.", "data": {"id": member_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_council_member(member_id: int, db: AsyncSession):
+    try:
+        cafedra_code, _ = await _delete_person(CafedraCouncilMember, member_id, db)
+        if cafedra_code is None:
+            return JSONResponse(content={"status_code": 404, "message": "Council member not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Council member deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_laboratory(laboratory_id: int, request: UpdateLaboratory, db: AsyncSession):
+    try:
+        lab_q = await db.execute(select(CafedraLaboratory).where(CafedraLaboratory.id == laboratory_id))
+        lab = lab_q.scalar_one_or_none()
+        if not lab:
+            return JSONResponse(content={"status_code": 404, "message": "Laboratory not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        cafedra_code = lab.cafedra_code
+        now = datetime.now(timezone.utc)
+        data = request.dict(exclude_unset=True)
+
+        for field in ["room_number", "email", "phone_number"]:
+            if field in data:
+                setattr(lab, field, data[field])
+        lab.updated_at = now
+
+        for lang in ["az", "en"]:
+            payload = data.get(lang)
+            if payload is None:
+                continue
+            tr_q = await db.execute(
+                select(CafedraLaboratoryTr).where(
+                    CafedraLaboratoryTr.laboratory_id == laboratory_id,
+                    CafedraLaboratoryTr.lang_code == lang,
+                )
+            )
+            tr = tr_q.scalar_one_or_none()
+            if tr:
+                if "title" in payload:
+                    tr.title = payload["title"]
+                if "html_content" in payload:
+                    tr.description = payload["html_content"]
+                tr.updated_at = now
+            else:
+                db.add(CafedraLaboratoryTr(
+                    laboratory_id=laboratory_id,
+                    lang_code=lang,
+                    title=payload.get("title", ""),
+                    description=payload.get("html_content"),
+                    created_at=now,
+                    updated_at=now,
+                ))
+
+        # Objectives are bilingual text rows with no own files — safe to replace wholesale.
+        if "objectives" in data:
+            await db.execute(
+                sqlalchemy_delete(CafedraLaboratoryObjective).where(CafedraLaboratoryObjective.laboratory_id == laboratory_id)
+            )
+            for obj_index, obj in enumerate(request.objectives or []):
+                objective = CafedraLaboratoryObjective(
+                    laboratory_id=laboratory_id,
+                    display_order=obj_index,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(objective)
+                await db.flush()
+                for lang in ["az", "en"]:
+                    obj_data = getattr(obj, lang)
+                    db.add(CafedraLaboratoryObjectiveTr(
+                        objective_id=objective.id,
+                        lang_code=lang,
+                        title=obj_data.title,
+                        created_at=now,
+                        updated_at=now,
+                    ))
+
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Laboratory updated successfully.", "data": {"id": laboratory_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_laboratory(laboratory_id: int, db: AsyncSession):
+    try:
+        lab_q = await db.execute(select(CafedraLaboratory).where(CafedraLaboratory.id == laboratory_id))
+        lab = lab_q.scalar_one_or_none()
+        if not lab:
+            return JSONResponse(content={"status_code": 404, "message": "Laboratory not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        cafedra_code = lab.cafedra_code
+        main_image = lab.image_url
+        gallery_q = await db.execute(
+            select(CafedraLaboratoryGalleryImage).where(CafedraLaboratoryGalleryImage.laboratory_id == laboratory_id)
+        )
+        gallery_paths = [img.image_url for img in gallery_q.scalars().all() if img.image_url]
+
+        await db.execute(sqlalchemy_delete(CafedraLaboratory).where(CafedraLaboratory.id == laboratory_id))
+        await db.commit()
+
+        if main_image:
+            safe_delete_file(main_image)
+        for path in gallery_paths:
+            safe_delete_file(path)
+        await on_cafedra_change(db, cafedra_code)
+
+        return JSONResponse(content={"status_code": 200, "message": "Laboratory deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
         logger.exception("500 Internal Server Error")
         await db.rollback()
         return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

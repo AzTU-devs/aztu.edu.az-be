@@ -72,6 +72,25 @@ class DepartmentWorkerPayload(BaseModel):
     en: WorkerTranslation
 
 
+class WorkerTranslationUpdate(BaseModel):
+    duty: str | None = None
+    scientific_degree: str | None = None
+    scientific_name: str | None = None
+
+
+class UpdateDepartmentWorker(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    father_name: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    az: WorkerTranslationUpdate | None = None
+    en: WorkerTranslationUpdate | None = None
+
+    class Config:
+        extra = "ignore"
+
+
 class CreateDepartment(BaseModel):
     az: DepartmentTranslation
     en: DepartmentTranslation

@@ -145,6 +145,77 @@ class Worker(BaseModel):
     profile_image: str | None = None
 
 
+# ── Standalone sub-entity update schemas (all-optional, partial updates) ──────────
+
+
+class WorkerTranslationUpdate(BaseModel):
+    duty: str | None = None
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+
+
+class UpdateWorker(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    father_name: str | None = None
+    az: WorkerTranslationUpdate | None = None
+    en: WorkerTranslationUpdate | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class UpdateDeputyDirector(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    father_name: str | None = None
+    az: DeputyDirectorTranslation | None = None
+    en: DeputyDirectorTranslation | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class CouncilMemberTranslationUpdate(BaseModel):
+    duty: str | None = None
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+
+
+class UpdateCouncilMember(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    father_name: str | None = None
+    az: CouncilMemberTranslationUpdate | None = None
+    en: CouncilMemberTranslationUpdate | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class LaboratoryTranslationUpdate(BaseModel):
+    title: str | None = None
+    html_content: str | None = None
+
+
+class UpdateLaboratory(BaseModel):
+    az: LaboratoryTranslationUpdate | None = None
+    en: LaboratoryTranslationUpdate | None = None
+    room_number: str | None = None
+    email: EmailStr | None = None
+    phone_number: str | None = None
+    objectives: list[LaboratoryObjectiveItem] | None = None
+
+    class Config:
+        extra = "ignore"
+
+
 class CreateCafedra(BaseModel):
     faculty_code: str = Field(...)
     az: LanguageBlock

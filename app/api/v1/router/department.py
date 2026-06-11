@@ -13,8 +13,16 @@ from app.services.department import (
     delete_department,
     upload_director_image,
     upload_worker_image,
+    create_worker,
+    update_worker,
+    delete_worker,
 )
-from app.api.v1.schema.department import CreateDepartment, UpdateDepartment
+from app.api.v1.schema.department import (
+    CreateDepartment,
+    UpdateDepartment,
+    DepartmentWorkerPayload,
+    UpdateDepartmentWorker,
+)
 
 router = APIRouter()
 
@@ -95,3 +103,32 @@ async def upload_worker_image_endpoint(
     _: AdminUser = Depends(require_admin),
 ):
     return await upload_worker_image(worker_id=worker_id, image=image, db=db)
+
+
+@router.post("/{department_code}/workers")
+async def create_worker_endpoint(
+    department_code: str,
+    request: DepartmentWorkerPayload,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_worker(department_code=department_code, request=request, db=db)
+
+
+@router.put("/workers/{worker_id}")
+async def update_worker_endpoint(
+    worker_id: int,
+    request: UpdateDepartmentWorker,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_worker(worker_id=worker_id, request=request, db=db)
+
+
+@router.delete("/workers/{worker_id}")
+async def delete_worker_endpoint(
+    worker_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_worker(worker_id=worker_id, db=db)

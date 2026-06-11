@@ -19,8 +19,27 @@ from app.services.faculty import (
     update_direction_of_action,
     delete_direction_of_action,
     create_worker,
+    update_worker,
+    delete_worker,
+    create_deputy_dean,
+    update_deputy_dean,
+    delete_deputy_dean,
+    create_council_member,
+    update_council_member,
+    delete_council_member,
 )
-from app.api.v1.schema.faculty import CreateFaculty, UpdateFaculty, CreateDirectionOfAction, UpdateDirectionOfAction, Worker
+from app.api.v1.schema.faculty import (
+    CreateFaculty,
+    UpdateFaculty,
+    CreateDirectionOfAction,
+    UpdateDirectionOfAction,
+    Worker,
+    UpdateWorker,
+    DeputyDean,
+    UpdateDeputyDean,
+    ScientificCouncilMember,
+    UpdateCouncilMember,
+)
 
 router = APIRouter()
 
@@ -161,6 +180,83 @@ async def create_worker_endpoint(
         request=request,
         db=db,
     )
+
+
+@router.put("/workers/{worker_id}")
+async def update_worker_endpoint(
+    worker_id: int,
+    request: UpdateWorker,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_worker(worker_id=worker_id, request=request, db=db)
+
+
+@router.delete("/workers/{worker_id}")
+async def delete_worker_endpoint(
+    worker_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_worker(worker_id=worker_id, db=db)
+
+
+@router.post("/{faculty_code}/deputy-deans")
+async def create_deputy_dean_endpoint(
+    faculty_code: str,
+    request: DeputyDean,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_deputy_dean(faculty_code=faculty_code, request=request, db=db)
+
+
+@router.put("/deputy-deans/{deputy_dean_id}")
+async def update_deputy_dean_endpoint(
+    deputy_dean_id: int,
+    request: UpdateDeputyDean,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_deputy_dean(deputy_dean_id=deputy_dean_id, request=request, db=db)
+
+
+@router.delete("/deputy-deans/{deputy_dean_id}")
+async def delete_deputy_dean_endpoint(
+    deputy_dean_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_deputy_dean(deputy_dean_id=deputy_dean_id, db=db)
+
+
+@router.post("/{faculty_code}/scientific-council")
+async def create_council_member_endpoint(
+    faculty_code: str,
+    request: ScientificCouncilMember,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_council_member(faculty_code=faculty_code, request=request, db=db)
+
+
+@router.put("/scientific-council/{member_id}")
+async def update_council_member_endpoint(
+    member_id: int,
+    request: UpdateCouncilMember,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_council_member(member_id=member_id, request=request, db=db)
+
+
+@router.delete("/scientific-council/{member_id}")
+async def delete_council_member_endpoint(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_council_member(member_id=member_id, db=db)
 
 
 @router.get("/{faculty_code}/directions-of-action")

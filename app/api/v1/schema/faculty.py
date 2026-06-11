@@ -120,6 +120,60 @@ class Worker(BaseModel):
     profile_image: str | None = None
 
 
+# ── Standalone sub-entity update schemas (all-optional, partial updates) ──────────
+
+
+class WorkerTranslationUpdate(BaseModel):
+    duty: str | None = None
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+
+
+class UpdateWorker(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    father_name: str | None = None
+    az: WorkerTranslationUpdate | None = None
+    en: WorkerTranslationUpdate | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class UpdateDeputyDean(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    father_name: str | None = None
+    az: DeputyDeanTranslation | None = None
+    en: DeputyDeanTranslation | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class CouncilMemberTranslationUpdate(BaseModel):
+    duty: str | None = None
+    scientific_name: str | None = None
+    scientific_degree: str | None = None
+
+
+class UpdateCouncilMember(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    father_name: str | None = None
+    az: CouncilMemberTranslationUpdate | None = None
+    en: CouncilMemberTranslationUpdate | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+
+    class Config:
+        extra = "ignore"
+
+
 class CreateFaculty(BaseModel):
     az: LanguageBlock
     en: LanguageBlock

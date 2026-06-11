@@ -7,7 +7,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.schema.department import CreateDepartment, UpdateDepartment
+from app.api.v1.schema.department import (
+    CreateDepartment,
+    UpdateDepartment,
+    DepartmentWorkerPayload,
+    UpdateDepartmentWorker,
+)
 from app.core.logger import get_logger
 from app.services.search import on_department_change, on_department_delete
 from app.models.departments.department import Department
@@ -282,32 +287,37 @@ async def _serialize_director(director: DepartmentDirector, lang_code: str, db: 
 # ── Worker helpers ─────────────────────────────────────────────────────────────
 
 
-async def _create_workers(department_code: str, workers: list[Any], now: datetime, db: AsyncSession):
-    for item in workers:
-        worker = DepartmentWorker(
-            department_code=department_code,
-            first_name=item.first_name,
-            last_name=item.last_name,
-            father_name=item.father_name,
-            email=item.email,
-            phone=item.phone,
-            profile_image=item.profile_image,
+async def _create_single_worker(department_code: str, item: Any, now: datetime, db: AsyncSession) -> DepartmentWorker:
+    worker = DepartmentWorker(
+        department_code=department_code,
+        first_name=item.first_name,
+        last_name=item.last_name,
+        father_name=item.father_name,
+        email=item.email,
+        phone=item.phone,
+        profile_image=item.profile_image,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(worker)
+    await db.flush()
+
+    for lang_code, tr_data in [("az", item.az), ("en", item.en)]:
+        db.add(DepartmentWorkerTr(
+            worker_id=worker.id,
+            lang_code=lang_code,
+            duty=tr_data.duty,
+            scientific_degree=tr_data.scientific_degree,
+            scientific_name=tr_data.scientific_name,
             created_at=now,
             updated_at=now,
-        )
-        db.add(worker)
-        await db.flush()
+        ))
+    return worker
 
-        for lang_code, tr_data in [("az", item.az), ("en", item.en)]:
-            db.add(DepartmentWorkerTr(
-                worker_id=worker.id,
-                lang_code=lang_code,
-                duty=tr_data.duty,
-                scientific_degree=tr_data.scientific_degree,
-                scientific_name=tr_data.scientific_name,
-                created_at=now,
-                updated_at=now,
-            ))
+
+async def _create_workers(department_code: str, workers: list[Any], now: datetime, db: AsyncSession):
+    for item in workers:
+        await _create_single_worker(department_code, item, now, db)
 
 
 async def _serialize_workers(department_code: str, lang_code: str, db: AsyncSession) -> list[dict]:
@@ -700,6 +710,129 @@ async def upload_worker_image(worker_id: int, image: UploadFile, db: AsyncSessio
 
         return JSONResponse(
             content={"status_code": 200, "message": "Worker image uploaded successfully.", "data": {"profile_image": new_path}},
+            status_code=status.HTTP_200_OK,
+        )
+
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def create_worker(department_code: str, request: DepartmentWorkerPayload, db: AsyncSession):
+    try:
+        dept_q = await db.execute(select(Department).where(Department.department_code == department_code))
+        if not dept_q.scalar_one_or_none():
+            return JSONResponse(
+                content={"status_code": 404, "message": "Department not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        now = datetime.now(timezone.utc)
+        worker = await _create_single_worker(department_code, request, now, db)
+        await db.commit()
+        await on_department_change(db, department_code)
+
+        return JSONResponse(
+            content={"status_code": 201, "message": "Worker added successfully.", "data": {"id": worker.id}},
+            status_code=status.HTTP_201_CREATED,
+        )
+
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def update_worker(worker_id: int, request: UpdateDepartmentWorker, db: AsyncSession):
+    try:
+        worker_q = await db.execute(select(DepartmentWorker).where(DepartmentWorker.id == worker_id))
+        worker = worker_q.scalar_one_or_none()
+        if not worker:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Worker not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        now = datetime.now(timezone.utc)
+        data = request.dict(exclude_unset=True)
+
+        for field in ["first_name", "last_name", "father_name", "email", "phone"]:
+            if field in data:
+                setattr(worker, field, data[field])
+        worker.updated_at = now
+
+        for lang in ["az", "en"]:
+            payload = data.get(lang)
+            if payload is None:
+                continue
+            tr_q = await db.execute(
+                select(DepartmentWorkerTr).where(
+                    DepartmentWorkerTr.worker_id == worker_id,
+                    DepartmentWorkerTr.lang_code == lang,
+                )
+            )
+            tr = tr_q.scalar_one_or_none()
+            if tr:
+                for attr in ["duty", "scientific_degree", "scientific_name"]:
+                    if attr in payload:
+                        setattr(tr, attr, payload[attr])
+                tr.updated_at = now
+            else:
+                db.add(DepartmentWorkerTr(
+                    worker_id=worker_id,
+                    lang_code=lang,
+                    duty=payload.get("duty", ""),
+                    scientific_degree=payload.get("scientific_degree"),
+                    scientific_name=payload.get("scientific_name"),
+                    created_at=now,
+                    updated_at=now,
+                ))
+
+        await db.commit()
+        await on_department_change(db, worker.department_code)
+
+        return JSONResponse(
+            content={"status_code": 200, "message": "Worker updated successfully.", "data": {"id": worker_id}},
+            status_code=status.HTTP_200_OK,
+        )
+
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def delete_worker(worker_id: int, db: AsyncSession):
+    try:
+        worker_q = await db.execute(select(DepartmentWorker).where(DepartmentWorker.id == worker_id))
+        worker = worker_q.scalar_one_or_none()
+        if not worker:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Worker not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        department_code = worker.department_code
+        profile_image = worker.profile_image
+        await db.execute(sqlalchemy_delete(DepartmentWorker).where(DepartmentWorker.id == worker_id))
+        await db.commit()
+
+        if profile_image:
+            safe_delete_file(profile_image)
+        await on_department_change(db, department_code)
+
+        return JSONResponse(
+            content={"status_code": 200, "message": "Worker deleted successfully."},
             status_code=status.HTTP_200_OK,
         )
 
