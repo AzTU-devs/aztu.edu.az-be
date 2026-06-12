@@ -172,18 +172,25 @@ async def create_news(
 async def get_public_news(
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
     start: int = Query(0, ge=0, description="Start index"),
-    end: int = Query(10, gt=0, le=100, description="End index (max 100)"),
+    end: int = Query(10, gt=0, description="End index (absolute offset)"),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        total_query = await db.execute(
+        count_query = (
             select(func.count())
             .select_from(News)
             .where(News.is_active == True)  # noqa: E712
             .where(News.show_in_all_news == True)  # noqa: E712
         )
+        if category_id is not None:
+            count_query = count_query.where(News.category_id == category_id)
+        total_query = await db.execute(count_query)
         total = total_query.scalar() or 0
+
+        # start/end are absolute offsets; cap the page size (not the offset) so
+        # deep pagination keeps working without rejecting large `end` values.
+        page_size = min(max(end - start, 0), 100)
 
         query = (
             select(News)
@@ -191,7 +198,7 @@ async def get_public_news(
             .where(News.show_in_all_news == True)  # noqa: E712
             .order_by(News.display_order.asc(), News.created_at.desc())
             .offset(start)
-            .limit(end - start)
+            .limit(page_size)
         )
         if category_id is not None:
             query = query.where(News.category_id == category_id)
@@ -253,12 +260,15 @@ async def get_public_news(
 async def get_admin_news(
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
     start: int = Query(0, ge=0, description="Start index"),
-    end: int = Query(10, gt=0, le=100, description="End index (max 100)"),
+    end: int = Query(10, gt=0, description="End index (absolute offset)"),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        total_query = await db.execute(select(func.count()).select_from(News))
+        count_query = select(func.count()).select_from(News)
+        if category_id is not None:
+            count_query = count_query.where(News.category_id == category_id)
+        total_query = await db.execute(count_query)
         total = total_query.scalar() or 0
 
         query = (
@@ -803,13 +813,16 @@ async def _get_news_by_owner(
         .where(owner_filter)
     )).scalar() or 0
 
+    # Cap page size (end-start), not the absolute offset, so deep pagination works.
+    page_size = min(max(end - start, 0), 100)
+
     fetched_news = (await db.execute(
         select(News)
         .where(News.is_active == True)  # noqa: E712
         .where(owner_filter)
         .order_by(News.created_at.desc())
         .offset(start)
-        .limit(end - start)
+        .limit(page_size)
     )).scalars().all()
 
     if not fetched_news:

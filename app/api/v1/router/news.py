@@ -17,7 +17,7 @@ router = APIRouter()
 async def get_news_public_endpoint(
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
     start: int = Query(0, ge=0, description="Start index"),
-    end: int = Query(10, gt=0, le=100, description="End index"),
+    end: int = Query(10, gt=0, description="End index (absolute offset; page size end-start is capped server-side)"),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db)
 ):
@@ -34,7 +34,7 @@ async def get_news_gallery_endpoint(
 async def get_news_by_faculty_endpoint(
     faculty_code: str,
     start: int = Query(0, ge=0),
-    end: int = Query(10, gt=0, le=100),
+    end: int = Query(10, gt=0),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
 ):
@@ -47,7 +47,7 @@ async def get_news_by_faculty_endpoint(
 async def get_news_by_cafedra_endpoint(
     cafedra_code: str,
     start: int = Query(0, ge=0),
-    end: int = Query(10, gt=0, le=100),
+    end: int = Query(10, gt=0),
     lang_code: str = Depends(get_language),
     db: AsyncSession = Depends(get_db),
 ):
