@@ -512,6 +512,23 @@ async def get_news_gallery(
         )
 
 
+def _resequence_display_order(rows: list, target, new_order: int) -> None:
+    """Move `target` to position `new_order` (1-based) within `rows` and renumber 1..N.
+
+    `rows` must already be ordered by current display_order. Mutates display_order in
+    place; clamps out-of-range positions to the valid [1, total] window.
+    """
+    total = len(rows)
+    if total == 0:
+        return
+    new_order = max(1, min(int(new_order), total))
+    ordered = [r for r in rows if r is not target]
+    ordered.insert(new_order - 1, target)
+    for idx, r in enumerate(ordered, start=1):
+        if r.display_order != idx:
+            r.display_order = idx
+
+
 async def reorder_news(
     request: ReOrderNews,
     db: AsyncSession = Depends(get_db)
@@ -525,18 +542,7 @@ async def reorder_news(
         if not target:
             return JSONResponse(content={"status_code": 404, "error": "News not found"}, status_code=404)
 
-        total = len(all_rows)
-        if total == 0:
-            return JSONResponse(content={"status_code": 200, "message": "No change"}, status_code=200)
-
-        new_order = max(1, min(int(request.new_order), total))
-
-        ordered = [n for n in all_rows if n.news_id != request.news_id]
-        ordered.insert(new_order - 1, target)
-
-        for idx, n in enumerate(ordered, start=1):
-            if n.display_order != idx:
-                n.display_order = idx
+        _resequence_display_order(all_rows, target, request.new_order)
 
         await db.commit()
 
@@ -569,6 +575,8 @@ async def update_news(
     clear_faculty: bool = False,
     clear_cafedra: bool = False,
     show_in_all_news: Optional[bool] = None,
+    created_at: Optional[str] = None,
+    display_order: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
 ):
     saved_files: list[str] = []
@@ -580,6 +588,18 @@ async def update_news(
                 content={"status_code": 404, "message": "News not found."},
                 status_code=status.HTTP_404_NOT_FOUND,
             )
+
+        if created_at is not None:
+            try:
+                parsed = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                news.created_at = parsed
+            except ValueError:
+                return JSONResponse(
+                    content={"status_code": 400, "message": "Invalid created_at format."},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
 
         if category_id is not None:
             cat = (await db.execute(
@@ -729,6 +749,12 @@ async def update_news(
             )).scalars().all()
             for r in rows:
                 r.display_order = order_map[r.id]
+
+        if display_order is not None:
+            all_rows = (await db.execute(
+                select(News).order_by(News.display_order.asc(), News.created_at.desc()).with_for_update()
+            )).scalars().all()
+            _resequence_display_order(all_rows, news, display_order)
 
         news.updated_at = datetime.now(timezone.utc)
 

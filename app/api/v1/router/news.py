@@ -160,6 +160,8 @@ async def update_news_endpoint(
     clear_faculty: Optional[bool] = Form(False),
     clear_cafedra: Optional[bool] = Form(False),
     show_in_all_news: Optional[bool] = Form(None),
+    created_at: Optional[str] = Form(None),
+    display_order: Optional[int] = Form(None),
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
@@ -192,6 +194,8 @@ async def update_news_endpoint(
         clear_faculty=bool(clear_faculty),
         clear_cafedra=bool(clear_cafedra),
         show_in_all_news=show_in_all_news,
+        created_at=created_at,
+        display_order=display_order,
         db=db,
     )
 

@@ -131,6 +131,8 @@ async def update_announcement(
     az_html_content: Optional[str] = None,
     en_title: Optional[str] = None,
     en_html_content: Optional[str] = None,
+    created_at: Optional[str] = None,
+    display_order: Optional[int] = None,
     db: AsyncSession = None,
 ):
     saved_files: list[str] = []
@@ -143,6 +145,19 @@ async def update_announcement(
                 content={"status_code": 404, "message": "Announcement not found."},
                 status_code=status.HTTP_404_NOT_FOUND,
             )
+
+        if created_at is not None:
+            try:
+                parsed = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                a.created_at = parsed
+                a.published_date = parsed.date()
+            except ValueError:
+                return JSONResponse(
+                    content={"status_code": 400, "message": "Invalid created_at format."},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
 
         old_image: Optional[str] = None
         if image is not None and getattr(image, "filename", None):
@@ -169,6 +184,14 @@ async def update_announcement(
 
         _apply("az", az_title, az_html_content)
         _apply("en", en_title, en_html_content)
+
+        if display_order is not None:
+            all_rows = (await db.execute(
+                select(Announcement)
+                .order_by(Announcement.display_order.asc(), Announcement.created_at.desc())
+                .with_for_update()
+            )).scalars().all()
+            _resequence_display_order(all_rows, a, display_order)
 
         await db.commit()
         await on_announcement_change(db, announcement_id)
@@ -361,6 +384,23 @@ async def activate_announcement(
         return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+def _resequence_display_order(rows: list, target, new_order: int) -> None:
+    """Move `target` to position `new_order` (1-based) within `rows` and renumber 1..N.
+
+    `rows` must already be ordered by current display_order. Mutates display_order in
+    place; clamps out-of-range positions to the valid [1, total] window.
+    """
+    total = len(rows)
+    if total == 0:
+        return
+    new_order = max(1, min(int(new_order), total))
+    ordered = [r for r in rows if r is not target]
+    ordered.insert(new_order - 1, target)
+    for idx, r in enumerate(ordered, start=1):
+        if r.display_order != idx:
+            r.display_order = idx
+
+
 async def reorder_announcement(
     request: ReOrderAnnouncement,
     db: AsyncSession = Depends(get_db)
@@ -376,18 +416,7 @@ async def reorder_announcement(
         if not target:
             return JSONResponse(content={"status_code": 404, "error": "Announcement not found"}, status_code=404)
 
-        total = len(all_rows)
-        if total == 0:
-            return JSONResponse(content={"status_code": 200, "message": "No change"})
-
-        new_order = max(1, min(int(request.new_order), total))
-
-        ordered = [a for a in all_rows if a.announcement_id != request.announcement_id]
-        ordered.insert(new_order - 1, target)
-
-        for idx, a in enumerate(ordered, start=1):
-            if a.display_order != idx:
-                a.display_order = idx
+        _resequence_display_order(all_rows, target, request.new_order)
 
         await db.commit()
         return JSONResponse(content={"status_code": 200, "message": "Announcement reordered successfully"})

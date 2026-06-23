@@ -64,6 +64,8 @@ async def update_announcement_endpoint(
     az_html_content: Optional[str] = Form(None),
     en_title: Optional[str] = Form(None),
     en_html_content: Optional[str] = Form(None),
+    created_at: Optional[str] = Form(None),
+    display_order: Optional[int] = Form(None),
     db: AsyncSession = Depends(get_db),
     _: AdminUser = Depends(require_admin),
 ):
@@ -74,6 +76,8 @@ async def update_announcement_endpoint(
         az_html_content=az_html_content,
         en_title=en_title,
         en_html_content=en_html_content,
+        created_at=created_at,
+        display_order=display_order,
         db=db,
     )
 
