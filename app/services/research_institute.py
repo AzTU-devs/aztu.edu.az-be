@@ -443,12 +443,12 @@ async def update_research_institute(institute_code: str, request: UpdateResearch
                     ))
 
         if "director" in data:
-            await _upsert_director(institute_code, data.get("director"), now, db)
+            await _upsert_director(institute_code, request.director, now, db)
 
         if "staff" in data:
             await db.execute(sqlalchemy_delete(InstituteStaff).where(InstituteStaff.institute_code == institute_code))
             if data["staff"]:
-                await _create_staff(institute_code, data["staff"], now, db)
+                await _create_staff(institute_code, request.staff, now, db)
 
         institute.updated_at = now
         await db.commit()

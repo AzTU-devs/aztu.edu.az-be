@@ -1237,71 +1237,71 @@ async def update_faculty(
             faculty.sdgs = validate_sdgs(request_data["sdgs"])
 
         if "director" in request_data:
-            await _upsert_director(faculty_code, request_data.get("director"), now, db)
+            await _upsert_director(faculty_code, request.director, now, db)
 
         if "laboratories" in request_data:
             await _delete_section(FacultyLaboratory, faculty_code, db)
             if request_data["laboratories"]:
                 await _create_translated_section(
-                    FacultyLaboratory, FacultyLaboratoryTr, "laboratory_id", faculty_code, request_data["laboratories"], now, db,
+                    FacultyLaboratory, FacultyLaboratoryTr, "laboratory_id", faculty_code, request.laboratories, now, db,
                 )
 
         if "research_works" in request_data:
             await _delete_section(FacultyResearchWork, faculty_code, db)
             if request_data["research_works"]:
                 await _create_translated_section(
-                    FacultyResearchWork, FacultyResearchWorkTr, "research_work_id", faculty_code, request_data["research_works"], now, db,
+                    FacultyResearchWork, FacultyResearchWorkTr, "research_work_id", faculty_code, request.research_works, now, db,
                 )
 
         if "partner_companies" in request_data:
             await _delete_section(FacultyPartnerCompany, faculty_code, db)
             if request_data["partner_companies"]:
                 await _create_translated_section(
-                    FacultyPartnerCompany, FacultyPartnerCompanyTr, "partner_company_id", faculty_code, request_data["partner_companies"], now, db,
+                    FacultyPartnerCompany, FacultyPartnerCompanyTr, "partner_company_id", faculty_code, request.partner_companies, now, db,
                 )
 
         if "objectives" in request_data:
             await _delete_section(FacultyObjective, faculty_code, db)
             if request_data["objectives"]:
                 await _create_translated_section(
-                    FacultyObjective, FacultyObjectiveTr, "objective_id", faculty_code, request_data["objectives"], now, db,
+                    FacultyObjective, FacultyObjectiveTr, "objective_id", faculty_code, request.objectives, now, db,
                 )
 
         if "duties" in request_data:
             await _delete_section(FacultyDuty, faculty_code, db)
             if request_data["duties"]:
                 await _create_translated_section(
-                    FacultyDuty, FacultyDutyTr, "duty_id", faculty_code, request_data["duties"], now, db,
+                    FacultyDuty, FacultyDutyTr, "duty_id", faculty_code, request.duties, now, db,
                 )
 
         if "projects" in request_data:
             await _delete_section(FacultyProject, faculty_code, db)
             if request_data["projects"]:
                 await _create_translated_section(
-                    FacultyProject, FacultyProjectTr, "project_id", faculty_code, request_data["projects"], now, db,
+                    FacultyProject, FacultyProjectTr, "project_id", faculty_code, request.projects, now, db,
                 )
 
         if "directions_of_action" in request_data:
             await _delete_section(FacultyDirectionOfAction, faculty_code, db)
             if request_data["directions_of_action"]:
                 await _create_translated_section(
-                    FacultyDirectionOfAction, FacultyDirectionOfActionTr, "direction_of_action_id", faculty_code, request_data["directions_of_action"], now, db,
+                    FacultyDirectionOfAction, FacultyDirectionOfActionTr, "direction_of_action_id", faculty_code, request.directions_of_action, now, db,
                 )
 
         if "deputy_deans" in request_data:
             await _delete_section(FacultyDeputyDean, faculty_code, db)
             if request_data["deputy_deans"]:
-                await _create_people(FacultyDeputyDean, FacultyDeputyDeanTr, "deputy_dean_id", request_data["deputy_deans"], faculty_code, now, db)
+                await _create_people(FacultyDeputyDean, FacultyDeputyDeanTr, "deputy_dean_id", request.deputy_deans, faculty_code, now, db)
 
         if "scientific_council" in request_data:
             await _delete_section(FacultyCouncilMember, faculty_code, db)
             if request_data["scientific_council"]:
-                await _create_people(FacultyCouncilMember, FacultyCouncilMemberTr, "council_member_id", request_data["scientific_council"], faculty_code, now, db)
+                await _create_people(FacultyCouncilMember, FacultyCouncilMemberTr, "council_member_id", request.scientific_council, faculty_code, now, db)
 
         if "workers" in request_data:
             await _delete_section(FacultyWorker, faculty_code, db)
             if request_data["workers"]:
-                await _create_people(FacultyWorker, FacultyWorkerTr, "worker_id", request_data["workers"], faculty_code, now, db)
+                await _create_people(FacultyWorker, FacultyWorkerTr, "worker_id", request.workers, faculty_code, now, db)
 
         faculty.updated_at = now
         await db.commit()

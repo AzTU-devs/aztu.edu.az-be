@@ -584,20 +584,20 @@ async def update_department(department_code: str, request: UpdateDepartment, db:
         if "objectives" in data:
             await _delete_section(DepartmentObjective, department_code, db)
             if data["objectives"]:
-                await _create_html_section(DepartmentObjective, DepartmentObjectiveTr, "objective_id", department_code, data["objectives"], now, db)
+                await _create_html_section(DepartmentObjective, DepartmentObjectiveTr, "objective_id", department_code, request.objectives, now, db)
 
         if "core_functions" in data:
             await _delete_section(DepartmentCoreFunction, department_code, db)
             if data["core_functions"]:
-                await _create_html_section(DepartmentCoreFunction, DepartmentCoreFunctionTr, "core_function_id", department_code, data["core_functions"], now, db)
+                await _create_html_section(DepartmentCoreFunction, DepartmentCoreFunctionTr, "core_function_id", department_code, request.core_functions, now, db)
 
         if "director" in data:
-            await _upsert_director(department_code, data.get("director"), now, db)
+            await _upsert_director(department_code, request.director, now, db)
 
         if "workers" in data:
             await db.execute(sqlalchemy_delete(DepartmentWorker).where(DepartmentWorker.department_code == department_code))
             if data["workers"]:
-                await _create_workers(department_code, data["workers"], now, db)
+                await _create_workers(department_code, request.workers, now, db)
 
         department.updated_at = now
         await db.commit()
