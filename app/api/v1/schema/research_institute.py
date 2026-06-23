@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.api.v1.schema.common import OptionalEmail
+
 
 class InstituteTranslation(BaseModel):
     name: str = Field(...)
@@ -33,7 +35,7 @@ class InstituteDirectorPayload(BaseModel):
     first_name: str = Field(...)
     last_name: str = Field(...)
     father_name: str | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     room_number: str | None = None
     image: str | None = None
     az: DirectorTranslation
@@ -50,7 +52,7 @@ class InstituteStaffPayload(BaseModel):
     first_name: str = Field(...)
     last_name: str = Field(...)
     father_name: str | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone_number: str | None = None
     image: str | None = None
     az: StaffTranslation

@@ -461,11 +461,24 @@ async def _fetch_people_with_tr(
     return result
 
 
+def _director_has_content(director_data: Any) -> bool:
+    """A director payload counts as "present" only if it carries a name.
+
+    Lets a cafedra be saved with an empty director section (blank/omitted name)
+    instead of creating a nameless row or rejecting the request.
+    """
+    if director_data is None:
+        return False
+    first = (getattr(director_data, "first_name", None) or "").strip()
+    last = (getattr(director_data, "last_name", None) or "").strip()
+    return bool(first or last)
+
+
 async def _create_director(cafedra_code: str, director_data: Any, now: datetime, db: AsyncSession):
     director = CafedraDirector(
         cafedra_code=cafedra_code,
-        first_name=director_data.first_name,
-        last_name=director_data.last_name,
+        first_name=director_data.first_name or "",
+        last_name=director_data.last_name or "",
         father_name=director_data.father_name,
         email=director_data.email,
         phone=director_data.phone,
@@ -569,20 +582,31 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
     )
     director = director_query.scalar_one_or_none()
 
-    if director_data is None:
+    # A missing or content-less director payload means the cafedra has no director.
+    if not _director_has_content(director_data):
         if director:
             await db.execute(sqlalchemy_delete(CafedraDirector).where(CafedraDirector.id == director.id))
         return None
 
+    data = director_data.dict(exclude_unset=True)
+
     if not director:
-        director = CafedraDirector(cafedra_code=cafedra_code, created_at=now, updated_at=now)
+        director = CafedraDirector(
+            cafedra_code=cafedra_code,
+            first_name=data.get("first_name") or "",
+            last_name=data.get("last_name") or "",
+            created_at=now,
+            updated_at=now,
+        )
         db.add(director)
         await db.flush()
 
-    data = director_data.dict(exclude_unset=True)
     for field in ["first_name", "last_name", "father_name", "email", "phone", "room_number", "profile_image"]:
         if field in data:
-            setattr(director, field, data[field])
+            value = data[field]
+            if field in ("first_name", "last_name"):
+                value = value or ""
+            setattr(director, field, value)
     director.updated_at = now
 
     for lang in ["az", "en"]:
@@ -766,7 +790,7 @@ async def create_cafedra(
         db.add(CafedraTr(cafedra_code=cafedra_code, lang_code="az", cafedra_name=request.az.title, about_text=request.az.html_content, created_at=now))
         db.add(CafedraTr(cafedra_code=cafedra_code, lang_code="en", cafedra_name=request.en.title, about_text=request.en.html_content, created_at=now))
 
-        if request.director:
+        if _director_has_content(request.director):
             await _create_director(cafedra_code, request.director, now, db)
 
         if request.laboratories:

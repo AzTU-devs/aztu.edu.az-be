@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.api.v1.schema.common import OptionalEmail
+
 
 class LanguageBlock(BaseModel):
     title: str = Field(...)
@@ -46,12 +48,12 @@ class DirectorTranslation(BaseModel):
 
 
 class CafedraDirectorPayload(BaseModel):
-    first_name: str = Field(...)
-    last_name: str = Field(...)
+    first_name: str | None = None
+    last_name: str | None = None
     father_name: str | None = None
     az: DirectorTranslation | None = None
     en: DirectorTranslation | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone: str | None = None
     room_number: str | None = None
     profile_image: str | None = None
@@ -88,7 +90,7 @@ class LaboratoryItem(BaseModel):
     az: LaboratoryTranslation
     en: LaboratoryTranslation
     room_number: str | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone_number: str | None = None
     image_url: str | None = None
     objectives: list[LaboratoryObjectiveItem] | None = None
@@ -107,7 +109,7 @@ class DeputyDirector(BaseModel):
     father_name: str | None = None
     az: DeputyDirectorTranslation | None = None
     en: DeputyDirectorTranslation | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone: str | None = None
     profile_image: str | None = None
 
@@ -124,7 +126,7 @@ class ScientificCouncilMember(BaseModel):
     father_name: str | None = None
     az: CouncilMemberTranslation
     en: CouncilMemberTranslation
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone: str | None = None
 
 
@@ -140,7 +142,7 @@ class Worker(BaseModel):
     father_name: str | None = None
     az: WorkerTranslation
     en: WorkerTranslation
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone: str | None = None
     profile_image: str | None = None
 
@@ -160,7 +162,7 @@ class UpdateWorker(BaseModel):
     father_name: str | None = None
     az: WorkerTranslationUpdate | None = None
     en: WorkerTranslationUpdate | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone: str | None = None
 
     class Config:
@@ -173,7 +175,7 @@ class UpdateDeputyDirector(BaseModel):
     father_name: str | None = None
     az: DeputyDirectorTranslation | None = None
     en: DeputyDirectorTranslation | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone: str | None = None
 
     class Config:
@@ -192,7 +194,7 @@ class UpdateCouncilMember(BaseModel):
     father_name: str | None = None
     az: CouncilMemberTranslationUpdate | None = None
     en: CouncilMemberTranslationUpdate | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone: str | None = None
 
     class Config:
@@ -208,7 +210,7 @@ class UpdateLaboratory(BaseModel):
     az: LaboratoryTranslationUpdate | None = None
     en: LaboratoryTranslationUpdate | None = None
     room_number: str | None = None
-    email: EmailStr | None = None
+    email: OptionalEmail = None
     phone_number: str | None = None
     objectives: list[LaboratoryObjectiveItem] | None = None
 
