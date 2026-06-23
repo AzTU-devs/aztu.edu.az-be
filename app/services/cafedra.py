@@ -614,8 +614,8 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
 
     if "working_hours" in data:
         await db.execute(sqlalchemy_delete(CafedraDirectorWorkingHour).where(CafedraDirectorWorkingHour.director_id == director.id))
-        if data["working_hours"]:
-            for item in data["working_hours"]:
+        if director_data.working_hours:
+            for item in director_data.working_hours:
                 wh = CafedraDirectorWorkingHour(director_id=director.id, time_range=item.time_range, created_at=now, updated_at=now)
                 db.add(wh)
                 await db.flush()
@@ -628,8 +628,8 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
                 CafedraDirectorScientificEvent.director_id == director.id
             )
         )
-        if data["scientific_events"]:
-            for item in data["scientific_events"]:
+        if director_data.scientific_events:
+            for item in director_data.scientific_events:
                 event = CafedraDirectorScientificEvent(
                     director_id=director.id,
                     created_at=now,
@@ -656,8 +656,8 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
 
     if "educations" in data:
         await db.execute(sqlalchemy_delete(CafedraDirectorEducation).where(CafedraDirectorEducation.director_id == director.id))
-        if data["educations"]:
-            for item in data["educations"]:
+        if director_data.educations:
+            for item in director_data.educations:
                 edu = CafedraDirectorEducation(director_id=director.id, start_year=item.start_year, end_year=item.end_year, created_at=now, updated_at=now)
                 db.add(edu)
                 await db.flush()

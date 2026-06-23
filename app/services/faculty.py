@@ -468,8 +468,8 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
                 FacultyDirectorWorkingHour.director_id == director.id
             )
         )
-        if data["working_hours"]:
-            for item in data["working_hours"]:
+        if director_data.working_hours:
+            for item in director_data.working_hours:
                 wh = FacultyDirectorWorkingHour(
                     director_id=director.id,
                     time_range=item.time_range,
@@ -491,8 +491,8 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
                 FacultyDirectorScientificEvent.director_id == director.id
             )
         )
-        if data["scientific_events"]:
-            for item in data["scientific_events"]:
+        if director_data.scientific_events:
+            for item in director_data.scientific_events:
                 event = FacultyDirectorScientificEvent(
                     director_id=director.id,
                     created_at=now,
@@ -523,8 +523,8 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
                 FacultyDirectorEducation.director_id == director.id
             )
         )
-        if data["educations"]:
-            for item in data["educations"]:
+        if director_data.educations:
+            for item in director_data.educations:
                 edu = FacultyDirectorEducation(
                     director_id=director.id,
                     start_year=item.start_year,
@@ -1178,17 +1178,19 @@ async def update_faculty(
         async def ensure_translation(lang: str, translation_data: Any):
             if translation_data is None:
                 return
-            if translation_data.title:
+            title = translation_data.get("title")
+            html_content = translation_data.get("html_content")
+            if title:
                 dup_q = await db.execute(
                     select(FacultyTr).where(
-                        func.lower(FacultyTr.faculty_name) == func.lower(translation_data.title),
+                        func.lower(FacultyTr.faculty_name) == func.lower(title),
                         FacultyTr.lang_code == lang,
                         FacultyTr.faculty_code != faculty_code,
                     )
                 )
                 if dup_q.scalar_one_or_none():
                     raise ValueError(
-                        f"Faculty title '{translation_data.title}' ({lang}) already exists (case-insensitive)."
+                        f"Faculty title '{title}' ({lang}) already exists (case-insensitive)."
                     )
             tr_query = await db.execute(
                 select(FacultyTr).where(
@@ -1198,18 +1200,18 @@ async def update_faculty(
             )
             tr = tr_query.scalar_one_or_none()
             if tr:
-                if translation_data.title is not None:
-                    tr.faculty_name = translation_data.title
-                if translation_data.html_content is not None:
-                    tr.about_text = translation_data.html_content
+                if title is not None:
+                    tr.faculty_name = title
+                if html_content is not None:
+                    tr.about_text = html_content
                 tr.updated_at = now
             else:
                 db.add(
                     FacultyTr(
                         faculty_code=faculty_code,
                         lang_code=lang,
-                        faculty_name=translation_data.title or "",
-                        about_text=translation_data.html_content,
+                        faculty_name=title or "",
+                        about_text=html_content,
                         created_at=now,
                     )
                 )

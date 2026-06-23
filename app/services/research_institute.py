@@ -128,7 +128,7 @@ async def _upsert_director(institute_code: str, director_data: Any, now: datetim
 
     if "educations" in data:
         await db.execute(sqlalchemy_delete(InstituteDirectorEducation).where(InstituteDirectorEducation.director_id == director.id))
-        for item in (data["educations"] or []):
+        for item in (director_data.educations or []):
             edu = InstituteDirectorEducation(director_id=director.id, university_name=item.university_name, start_year=item.start_year, end_year=item.end_year, created_at=now, updated_at=now)
             db.add(edu)
             await db.flush()

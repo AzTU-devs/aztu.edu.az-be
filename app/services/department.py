@@ -209,7 +209,7 @@ async def _upsert_director(department_code: str, director_data: Any, now: dateti
 
     if "working_hours" in data:
         await db.execute(sqlalchemy_delete(DepartmentDirectorWorkingHour).where(DepartmentDirectorWorkingHour.director_id == director.id))
-        for item in (data["working_hours"] or []):
+        for item in (director_data.working_hours or []):
             wh = DepartmentDirectorWorkingHour(director_id=director.id, time_range=item.time_range, created_at=now, updated_at=now)
             db.add(wh)
             await db.flush()
@@ -218,7 +218,7 @@ async def _upsert_director(department_code: str, director_data: Any, now: dateti
 
     if "educations" in data:
         await db.execute(sqlalchemy_delete(DepartmentDirectorEducation).where(DepartmentDirectorEducation.director_id == director.id))
-        for item in (data["educations"] or []):
+        for item in (director_data.educations or []):
             edu = DepartmentDirectorEducation(director_id=director.id, start_year=item.start_year, end_year=item.end_year, created_at=now, updated_at=now)
             db.add(edu)
             await db.flush()
@@ -546,32 +546,34 @@ async def update_department(department_code: str, request: UpdateDepartment, db:
         async def _upsert_translation(lang: str, translation_data: Any):
             if translation_data is None:
                 return
-            if translation_data.department_name:
+            department_name = translation_data.get("department_name")
+            about_html = translation_data.get("about_html")
+            if department_name:
                 dup_q = await db.execute(
                     select(DepartmentTr).where(
-                        func.lower(DepartmentTr.department_name) == func.lower(translation_data.department_name),
+                        func.lower(DepartmentTr.department_name) == func.lower(department_name),
                         DepartmentTr.lang_code == lang,
                         DepartmentTr.department_code != department_code,
                     )
                 )
                 if dup_q.scalar_one_or_none():
-                    raise ValueError(f"Department name '{translation_data.department_name}' ({lang}) already exists.")
+                    raise ValueError(f"Department name '{department_name}' ({lang}) already exists.")
             tr_q = await db.execute(
                 select(DepartmentTr).where(DepartmentTr.department_code == department_code, DepartmentTr.lang_code == lang)
             )
             tr = tr_q.scalar_one_or_none()
             if tr:
-                if translation_data.department_name is not None:
-                    tr.department_name = translation_data.department_name
-                if translation_data.about_html is not None:
-                    tr.about_html = translation_data.about_html
+                if department_name is not None:
+                    tr.department_name = department_name
+                if about_html is not None:
+                    tr.about_html = about_html
                 tr.updated_at = now
             else:
                 db.add(DepartmentTr(
                     department_code=department_code,
                     lang_code=lang,
-                    department_name=translation_data.department_name or "",
-                    about_html=translation_data.about_html,
+                    department_name=department_name or "",
+                    about_html=about_html,
                     created_at=now,
                     updated_at=now,
                 ))
