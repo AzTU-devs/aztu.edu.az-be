@@ -14,6 +14,10 @@ ALLOWED_IMAGE_MIMES: dict[str, str] = {
     "image/png": "png",
     "image/webp": "webp",
     "image/gif": "gif",
+    "image/avif": "avif",
+    # NOTE: HEIC/HEIF is intentionally excluded — browsers cannot render it in
+    # <img>, so accepting it would just reproduce the "image not visible" bug
+    # on the public site. Convert HEIC to JPEG/WEBP/AVIF before uploading.
 }
 
 ALLOWED_VIDEO_MIMES: dict[str, str] = {

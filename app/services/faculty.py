@@ -2,7 +2,7 @@ import secrets
 from datetime import datetime, timezone
 from typing import Any, Type
 
-from fastapi import Depends, File, UploadFile, status
+from fastapi import Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1369,6 +1369,11 @@ async def upload_director_profile_image(
             },
             status_code=status.HTTP_200_OK,
         )
+    except HTTPException:
+        # Surface real validation errors (415 unsupported type, 413 too large)
+        # instead of masking them as a generic 500.
+        await db.rollback()
+        raise
     except Exception as e:
         logger.exception("500 Internal Server Error")
         await db.rollback()
@@ -1413,6 +1418,9 @@ async def upload_deputy_dean_profile_image(
             },
             status_code=status.HTTP_200_OK,
         )
+    except HTTPException:
+        await db.rollback()
+        raise
     except Exception as e:
         logger.exception("500 Internal Server Error")
         await db.rollback()
@@ -1457,6 +1465,9 @@ async def upload_worker_profile_image(
             },
             status_code=status.HTTP_200_OK,
         )
+    except HTTPException:
+        await db.rollback()
+        raise
     except Exception as e:
         logger.exception("500 Internal Server Error")
         await db.rollback()
