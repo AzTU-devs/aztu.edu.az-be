@@ -14,6 +14,7 @@ class CafedraLaboratory(Base):
     )
     image_url = Column(String(1024))
     room_number = Column(String(50))
+    authorized_person = Column(String(255))
     email = Column(String(255))
     phone_number = Column(String(50))
     display_order = Column(Integer, nullable=False, default=0)

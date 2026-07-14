@@ -475,6 +475,7 @@ create table if not exists cafedra_laboratories (
     cafedra_code varchar(50) not null references cafedras(cafedra_code) on delete cascade,
     image_url varchar(1024),
     room_number varchar(50),
+    authorized_person varchar(255),
     email varchar(255),
     phone_number varchar(50),
     display_order integer not null default 0,

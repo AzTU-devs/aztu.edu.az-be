@@ -28,6 +28,7 @@ from app.services.cafedra import (
     upload_cafedra_worker_image,
     create_laboratory,
     get_all_laboratories,
+    get_laboratory,
     get_cafedra_laboratories,
     upload_laboratory_image,
     upload_laboratory_gallery_image,
@@ -93,6 +94,19 @@ async def get_all_laboratories_endpoint(
     return await get_all_laboratories(
         start=start,
         end=end,
+        lang=lang,
+        db=db,
+    )
+
+
+@router.get("/laboratories/{laboratory_id}")
+async def get_laboratory_endpoint(
+    laboratory_id: int,
+    lang: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_laboratory(
+        laboratory_id=laboratory_id,
         lang=lang,
         db=db,
     )

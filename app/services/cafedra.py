@@ -267,6 +267,7 @@ async def _serialize_laboratory(
         "html_content": tr.description if tr else None,
         "image_url": lab.image_url,
         "room_number": lab.room_number,
+        "authorized_person": lab.authorized_person,
         "email": lab.email,
         "phone_number": lab.phone_number,
         "objectives": objectives,
@@ -1211,6 +1212,7 @@ async def create_laboratory(
             cafedra_code=cafedra_code,
             image_url=request.image_url,
             room_number=request.room_number,
+            authorized_person=request.authorized_person,
             email=request.email,
             phone_number=request.phone_number,
             display_order=max_order + 1,
@@ -1286,6 +1288,24 @@ async def get_all_laboratories(
         labs_arr = [await _serialize_laboratory(lab, lang, db) for lab in labs]
 
         return JSONResponse(content={"status_code": 200, "laboratories": labs_arr, "total": total}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception("500 Internal Server Error")
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def get_laboratory(
+    laboratory_id: int,
+    lang: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        lab_q = await db.execute(select(CafedraLaboratory).where(CafedraLaboratory.id == laboratory_id))
+        lab = lab_q.scalar_one_or_none()
+        if not lab:
+            return JSONResponse(content={"status_code": 404, "message": "Laboratory not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        laboratory = await _serialize_laboratory(lab, lang, db)
+        return JSONResponse(content={"status_code": 200, "laboratory": laboratory}, status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.exception("500 Internal Server Error")
         return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1536,7 +1556,7 @@ async def update_laboratory(laboratory_id: int, request: UpdateLaboratory, db: A
         now = datetime.now(timezone.utc)
         data = request.dict(exclude_unset=True)
 
-        for field in ["room_number", "email", "phone_number"]:
+        for field in ["room_number", "authorized_person", "email", "phone_number"]:
             if field in data:
                 setattr(lab, field, data[field])
         lab.updated_at = now

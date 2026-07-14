@@ -90,6 +90,7 @@ class LaboratoryItem(BaseModel):
     az: LaboratoryTranslation
     en: LaboratoryTranslation
     room_number: str | None = None
+    authorized_person: str | None = None
     email: OptionalEmail = None
     phone_number: str | None = None
     image_url: str | None = None
@@ -210,6 +211,7 @@ class UpdateLaboratory(BaseModel):
     az: LaboratoryTranslationUpdate | None = None
     en: LaboratoryTranslationUpdate | None = None
     room_number: str | None = None
+    authorized_person: str | None = None
     email: OptionalEmail = None
     phone_number: str | None = None
     objectives: list[LaboratoryObjectiveItem] | None = None
