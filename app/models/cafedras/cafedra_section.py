@@ -34,6 +34,12 @@ class CafedraLaboratory(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    equipments = relationship(
+        "CafedraLaboratoryEquipment",
+        back_populates="laboratory",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     gallery_images = relationship(
         "CafedraLaboratoryGalleryImage",
         back_populates="laboratory",
@@ -103,6 +109,48 @@ class CafedraLaboratoryObjectiveTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     objective = relationship("CafedraLaboratoryObjective", back_populates="translations")
+
+
+class CafedraLaboratoryEquipment(Base):
+    __tablename__ = "cafedra_laboratory_equipments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    laboratory_id = Column(
+        Integer,
+        ForeignKey("cafedra_laboratories.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    display_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    laboratory = relationship("CafedraLaboratory", back_populates="equipments")
+    translations = relationship(
+        "CafedraLaboratoryEquipmentTr",
+        back_populates="equipment",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class CafedraLaboratoryEquipmentTr(Base):
+    __tablename__ = "cafedra_laboratory_equipment_tr"
+    __table_args__ = (
+        UniqueConstraint("equipment_id", "lang_code", name="uq_cafedra_lab_equipment_tr_id_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    equipment_id = Column(
+        Integer,
+        ForeignKey("cafedra_laboratory_equipments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    lang_code = Column(String(10), nullable=False)
+    name = Column(String(500), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    equipment = relationship("CafedraLaboratoryEquipment", back_populates="translations")
 
 
 class CafedraLaboratoryGalleryImage(Base):

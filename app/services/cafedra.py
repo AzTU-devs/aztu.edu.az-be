@@ -49,6 +49,8 @@ from app.models.cafedras.cafedra_section import (
     CafedraLaboratoryTr,
     CafedraLaboratoryObjective,
     CafedraLaboratoryObjectiveTr,
+    CafedraLaboratoryEquipment,
+    CafedraLaboratoryEquipmentTr,
     CafedraLaboratoryGalleryImage,
     CafedraResearchWork,
     CafedraResearchWorkTr,
@@ -250,6 +252,25 @@ async def _serialize_laboratory(
             "title": obj_tr.title if obj_tr else None,
         })
 
+    eq_q = await db.execute(
+        select(CafedraLaboratoryEquipment)
+        .where(CafedraLaboratoryEquipment.laboratory_id == lab.id)
+        .order_by(CafedraLaboratoryEquipment.display_order.asc())
+    )
+    equipments = []
+    for eq in eq_q.scalars().all():
+        eq_tr_q = await db.execute(
+            select(CafedraLaboratoryEquipmentTr).where(
+                CafedraLaboratoryEquipmentTr.equipment_id == eq.id,
+                CafedraLaboratoryEquipmentTr.lang_code == lang_code,
+            )
+        )
+        eq_tr = eq_tr_q.scalar_one_or_none()
+        equipments.append({
+            "id": eq.id,
+            "name": eq_tr.name if eq_tr else None,
+        })
+
     gallery_q = await db.execute(
         select(CafedraLaboratoryGalleryImage)
         .where(CafedraLaboratoryGalleryImage.laboratory_id == lab.id)
@@ -271,6 +292,7 @@ async def _serialize_laboratory(
         "email": lab.email,
         "phone_number": lab.phone_number,
         "objectives": objectives,
+        "equipments": equipments,
         "gallery_images": gallery_images,
     }
 
@@ -1253,6 +1275,26 @@ async def create_laboratory(
                         updated_at=now,
                     ))
 
+        if request.equipments:
+            for eq_index, eq in enumerate(request.equipments):
+                equipment = CafedraLaboratoryEquipment(
+                    laboratory_id=lab.id,
+                    display_order=eq_index,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(equipment)
+                await db.flush()
+                for lang in ["az", "en"]:
+                    eq_data = getattr(eq, lang)
+                    db.add(CafedraLaboratoryEquipmentTr(
+                        equipment_id=equipment.id,
+                        lang_code=lang,
+                        name=eq_data.name,
+                        created_at=now,
+                        updated_at=now,
+                    ))
+
         if request.gallery_images:
             for img_index, img_url in enumerate(request.gallery_images):
                 db.add(CafedraLaboratoryGalleryImage(
@@ -1608,6 +1650,30 @@ async def update_laboratory(laboratory_id: int, request: UpdateLaboratory, db: A
                         objective_id=objective.id,
                         lang_code=lang,
                         title=obj_data.title,
+                        created_at=now,
+                        updated_at=now,
+                    ))
+
+        # Equipments are bilingual text rows with no own files — safe to replace wholesale.
+        if "equipments" in data:
+            await db.execute(
+                sqlalchemy_delete(CafedraLaboratoryEquipment).where(CafedraLaboratoryEquipment.laboratory_id == laboratory_id)
+            )
+            for eq_index, eq in enumerate(request.equipments or []):
+                equipment = CafedraLaboratoryEquipment(
+                    laboratory_id=laboratory_id,
+                    display_order=eq_index,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(equipment)
+                await db.flush()
+                for lang in ["az", "en"]:
+                    eq_data = getattr(eq, lang)
+                    db.add(CafedraLaboratoryEquipmentTr(
+                        equipment_id=equipment.id,
+                        lang_code=lang,
+                        name=eq_data.name,
                         created_at=now,
                         updated_at=now,
                     ))

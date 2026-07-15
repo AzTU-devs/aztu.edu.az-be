@@ -512,6 +512,24 @@ create table if not exists cafedra_laboratory_objective_tr (
     constraint uq_cafedra_lab_objective_tr_id_lang unique (objective_id, lang_code)
 );
 
+create table if not exists cafedra_laboratory_equipments (
+    id integer primary key,
+    laboratory_id integer not null references cafedra_laboratories(id) on delete cascade,
+    display_order integer not null default 0,
+    created_at timestamptz not null,
+    updated_at timestamptz
+);
+
+create table if not exists cafedra_laboratory_equipment_tr (
+    id integer primary key,
+    equipment_id integer not null references cafedra_laboratory_equipments(id) on delete cascade,
+    lang_code varchar(10) not null,
+    name varchar(500) not null,
+    created_at timestamptz not null,
+    updated_at timestamptz,
+    constraint uq_cafedra_lab_equipment_tr_id_lang unique (equipment_id, lang_code)
+);
+
 create table if not exists cafedra_laboratory_gallery_images (
     id integer primary key,
     laboratory_id integer not null references cafedra_laboratories(id) on delete cascade,

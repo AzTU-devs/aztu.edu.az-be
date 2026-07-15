@@ -81,6 +81,15 @@ class LaboratoryObjectiveItem(BaseModel):
     en: LaboratoryObjectiveTranslation
 
 
+class LaboratoryEquipmentTranslation(BaseModel):
+    name: str = Field(...)
+
+
+class LaboratoryEquipmentItem(BaseModel):
+    az: LaboratoryEquipmentTranslation
+    en: LaboratoryEquipmentTranslation
+
+
 class LaboratoryTranslation(BaseModel):
     title: str = Field(...)
     html_content: str | None = None
@@ -95,6 +104,7 @@ class LaboratoryItem(BaseModel):
     phone_number: str | None = None
     image_url: str | None = None
     objectives: list[LaboratoryObjectiveItem] | None = None
+    equipments: list[LaboratoryEquipmentItem] | None = None
     gallery_images: list[str] | None = None
 
 
@@ -215,6 +225,7 @@ class UpdateLaboratory(BaseModel):
     email: OptionalEmail = None
     phone_number: str | None = None
     objectives: list[LaboratoryObjectiveItem] | None = None
+    equipments: list[LaboratoryEquipmentItem] | None = None
 
     class Config:
         extra = "ignore"
