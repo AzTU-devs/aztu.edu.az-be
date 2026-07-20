@@ -1,3 +1,5 @@
+import hashlib
+
 from pydantic_settings import BaseSettings
 from pydantic import field_validator, model_validator
 
@@ -65,9 +67,10 @@ class Settings(BaseSettings):
     PUBLIC_BASE_URL: str = ""
 
     # Visitor analytics. The salt is mixed into sha256(salt + ip + user agent +
-    # day) so the stored visitor hash cannot be reversed to an IP. Override it in
-    # the environment; the default only keeps a fresh install working.
-    VISIT_HASH_SALT: str = "aztu-visit-salt"
+    # day) so the stored visitor hash cannot be reversed to an IP. Left unset it
+    # is derived from JWT_SECRET_KEY: a shipped constant would be public, and the
+    # IPv4 space is small enough to brute-force a known-salt digest back to an IP.
+    VISIT_HASH_SALT: str = ""
     SITE_VISIT_RETENTION_DAYS: int = 400
 
     # RBAC
@@ -107,6 +110,14 @@ class Settings(BaseSettings):
                 "ALLOWED_ORIGINS must not contain '*' — list explicit origins instead"
             )
         return v
+
+    @model_validator(mode="after")
+    def derive_visit_hash_salt(self) -> "Settings":
+        if not self.VISIT_HASH_SALT.strip():
+            self.VISIT_HASH_SALT = hashlib.sha256(
+                f"visit-salt|{self.JWT_SECRET_KEY}".encode("utf-8")
+            ).hexdigest()
+        return self
 
     @model_validator(mode="after")
     def production_guards(self) -> "Settings":

@@ -253,6 +253,11 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("GET", "/api/chat/admin/sessions/{session_id}/messages"): RouteRule("chat.read"),
     ("GET", "/api/chat/admin/stats"): RouteRule("chat.read"),
 
+    # ── dashboard ──────────────────────────────────────────────────────────
+    # Aggregate counts only, and it is the admin landing page every role opens,
+    # so it needs a session rather than a permission of its own.
+    ("GET", "/api/stats/dashboard"): AUTHENTICATED,
+
     # ── search ─────────────────────────────────────────────────────────────
     ("GET", "/api/search/admin"): RouteRule("search.admin.read"),
 

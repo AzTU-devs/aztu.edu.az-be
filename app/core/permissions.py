@@ -303,6 +303,16 @@ SYSTEM_ROLES: Tuple[SystemRoleDef, ...] = (
         description_az="Yalnız baxış: admin axtarışı və fəaliyyət jurnalı.",
         permissions=("search.admin.read", "activity.read"),
     ),
+    # Chat transcripts expose visitor IPs, so this is deliberately its own role
+    # rather than something bundled into viewer or content_editor — granting chat
+    # access should be a decision, not a side effect of another role.
+    SystemRoleDef(
+        code="chat_moderator",
+        name_az="Çat operatoru",
+        name_en="Chat moderator",
+        description_az="Çat söhbətlərinə, statistikasına və istifadəçi IP ünvanlarına baxır.",
+        permissions=("chat.read",),
+    ),
 )
 
 SYSTEM_ROLES_BY_CODE: Dict[str, SystemRoleDef] = {r.code: r for r in SYSTEM_ROLES}
