@@ -1604,3 +1604,10 @@ create index if not exists ix_activity_admin_created on admin_activity_log (admi
 create index if not exists ix_activity_action        on admin_activity_log (action_key);
 create index if not exists ix_activity_domain        on admin_activity_log (domain);
 create index if not exists ix_activity_target        on admin_activity_log (target_type, target_id);
+
+-- Optional display identity for admin users. Existing rows keep NULLs; every
+-- screen falls back to the username. profile_image is written only by
+-- PUT /api/admin-users/{user_id}/profile-image.
+alter table admin_users add column if not exists first_name    varchar(100);
+alter table admin_users add column if not exists last_name     varchar(100);
+alter table admin_users add column if not exists profile_image varchar(1024);

@@ -254,6 +254,7 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("GET", "/api/admin-users"): RouteRule("admin_users.read"),
     ("POST", "/api/admin-users"): RouteRule("admin_users.create", target_type="admin_user", label_fields=("username",)),
     ("PUT", "/api/admin-users/{user_id}"): RouteRule("admin_users.update", target_type="admin_user", target_param="user_id"),
+    ("PUT", "/api/admin-users/{user_id}/profile-image"): RouteRule("admin_users.update", target_type="admin_user", target_param="user_id"),
     ("PUT", "/api/admin-users/{user_id}/role"): RouteRule("admin_users.assign_role", target_type="admin_user", target_param="user_id"),
     ("PUT", "/api/admin-users/{user_id}/password"): RouteRule("admin_users.reset_password", target_type="admin_user", target_param="user_id"),
     ("POST", "/api/admin-users/{user_id}/activate"): RouteRule("admin_users.activate", target_type="admin_user", target_param="user_id"),

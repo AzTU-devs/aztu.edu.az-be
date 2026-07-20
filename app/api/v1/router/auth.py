@@ -135,6 +135,9 @@ async def me(
             "data": {
                 "id": user.id,
                 "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "profile_image": user.profile_image,
                 "is_active": bool(user.is_active),
                 "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
                 "role": None if role is None else {

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.schema.rbac import (
@@ -20,6 +20,7 @@ from app.services.admin_user import (
     reset_password,
     set_active,
     update_admin_user,
+    upload_profile_image,
 )
 
 router = APIRouter()
@@ -57,6 +58,16 @@ async def update_admin_user_endpoint(
     actor: AdminUser = Depends(require_admin),
 ):
     return await update_admin_user(db=db, user_id=user_id, payload=body, actor=actor)
+
+
+@router.put("/{user_id}/profile-image")
+async def upload_admin_user_profile_image_endpoint(
+    user_id: int,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await upload_profile_image(db=db, user_id=user_id, image=image)
 
 
 @router.put("/{user_id}/role")

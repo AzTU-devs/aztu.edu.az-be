@@ -10,7 +10,7 @@ its message is the more useful one when both apply.
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import status
+from fastapi import HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +20,7 @@ from app.core.security import hash_password
 from app.models.admin.admin_user import AdminUser
 from app.models.admin.role import Role
 from app.services.rbac import RbacViolation, assert_not_self, assert_super_admin_floor
+from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
 
 logger = get_logger(__name__)
 
@@ -42,6 +43,9 @@ def _user_payload(user: AdminUser, role: Optional[Role]) -> dict:
     return {
         "id": user.id,
         "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "profile_image": user.profile_image,
         "is_active": bool(user.is_active),
         "role": _role_payload(role),
         "created_at": user.created_at.isoformat() if user.created_at else None,
@@ -138,6 +142,8 @@ async def create_admin_user(db: AsyncSession, payload):
         user = AdminUser(
             username=username,
             hashed_password=hash_password(payload.password),
+            first_name=payload.first_name.strip() if payload.first_name else None,
+            last_name=payload.last_name.strip() if payload.last_name else None,
             is_active=True if payload.is_active is None else bool(payload.is_active),
             role_id=payload.role_id,
             created_at=datetime.now(timezone.utc),
@@ -178,6 +184,12 @@ async def update_admin_user(db: AsyncSession, user_id: int, payload, actor: Admi
                     raise RbacViolation("Bu istifadəçi adı artıq mövcuddur.")
                 user.username = username
 
+        if payload.first_name is not None:
+            user.first_name = payload.first_name.strip() or None
+
+        if payload.last_name is not None:
+            user.last_name = payload.last_name.strip() or None
+
         if payload.is_active is not None:
             user.is_active = bool(payload.is_active)
 
@@ -194,6 +206,31 @@ async def update_admin_user(db: AsyncSession, user_id: int, payload, actor: Admi
         await db.rollback()
         logger.exception("Failed to update admin user %s: %s", user_id, exc)
         return _error("İstifadəçi yenilənmədi.", status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def upload_profile_image(db: AsyncSession, user_id: int, image: UploadFile):
+    try:
+        user = (await db.execute(select(AdminUser).where(AdminUser.id == user_id))).scalar_one_or_none()
+        if user is None:
+            return _error("İstifadəçi tapılmadı.", status.HTTP_404_NOT_FOUND)
+
+        old_path = user.profile_image
+        new_path = await save_upload(image, "admin-user-profiles", ALLOWED_IMAGE_MIMES)
+        user.profile_image = new_path
+        user.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+
+        if old_path:
+            safe_delete_file(old_path)
+
+        return _ok("Profil şəkli yükləndi.", {"profile_image": new_path})
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as exc:
+        await db.rollback()
+        logger.exception("Failed to upload profile image for admin user %s: %s", user_id, exc)
+        return _error("Profil şəkli yüklənmədi.", status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 async def assign_role(db: AsyncSession, user_id: int, payload, actor: AdminUser):

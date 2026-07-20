@@ -32,12 +32,16 @@ class RolePermissionsUpdate(BaseModel):
 class AdminUserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50, pattern=r"^[A-Za-z0-9._-]+$")
     password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
+    first_name: OptionalStr = Field(default=None, max_length=100)
+    last_name: OptionalStr = Field(default=None, max_length=100)
     role_id: OptionalInt = None
     is_active: OptionalBool = True
 
 
 class AdminUserUpdate(BaseModel):
     username: OptionalStr = Field(default=None, max_length=50)
+    first_name: OptionalStr = Field(default=None, max_length=100)
+    last_name: OptionalStr = Field(default=None, max_length=100)
     is_active: OptionalBool = None
 
 
