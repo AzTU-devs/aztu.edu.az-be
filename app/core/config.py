@@ -64,6 +64,15 @@ class Settings(BaseSettings):
     # Public base URL used to build absolute media URLs (no trailing slash)
     PUBLIC_BASE_URL: str = ""
 
+    # RBAC
+    # "audit"  — denials are logged and recorded, the request still proceeds
+    # "enforce" — denials return 403
+    PERMISSION_ENFORCEMENT_MODE: str = "audit"
+    AUDIT_LOG_RETENTION_DAYS: int = 365
+    # First-boot override: this username alone becomes super_admin, every other
+    # role-less admin becomes viewer. Unset -> all role-less admins are promoted.
+    RBAC_BOOTSTRAP_SUPERADMIN: str | None = None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -75,6 +84,14 @@ class Settings(BaseSettings):
         if not v or len(v) < 32:
             raise ValueError("JWT_SECRET_KEY must be set and at least 32 characters")
         return v
+
+    @field_validator("PERMISSION_ENFORCEMENT_MODE")
+    @classmethod
+    def enforcement_mode_is_known(cls, v: str) -> str:
+        value = (v or "").strip().lower()
+        if value not in ("audit", "enforce"):
+            raise ValueError("PERMISSION_ENFORCEMENT_MODE must be 'audit' or 'enforce'")
+        return value
 
     @field_validator("ALLOWED_ORIGINS")
     @classmethod
