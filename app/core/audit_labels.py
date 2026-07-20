@@ -109,6 +109,7 @@ RESOURCE_NOUNS: Dict[str, Noun] = {
     "admin_users": Noun("istifadəçi", "admin user", "istifadəçini", "istifadəçinin", "istifadəçilərin"),
     "roles": Noun("rol", "role", "rolu", "rolun", "rolların"),
     "activity": Noun("fəaliyyət jurnalı", "activity log", "fəaliyyət jurnalını", "fəaliyyət jurnalının", "fəaliyyət jurnallarının"),
+    "chat": Noun("çat söhbəti", "chat conversation", "çat söhbətini", "çat söhbətinin", "çat söhbətlərinin"),
     "chatbot_knowledge": Noun("bilik bazası", "knowledge base", "bilik bazasını", "bilik bazasının", "bilik bazalarının"),
     "chatbot_knowledge.source": Noun("bilik mənbəyi", "knowledge source", "bilik mənbəyini", "bilik mənbəyinin", "bilik mənbələrinin"),
     "search.admin": Noun("axtarış", "search", "axtarışı", "axtarışın", "axtarışların", "searches"),

@@ -252,6 +252,12 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("GET", "/api/chat/admin/sessions"): RouteRule("chat.read"),
     ("GET", "/api/chat/admin/sessions/{session_id}/messages"): RouteRule("chat.read"),
     ("GET", "/api/chat/admin/stats"): RouteRule("chat.read"),
+    # The only mutating chat route, so unlike the reads above it IS audited.
+    # target_param records the session id — deliberately not the IP, which must
+    # not reach the activity log even though this route can see it.
+    ("DELETE", "/api/chat/admin/sessions/{session_id}"): RouteRule(
+        "chat.delete", target_type="chat", target_param="session_id"
+    ),
 
     # ── dashboard ──────────────────────────────────────────────────────────
     # Aggregate counts only, and it is the admin landing page every role opens,

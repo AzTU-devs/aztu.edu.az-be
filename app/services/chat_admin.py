@@ -391,3 +391,31 @@ async def get_chat_transcript(
             "has_more": (page - 1) * page_size + len(rows) < total,
         }
     )
+
+
+async def delete_chat_session(db: AsyncSession, session_id: str) -> JSONResponse:
+    """Delete one conversation and, by cascade, its messages.
+
+    ``chat_messages.session_id`` is declared ``ondelete="CASCADE"``, so removing
+    the session row takes the transcript with it in the same statement.
+    """
+    session = (
+        await db.execute(
+            select(ChatSession).where(ChatSession.session_id == session_id)
+        )
+    ).scalar_one_or_none()
+    if session is None:
+        return _error("Söhbət tapılmadı.", status.HTTP_404_NOT_FOUND)
+
+    message_count = (
+        await db.execute(
+            select(func.count(ChatMessage.id)).where(
+                ChatMessage.session_id == session_id
+            )
+        )
+    ).scalar_one()
+
+    await db.delete(session)
+    await db.commit()
+
+    return _ok({"session_id": session_id, "deleted_messages": message_count})

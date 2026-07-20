@@ -215,6 +215,7 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     # Grants sight of visitor IP addresses. Kept out of every system role below:
     # only super_admin holds it implicitly, and it is assigned per role by hand.
     _p("chat.read", "Çat söhbətlərinə və statistikasına baxmaq", "View chat conversations and stats"),
+    _p("chat.delete", "Çat söhbətini silmək", "Delete a chat conversation"),
     # ── search ──────────────────────────────────────────────────────────────
     _p("search.admin.read", "Admin axtarışından istifadə etmək", "Use admin search"),
     # ── roles ───────────────────────────────────────────────────────────────
@@ -310,8 +311,8 @@ SYSTEM_ROLES: Tuple[SystemRoleDef, ...] = (
         code="chat_moderator",
         name_az="Çat operatoru",
         name_en="Chat moderator",
-        description_az="Çat söhbətlərinə, statistikasına və istifadəçi IP ünvanlarına baxır.",
-        permissions=("chat.read",),
+        description_az="Çat söhbətlərinə, statistikasına və istifadəçi IP ünvanlarına baxır, sui-istifadə hallarını silir.",
+        permissions=("chat.read", "chat.delete"),
     ),
 )
 

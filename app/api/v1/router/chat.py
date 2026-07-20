@@ -13,6 +13,7 @@ from app.services.chat_admin import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
     TRANSCRIPT_PAGE_SIZE,
+    delete_chat_session,
     get_chat_stats,
     get_chat_transcript,
     list_chat_sessions,
@@ -89,3 +90,12 @@ async def get_chat_transcript_endpoint(
     return await get_chat_transcript(
         db=db, session_id=session_id, page=page, page_size=page_size
     )
+
+
+@router.delete("/admin/sessions/{session_id}")
+async def delete_chat_session_endpoint(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_chat_session(db=db, session_id=session_id)

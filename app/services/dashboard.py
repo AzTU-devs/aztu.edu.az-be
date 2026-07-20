@@ -6,6 +6,7 @@ publishing trend and the visitor series are each folded into a single statement
 with ``UNION ALL`` / ``GROUP BY`` rather than one query per metric.
 """
 
+import logging
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import status
@@ -31,6 +32,8 @@ from app.models.news_gallery.news_gallery import NewsGallery
 from app.models.project.project import Project
 from app.models.research_institute.institute import ResearchInstitute
 from app.services.activity import _row_payload
+
+logger = logging.getLogger("aztu.dashboard")
 
 DEFAULT_ACTIVITY_LIMIT = 10
 MAX_ACTIVITY_LIMIT = 50
@@ -203,23 +206,47 @@ async def _visitors(db: AsyncSession, today: date) -> dict:
     }
 
 
+async def _section(db: AsyncSession, name: str, coro, fallback, unavailable: list):
+    """Run one panel's query, degrading that panel alone if it fails.
+
+    A dashboard should not go blank because a single table is missing — that is
+    exactly what happened when admin_activity_log had not been migrated yet. The
+    rollback is required, not defensive: in PostgreSQL a failed statement aborts
+    the surrounding transaction, so without it every later panel fails too.
+    Failures are reported in ``unavailable`` rather than swallowed into zeros,
+    which would read as real data.
+    """
+    try:
+        return await coro
+    except Exception:
+        logger.exception("Dashboard section %r failed", name)
+        await db.rollback()
+        unavailable.append(name)
+        return fallback
+
+
+async def _recent_activity(db: AsyncSession, limit: int):
+    return (
+        await db.execute(
+            select(AdminActivityLog)
+            .order_by(AdminActivityLog.created_at.desc(), AdminActivityLog.id.desc())
+            .limit(limit)
+        )
+    ).scalars().all()
+
+
 async def get_dashboard_stats(db: AsyncSession, activity_limit: int = DEFAULT_ACTIVITY_LIMIT) -> JSONResponse:
     activity_limit = max(1, min(activity_limit, MAX_ACTIVITY_LIMIT))
     today = datetime.now(timezone.utc).date()
     months = _month_keys(today)
+    unavailable: list = []
 
-    totals = await _counts(db)
-
-    recent_rows = (
-        await db.execute(
-            select(AdminActivityLog)
-            .order_by(AdminActivityLog.created_at.desc(), AdminActivityLog.id.desc())
-            .limit(activity_limit)
-        )
-    ).scalars().all()
-
-    trend = await _publishing_trend(db, months)
-    visitors = await _visitors(db, today)
+    totals = await _section(db, "counts", _counts(db), {}, unavailable)
+    recent_rows = await _section(
+        db, "activity", _recent_activity(db, activity_limit), [], unavailable
+    )
+    trend = await _section(db, "publishing_trend", _publishing_trend(db, months), [], unavailable)
+    visitors = await _section(db, "visitors", _visitors(db, today), None, unavailable)
 
     return JSONResponse(
         content={
@@ -238,6 +265,9 @@ async def get_dashboard_stats(db: AsyncSession, activity_limit: int = DEFAULT_AC
                 },
                 "publishing_trend": trend,
                 "visitors": visitors,
+                # Names the panels whose query failed, so the UI can say "could
+                # not load" for those instead of rendering a confident zero.
+                "unavailable": unavailable,
             },
         },
         status_code=status.HTTP_200_OK,
