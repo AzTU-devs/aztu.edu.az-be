@@ -1,4 +1,5 @@
 import hashlib
+from pathlib import Path
 
 from pydantic_settings import BaseSettings
 from pydantic import field_validator, model_validator
@@ -83,7 +84,11 @@ class Settings(BaseSettings):
     RBAC_BOOTSTRAP_SUPERADMIN: str | None = None
 
     class Config:
-        env_file = ".env"
+        # Absolute, not ".env". A relative path resolves against the process's
+        # working directory, so the file is silently skipped whenever the service
+        # is started from anywhere other than the repo root — and because most
+        # fields carry defaults, that failure is silent rather than loud.
+        env_file = str(Path(__file__).resolve().parents[2] / ".env")
         env_file_encoding = "utf-8"
         extra = "ignore"
 
