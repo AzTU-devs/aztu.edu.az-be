@@ -135,6 +135,7 @@ ACTION_OVERRIDES: Dict[str, Tuple[str, str]] = {
     "auth.login":         ("sistemə daxil oldu",                    "signed in"),
     "auth.login_failed":  ("uğursuz giriş cəhdi",                   "failed sign-in attempt"),
     "auth.logout":        ("sistemdən çıxdı",                       "signed out"),
+    "auth.password_changed": ("öz şifrəsini dəyişdi",               "changed their own password"),
 
     "admin_users.activate":       ("istifadəçini aktivləşdirdi",    "activated an admin user"),
     "admin_users.deactivate":     ("istifadəçini deaktiv etdi",     "deactivated an admin user"),

@@ -2,11 +2,12 @@ import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, Cookie
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import JWTError
 
+from app.api.v1.schema.rbac import PASSWORD_MIN_LENGTH
 from app.core.session import get_db
 from app.core.security import (
     verify_password,
@@ -140,6 +141,7 @@ async def me(
                 "profile_image": user.profile_image,
                 "is_active": bool(user.is_active),
                 "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+                "created_at": user.created_at.isoformat() if user.created_at else None,
                 "role": None if role is None else {
                     "id": role.id,
                     "code": role.code,
@@ -158,6 +160,73 @@ async def me(
         },
         status_code=status.HTTP_200_OK,
     )
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
+
+
+@router.post("/change-password")
+@limiter.limit("5/minute")
+async def change_password(
+    request: Request,
+    body: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    user: AdminUser = Depends(require_admin),
+):
+    if not verify_password(body.current_password, user.hashed_password):
+        logger.warning(
+            "Failed password change for username=%s ip=%s",
+            user.username,
+            request.client.host if request.client else "unknown",
+        )
+        return JSONResponse(
+            content={
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "message": "Cari şifrə yanlışdır.",
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if body.new_password == body.current_password:
+        return JSONResponse(
+            content={
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "message": "Yeni şifrə cari şifrədən fərqli olmalıdır.",
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # refresh_token_hash holds a single token, so rotating it here logs every other
+    # device out. The cookie below keeps *this* session alive — without it the user
+    # would sign themselves out on a successful change.
+    new_refresh_token = create_refresh_token(user.username)
+
+    user.hashed_password = hash_password(body.new_password)
+    user.refresh_token_hash = hash_password(new_refresh_token)
+    user.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    logger.info("Password changed for username=%s", user.username)
+
+    response = JSONResponse(
+        content={
+            "status_code": status.HTTP_200_OK,
+            "message": "Şifrə dəyişdirildi. Digər cihazlardakı sessiyalar bağlandı.",
+        },
+        status_code=status.HTTP_200_OK,
+    )
+    response.set_cookie(
+        key=REFRESH_COOKIE_NAME,
+        value=new_refresh_token,
+        httponly=True,
+        secure=settings.ENVIRONMENT == "production",
+        samesite="strict",
+        max_age=60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS,
+        path=REFRESH_COOKIE_PATH,
+    )
+    return response
 
 
 @router.post("/refresh", response_model=TokenResponse)

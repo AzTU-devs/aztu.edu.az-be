@@ -68,6 +68,10 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("POST", "/api/auth/refresh"): RouteRule(None, public=True, no_audit=True),
     ("POST", "/api/auth/logout"): RouteRule(None, public=True, audit_key="auth.logout"),
     ("GET", "/api/auth/me"): AUTHENTICATED,
+    # Self-service: every admin may change their OWN password, whatever their role.
+    ("POST", "/api/auth/change-password"): RouteRule(
+        None, authenticated_only=True, audit_key="auth.password_changed"
+    ),
     ("POST", "/api/chat/message"): RouteRule(None, public=True, no_audit=True),
 
     # ── news ───────────────────────────────────────────────────────────────
