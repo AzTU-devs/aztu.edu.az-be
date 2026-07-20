@@ -222,6 +222,8 @@ class CafedraPartnerCompany(Base):
         ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
         nullable=False,
     )
+    logo_url = Column(String(1024))
+    website_url = Column(String(1024))
     display_order = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
@@ -351,6 +353,7 @@ class CafedraProject(Base):
         ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
         nullable=False,
     )
+    url = Column(String(1024))
     display_order = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
@@ -426,3 +429,53 @@ class CafedraDirectionOfActionTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     direction_of_action = relationship("CafedraDirectionOfAction", back_populates="translations")
+
+
+class CafedraScientificPublication(Base):
+    __tablename__ = "cafedra_scientific_publications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cafedra_code = Column(
+        String(50),
+        ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
+        nullable=False,
+    )
+    publication_index = Column(String(50), nullable=False)
+    quartile = Column(String(5))
+    published_at = Column(String(50))
+    year = Column(Integer, index=True)
+    url = Column(String(2048))
+    display_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    cafedra = relationship("Cafedra", back_populates="scientific_publications")
+    translations = relationship(
+        "CafedraScientificPublicationTr",
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class CafedraScientificPublicationTr(Base):
+    __tablename__ = "cafedra_scientific_publication_tr"
+    __table_args__ = (
+        UniqueConstraint("publication_id", "lang_code", name="uq_cafedra_scientific_publication_tr_id_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    publication_id = Column(
+        Integer,
+        ForeignKey("cafedra_scientific_publications.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    lang_code = Column(String(10), nullable=False)
+    title = Column(String(1000), nullable=False)
+    authors = Column(Text)
+    journal = Column(Text)
+    country = Column(String(255))
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    publication = relationship("CafedraScientificPublication", back_populates="translations")

@@ -729,6 +729,56 @@ create table if not exists cafedra_council_member_tr (
 
 
 -- ---------------------------------------------------------------------
+-- CAFEDRA SCIENTIFIC ACTIVITY
+-- ---------------------------------------------------------------------
+
+alter table cafedras_tr add column if not exists research_areas_intro text;
+alter table cafedras_tr add column if not exists projects_grants_intro text;
+alter table cafedras_tr add column if not exists publications_intro text;
+alter table cafedras_tr add column if not exists industry_cooperation_intro text;
+alter table cafedras_tr add column if not exists international_cooperation_intro text;
+
+alter table cafedra_projects add column if not exists url varchar(1024);
+
+alter table cafedra_partner_companies add column if not exists logo_url varchar(1024);
+alter table cafedra_partner_companies add column if not exists website_url varchar(1024);
+
+create table if not exists cafedra_scientific_publications (
+    id integer primary key,
+    cafedra_code varchar(50) not null references cafedras(cafedra_code) on delete cascade,
+    publication_index varchar(50) not null,
+    quartile varchar(5),
+    published_at varchar(50),
+    year integer,
+    url varchar(2048),
+    display_order integer not null default 0,
+    created_at timestamptz not null,
+    updated_at timestamptz
+);
+
+alter table cafedra_scientific_publications add column if not exists year integer;
+
+create index if not exists ix_cafedra_scientific_publications_cafedra_code
+    on cafedra_scientific_publications (cafedra_code);
+
+create index if not exists ix_cafedra_scientific_publications_year
+    on cafedra_scientific_publications (cafedra_code, year desc, display_order);
+
+create table if not exists cafedra_scientific_publication_tr (
+    id integer primary key,
+    publication_id integer not null references cafedra_scientific_publications(id) on delete cascade,
+    lang_code varchar(10) not null,
+    title varchar(1000) not null,
+    authors text,
+    journal text,
+    country varchar(255),
+    created_at timestamptz not null,
+    updated_at timestamptz,
+    constraint uq_cafedra_scientific_publication_tr_id_lang unique (publication_id, lang_code)
+);
+
+
+-- ---------------------------------------------------------------------
 -- DEPARTMENTS
 -- ---------------------------------------------------------------------
 create table if not exists departments (

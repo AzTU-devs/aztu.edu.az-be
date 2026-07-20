@@ -1,6 +1,14 @@
-from pydantic import BaseModel, EmailStr, Field
+from typing import Annotated, Literal, Optional
 
-from app.api.v1.schema.common import OptionalEmail
+from pydantic import BaseModel, BeforeValidator, EmailStr, Field, field_validator
+
+from app.api.v1.schema.common import (
+    OptionalEmail,
+    OptionalInt,
+    OptionalStr,
+    OptionalUrl,
+    blank_to_none,
+)
 
 
 class LanguageBlock(BaseModel):
@@ -287,3 +295,177 @@ class UpdateCafedra(BaseModel):
 
     class Config:
         extra = "ignore"
+
+
+# ── Scientific activity (elmi fəaliyyət) ─────────────────────────────────────────
+
+PublicationIndex = Literal["Scopus", "Web of Science", "Scopus / Web of Science"]
+OptionalQuartile = Annotated[
+    Optional[Literal["Q1", "Q2", "Q3", "Q4"]], BeforeValidator(blank_to_none)
+]
+
+
+def _validate_year(value: int | None) -> int | None:
+    if value is None:
+        return None
+    if not (1900 <= value <= 2100):
+        raise ValueError("year must be between 1900 and 2100")
+    return value
+
+
+class RichTextTranslation(BaseModel):
+    title: str = Field(...)
+    html_content: OptionalStr = None
+
+
+class RichTextSectionItem(BaseModel):
+    az: RichTextTranslation
+    en: RichTextTranslation
+
+    class Config:
+        extra = "ignore"
+
+
+class ProjectGrantTranslation(BaseModel):
+    title: str = Field(...)
+    description: OptionalStr = None
+
+
+class ProjectGrantItem(BaseModel):
+    az: ProjectGrantTranslation
+    en: ProjectGrantTranslation
+    url: OptionalUrl = None
+
+    class Config:
+        extra = "ignore"
+
+
+class PartnerCompanyTranslation(BaseModel):
+    title: str = Field(...)
+    description: OptionalStr = None
+
+
+class PartnerCompanyItem(BaseModel):
+    az: PartnerCompanyTranslation
+    en: PartnerCompanyTranslation
+    website_url: OptionalUrl = None
+
+    class Config:
+        extra = "ignore"
+
+
+class PublicationTranslation(BaseModel):
+    title: str = Field(..., max_length=1000)
+    authors: OptionalStr = None
+    journal: OptionalStr = None
+    country: OptionalStr = None
+
+
+class PublicationItem(BaseModel):
+    az: PublicationTranslation
+    en: PublicationTranslation
+    index: PublicationIndex = "Scopus"
+    quartile: OptionalQuartile = None
+    date: OptionalStr = None
+    year: OptionalInt = None
+    url: OptionalUrl = None
+
+    class Config:
+        extra = "ignore"
+
+    @field_validator("year")
+    @classmethod
+    def _valid_year(cls, value):
+        return _validate_year(value)
+
+
+class ScientificIntroTranslation(BaseModel):
+    research_areas_intro: OptionalStr = None
+    projects_grants_intro: OptionalStr = None
+    publications_intro: OptionalStr = None
+    industry_cooperation_intro: OptionalStr = None
+    international_cooperation_intro: OptionalStr = None
+
+    class Config:
+        extra = "ignore"
+
+
+class UpdateScientificIntros(BaseModel):
+    az: ScientificIntroTranslation | None = None
+    en: ScientificIntroTranslation | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class ReorderRequest(BaseModel):
+    ids: list[int] = Field(default_factory=list)
+
+
+# ── Scientific activity partial-update mirrors ───────────────────────────────────
+
+
+class RichTextTranslationUpdate(BaseModel):
+    title: str | None = None
+    html_content: OptionalStr = None
+
+
+class UpdateRichTextSectionItem(BaseModel):
+    az: RichTextTranslationUpdate | None = None
+    en: RichTextTranslationUpdate | None = None
+
+    class Config:
+        extra = "ignore"
+
+
+class ProjectGrantTranslationUpdate(BaseModel):
+    title: str | None = None
+    description: OptionalStr = None
+
+
+class UpdateProjectGrantItem(BaseModel):
+    az: ProjectGrantTranslationUpdate | None = None
+    en: ProjectGrantTranslationUpdate | None = None
+    url: OptionalUrl = None
+
+    class Config:
+        extra = "ignore"
+
+
+class PartnerCompanyTranslationUpdate(BaseModel):
+    title: str | None = None
+    description: OptionalStr = None
+
+
+class UpdatePartnerCompanyItem(BaseModel):
+    az: PartnerCompanyTranslationUpdate | None = None
+    en: PartnerCompanyTranslationUpdate | None = None
+    website_url: OptionalUrl = None
+
+    class Config:
+        extra = "ignore"
+
+
+class PublicationTranslationUpdate(BaseModel):
+    title: Annotated[str, Field(max_length=1000)] | None = None
+    authors: OptionalStr = None
+    journal: OptionalStr = None
+    country: OptionalStr = None
+
+
+class UpdatePublicationItem(BaseModel):
+    az: PublicationTranslationUpdate | None = None
+    en: PublicationTranslationUpdate | None = None
+    index: PublicationIndex | None = None
+    quartile: OptionalQuartile = None
+    date: OptionalStr = None
+    year: OptionalInt = None
+    url: OptionalUrl = None
+
+    class Config:
+        extra = "ignore"
+
+    @field_validator("year")
+    @classmethod
+    def _valid_year(cls, value):
+        return _validate_year(value)

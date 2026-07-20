@@ -16,6 +16,16 @@ from app.api.v1.schema.cafedra import (
     UpdateDeputyDirector,
     ScientificCouncilMember,
     UpdateCouncilMember,
+    RichTextSectionItem,
+    UpdateRichTextSectionItem,
+    ProjectGrantItem,
+    UpdateProjectGrantItem,
+    PartnerCompanyItem,
+    UpdatePartnerCompanyItem,
+    PublicationItem,
+    UpdatePublicationItem,
+    UpdateScientificIntros,
+    ReorderRequest,
 )
 from app.services.cafedra import (
     create_cafedra,
@@ -44,6 +54,22 @@ from app.services.cafedra import (
     delete_council_member,
     update_laboratory,
     delete_laboratory,
+    get_cafedra_scientific_activity,
+    update_scientific_intros,
+    create_research_area,
+    update_research_area,
+    delete_research_area,
+    create_project,
+    update_project,
+    delete_project,
+    create_partner_company,
+    update_partner_company,
+    delete_partner_company,
+    upload_partner_company_logo,
+    create_publication,
+    update_publication,
+    delete_publication,
+    reorder_publications,
 )
 
 router = APIRouter()
@@ -112,6 +138,124 @@ async def get_laboratory_endpoint(
     )
 
 
+@router.put("/research-areas/{item_id}")
+async def update_research_area_endpoint(
+    item_id: int,
+    request: UpdateRichTextSectionItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_research_area(
+        item_id=item_id,
+        request=request,
+        db=db,
+    )
+
+
+@router.delete("/research-areas/{item_id}")
+async def delete_research_area_endpoint(
+    item_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_research_area(
+        item_id=item_id,
+        db=db,
+    )
+
+
+@router.put("/projects/{item_id}")
+async def update_project_endpoint(
+    item_id: int,
+    request: UpdateProjectGrantItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_project(
+        item_id=item_id,
+        request=request,
+        db=db,
+    )
+
+
+@router.delete("/projects/{item_id}")
+async def delete_project_endpoint(
+    item_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_project(
+        item_id=item_id,
+        db=db,
+    )
+
+
+@router.put("/partner-companies/{item_id}/logo")
+async def upload_partner_company_logo_endpoint(
+    item_id: int,
+    image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await upload_partner_company_logo(
+        item_id=item_id,
+        image=image,
+        db=db,
+    )
+
+
+@router.put("/partner-companies/{item_id}")
+async def update_partner_company_endpoint(
+    item_id: int,
+    request: UpdatePartnerCompanyItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_partner_company(
+        item_id=item_id,
+        request=request,
+        db=db,
+    )
+
+
+@router.delete("/partner-companies/{item_id}")
+async def delete_partner_company_endpoint(
+    item_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_partner_company(
+        item_id=item_id,
+        db=db,
+    )
+
+
+@router.put("/publications/{item_id}")
+async def update_publication_endpoint(
+    item_id: int,
+    request: UpdatePublicationItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_publication(
+        item_id=item_id,
+        request=request,
+        db=db,
+    )
+
+
+@router.delete("/publications/{item_id}")
+async def delete_publication_endpoint(
+    item_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_publication(
+        item_id=item_id,
+        db=db,
+    )
+
+
 @router.get("/{cafedra_code}")
 async def get_cafedra_details_endpoint(
     cafedra_code: str,
@@ -134,6 +278,103 @@ async def get_cafedra_laboratories_endpoint(
     return await get_cafedra_laboratories(
         cafedra_code=cafedra_code,
         lang=lang,
+        db=db,
+    )
+
+
+@router.get("/{cafedra_code}/scientific-activity")
+async def get_cafedra_scientific_activity_endpoint(
+    cafedra_code: str,
+    lang_code: str = Depends(get_language),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_cafedra_scientific_activity(
+        cafedra_code=cafedra_code,
+        lang_code=lang_code,
+        db=db,
+    )
+
+
+@router.put("/{cafedra_code}/scientific-activity/intros")
+async def update_scientific_intros_endpoint(
+    cafedra_code: str,
+    request: UpdateScientificIntros,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_scientific_intros(
+        cafedra_code=cafedra_code,
+        request=request,
+        db=db,
+    )
+
+
+@router.post("/{cafedra_code}/research-areas")
+async def create_research_area_endpoint(
+    cafedra_code: str,
+    request: RichTextSectionItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_research_area(
+        cafedra_code=cafedra_code,
+        request=request,
+        db=db,
+    )
+
+
+@router.post("/{cafedra_code}/projects")
+async def create_project_endpoint(
+    cafedra_code: str,
+    request: ProjectGrantItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_project(
+        cafedra_code=cafedra_code,
+        request=request,
+        db=db,
+    )
+
+
+@router.post("/{cafedra_code}/partner-companies")
+async def create_partner_company_endpoint(
+    cafedra_code: str,
+    request: PartnerCompanyItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_partner_company(
+        cafedra_code=cafedra_code,
+        request=request,
+        db=db,
+    )
+
+
+@router.post("/{cafedra_code}/publications")
+async def create_publication_endpoint(
+    cafedra_code: str,
+    request: PublicationItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_publication(
+        cafedra_code=cafedra_code,
+        request=request,
+        db=db,
+    )
+
+
+@router.put("/{cafedra_code}/publications/reorder")
+async def reorder_publications_endpoint(
+    cafedra_code: str,
+    request: ReorderRequest,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await reorder_publications(
+        cafedra_code=cafedra_code,
+        ids=request.ids,
         db=db,
     )
 
