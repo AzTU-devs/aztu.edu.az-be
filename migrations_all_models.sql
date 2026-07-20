@@ -1611,3 +1611,8 @@ create index if not exists ix_activity_target        on admin_activity_log (targ
 alter table admin_users add column if not exists first_name    varchar(100);
 alter table admin_users add column if not exists last_name     varchar(100);
 alter table admin_users add column if not exists profile_image varchar(1024);
+
+-- Usernames are AzTU email addresses, which do not fit in varchar(50).
+-- Widening is safe: no existing value can be too long for the new type.
+alter table admin_users        alter column username       type varchar(255);
+alter table admin_activity_log alter column admin_username type varchar(255);

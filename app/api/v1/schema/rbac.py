@@ -10,6 +10,12 @@ OptionalBool = Annotated[Optional[bool], BeforeValidator(blank_to_none)]
 
 PASSWORD_MIN_LENGTH = 8
 
+# Usernames are AzTU email addresses in practice, so "@" and "+" have to be legal.
+# Still a denylist-free character set rather than full RFC 5322: it keeps the value
+# safe to render and log, and an address that fails here can be aliased.
+USERNAME_PATTERN = r"^[A-Za-z0-9._%+-]+(@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?$"
+USERNAME_MAX_LENGTH = 255
+
 
 class RoleCreate(BaseModel):
     code: str = Field(min_length=2, max_length=50, pattern=r"^[a-z][a-z0-9_]*$")
@@ -30,7 +36,9 @@ class RolePermissionsUpdate(BaseModel):
 
 
 class AdminUserCreate(BaseModel):
-    username: str = Field(min_length=3, max_length=50, pattern=r"^[A-Za-z0-9._-]+$")
+    username: str = Field(
+        min_length=3, max_length=USERNAME_MAX_LENGTH, pattern=USERNAME_PATTERN
+    )
     password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=128)
     first_name: OptionalStr = Field(default=None, max_length=100)
     last_name: OptionalStr = Field(default=None, max_length=100)
@@ -39,7 +47,10 @@ class AdminUserCreate(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
-    username: OptionalStr = Field(default=None, max_length=50)
+    # Same rule as create — a rename must not be able to sidestep it.
+    username: OptionalStr = Field(
+        default=None, min_length=3, max_length=USERNAME_MAX_LENGTH, pattern=USERNAME_PATTERN
+    )
     first_name: OptionalStr = Field(default=None, max_length=100)
     last_name: OptionalStr = Field(default=None, max_length=100)
     is_active: OptionalBool = None

@@ -65,7 +65,7 @@ async def login(
     if not user or not verify_password(body.password, user.hashed_password):
         _mark_audit(
             request,
-            actor_username=body.username[:50],
+            actor_username=body.username[:255],
             action_key="auth.login_failed",
             outcome="denied",
         )

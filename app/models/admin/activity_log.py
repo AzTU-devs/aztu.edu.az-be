@@ -32,7 +32,7 @@ class AdminActivityLog(Base):
     admin_user_id = Column(
         Integer, ForeignKey("admin_users.id", ondelete="SET NULL"), nullable=True
     )
-    admin_username = Column(String(50), nullable=False)
+    admin_username = Column(String(255), nullable=False)
 
     action_key = Column(String(100), nullable=False)
     domain = Column(String(50), nullable=False)
