@@ -18,6 +18,15 @@ from app.api.v1.schema.cafedra import (
     UpdateDeputyDirector,
     ScientificCouncilMember,
     UpdateCouncilMember,
+    RichTextSectionItem,
+    UpdateRichTextSectionItem,
+    ProjectGrantItem,
+    UpdateProjectGrantItem,
+    PartnerCompanyItem,
+    UpdatePartnerCompanyItem,
+    PublicationItem,
+    UpdatePublicationItem,
+    UpdateScientificIntros,
 )
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
 from app.services.search import on_cafedra_change, on_cafedra_delete
@@ -64,6 +73,8 @@ from app.models.cafedras.cafedra_section import (
     CafedraProjectTr,
     CafedraDirectionOfAction,
     CafedraDirectionOfActionTr,
+    CafedraScientificPublication,
+    CafedraScientificPublicationTr,
 )
 from app.utils.language import get_language
 
@@ -89,16 +100,24 @@ async def _create_translated_section(
     items: list[Any],
     now: datetime,
     db: AsyncSession,
+    *,
+    body_field: str = "description",
+    parent_fields: tuple[str, ...] = (),
+    start_order: int = 0,
 ):
+    created = []
     for index, item in enumerate(items):
         parent_params = {
             "cafedra_code": cafedra_code,
-            "display_order": index,
+            "display_order": start_order + index,
             "created_at": now,
             "updated_at": now,
         }
         if hasattr(item, "image_url"):
             parent_params["image_url"] = item.image_url
+        for field in parent_fields:
+            if hasattr(item, field):
+                parent_params[field] = getattr(item, field)
 
         parent = parent_cls(**parent_params)
         db.add(parent)
@@ -112,12 +131,14 @@ async def _create_translated_section(
                         parent_id_name: parent.id,
                         "lang_code": lang,
                         "title": data.title,
-                        "description": data.description,
+                        "description": getattr(data, body_field),
                         "created_at": now,
                         "updated_at": now,
                     }
                 )
             )
+        created.append(parent)
+    return created
 
 
 async def _serialize_translated_section(
@@ -127,6 +148,9 @@ async def _serialize_translated_section(
     cafedra_code: str,
     lang_code: str,
     db: AsyncSession,
+    *,
+    extra_keys: tuple[str, ...] = (),
+    emit_html_content: bool = False,
 ):
     items = []
     parents_query = await db.execute(
@@ -146,8 +170,12 @@ async def _serialize_translated_section(
             "title": tr.title if tr else None,
             "description": tr.description if tr else None,
         }
+        if emit_html_content:
+            item_dict["html_content"] = tr.description if tr else None
         if hasattr(parent, "image_url"):
             item_dict["image_url"] = parent.image_url
+        for key in extra_keys:
+            item_dict[key] = getattr(parent, key, None)
         items.append(item_dict)
     return items
 
@@ -309,6 +337,122 @@ async def _serialize_laboratories_for_cafedra(
     )
     labs = labs_q.scalars().all()
     return [await _serialize_laboratory(lab, lang_code, db) for lab in labs]
+
+
+async def _upsert_publication_tr(
+    publication_id: int,
+    lang: str,
+    data: Any,
+    now: datetime,
+    db: AsyncSession,
+):
+    tr_q = await db.execute(
+        select(CafedraScientificPublicationTr).where(
+            CafedraScientificPublicationTr.publication_id == publication_id,
+            CafedraScientificPublicationTr.lang_code == lang,
+        )
+    )
+    tr = tr_q.scalar_one_or_none()
+    if tr:
+        if data.title is not None:
+            tr.title = data.title
+        tr.authors = data.authors
+        tr.journal = data.journal
+        tr.country = data.country
+        tr.updated_at = now
+    else:
+        db.add(
+            CafedraScientificPublicationTr(
+                publication_id=publication_id,
+                lang_code=lang,
+                title=data.title or "",
+                authors=data.authors,
+                journal=data.journal,
+                country=data.country,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+
+async def _create_publications(
+    cafedra_code: str,
+    items: list[Any],
+    now: datetime,
+    db: AsyncSession,
+    start_order: int = 0,
+):
+    created = []
+    for index, item in enumerate(items):
+        publication = CafedraScientificPublication(
+            cafedra_code=cafedra_code,
+            publication_index=item.index,
+            quartile=item.quartile,
+            published_at=item.date,
+            year=item.year,
+            url=item.url,
+            display_order=start_order + index,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(publication)
+        await db.flush()
+
+        for lang in ["az", "en"]:
+            await _upsert_publication_tr(publication.id, lang, getattr(item, lang), now, db)
+        created.append(publication)
+    return created
+
+
+async def _serialize_publications(
+    cafedra_code: str,
+    lang_code: str,
+    db: AsyncSession,
+) -> tuple[list[dict], list[dict]]:
+    publications_q = await db.execute(
+        select(CafedraScientificPublication)
+        .where(CafedraScientificPublication.cafedra_code == cafedra_code)
+        .order_by(
+            CafedraScientificPublication.year.desc().nullslast(),
+            CafedraScientificPublication.display_order.asc(),
+        )
+    )
+    publications = publications_q.scalars().all()
+
+    items: list[dict] = []
+    buckets: dict[Any, dict] = {}
+    years: list[dict] = []
+    for publication in publications:
+        tr_q = await db.execute(
+            select(CafedraScientificPublicationTr).where(
+                CafedraScientificPublicationTr.publication_id == publication.id,
+                CafedraScientificPublicationTr.lang_code == lang_code,
+            )
+        )
+        tr = tr_q.scalar_one_or_none()
+        year = publication.year
+        bucket = buckets.get(year)
+        if bucket is None:
+            bucket = {"year": year, "count": 0}
+            buckets[year] = bucket
+            years.append(bucket)
+        bucket["count"] += 1
+        items.append(
+            {
+                "id": publication.id,
+                "no": bucket["count"],
+                "year": year,
+                "title": tr.title if tr else None,
+                "authors": tr.authors if tr else None,
+                "journal": tr.journal if tr else None,
+                "country": tr.country if tr else None,
+                "index": publication.publication_index,
+                "quartile": publication.quartile,
+                "date": publication.published_at,
+                "url": publication.url,
+            }
+        )
+    return items, years
 
 
 async def _create_people(
@@ -1711,6 +1855,522 @@ async def delete_laboratory(laboratory_id: int, db: AsyncSession):
         await on_cafedra_change(db, cafedra_code)
 
         return JSONResponse(content={"status_code": 200, "message": "Laboratory deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ── Scientific activity (elmi fəaliyyət) ─────────────────────────────────────────
+
+
+def _has_data(intro_html: str | None, items: list[dict]) -> bool:
+    return bool((intro_html or "").strip()) or len(items) > 0
+
+
+async def get_cafedra_scientific_activity(cafedra_code: str, lang_code: str, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        tr_query = await db.execute(
+            select(CafedraTr).where(
+                CafedraTr.cafedra_code == cafedra_code,
+                CafedraTr.lang_code == lang_code,
+            )
+        )
+        tr = tr_query.scalar_one_or_none()
+
+        research_areas_intro = tr.research_areas_intro if tr else None
+        projects_grants_intro = tr.projects_grants_intro if tr else None
+        publications_intro = tr.publications_intro if tr else None
+        industry_cooperation_intro = tr.industry_cooperation_intro if tr else None
+        international_cooperation_intro = tr.international_cooperation_intro if tr else None
+
+        research_areas = await _serialize_translated_section(
+            CafedraResearchWork, CafedraResearchWorkTr, "research_work_id", cafedra_code, lang_code, db,
+            emit_html_content=True,
+        )
+        projects = await _serialize_translated_section(
+            CafedraProject, CafedraProjectTr, "project_id", cafedra_code, lang_code, db,
+            extra_keys=("url",),
+        )
+        partner_companies = await _serialize_translated_section(
+            CafedraPartnerCompany, CafedraPartnerCompanyTr, "partner_company_id", cafedra_code, lang_code, db,
+            extra_keys=("logo_url", "website_url"),
+        )
+        laboratories = await _serialize_laboratories_for_cafedra(cafedra_code, lang_code, db)
+        publications, publication_years = await _serialize_publications(cafedra_code, lang_code, db)
+
+        sections = {
+            "research_areas": {
+                "key": "research_areas",
+                "has_data": _has_data(research_areas_intro, research_areas),
+                "intro_html": research_areas_intro,
+                "items": research_areas,
+            },
+            "projects_grants": {
+                "key": "projects_grants",
+                "has_data": _has_data(projects_grants_intro, projects),
+                "intro_html": projects_grants_intro,
+                "items": projects,
+            },
+            "laboratories": {
+                "key": "laboratories",
+                "has_data": _has_data(None, laboratories),
+                "intro_html": None,
+                "items": laboratories,
+            },
+            "publications": {
+                "key": "publications",
+                "has_data": _has_data(publications_intro, publications),
+                "intro_html": publications_intro,
+                "years": publication_years,
+                "items": publications,
+            },
+            "industry_cooperation": {
+                "key": "industry_cooperation",
+                "has_data": _has_data(industry_cooperation_intro, partner_companies),
+                "intro_html": industry_cooperation_intro,
+                "items": partner_companies,
+            },
+            "international_cooperation": {
+                "key": "international_cooperation",
+                "has_data": _has_data(international_cooperation_intro, []),
+                "intro_html": international_cooperation_intro,
+                "items": [],
+            },
+        }
+        available = [key for key, section in sections.items() if section["has_data"]]
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "scientific_activity": {
+                    "cafedra_code": cafedra_code,
+                    "lang_code": lang_code,
+                    "available": available,
+                    "sections": sections,
+                },
+            },
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_scientific_intros(cafedra_code: str, request: UpdateScientificIntros, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        now = datetime.now(timezone.utc)
+        data = request.dict(exclude_unset=True)
+
+        for lang in ["az", "en"]:
+            if lang not in data:
+                continue
+            block = getattr(request, lang)
+            if block is None:
+                continue
+            tr_query = await db.execute(
+                select(CafedraTr).where(
+                    CafedraTr.cafedra_code == cafedra_code,
+                    CafedraTr.lang_code == lang,
+                )
+            )
+            tr = tr_query.scalar_one_or_none()
+            if tr is None:
+                continue
+            supplied = data[lang] or {}
+            for field in [
+                "research_areas_intro",
+                "projects_grants_intro",
+                "publications_intro",
+                "industry_cooperation_intro",
+                "international_cooperation_intro",
+            ]:
+                if field in supplied:
+                    setattr(tr, field, getattr(block, field))
+            tr.updated_at = now
+
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Scientific activity intros updated successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def _create_section_item(
+    parent_cls: Type[Any],
+    tr_cls: Type[Any],
+    parent_id_name: str,
+    cafedra_code: str,
+    request: Any,
+    db: AsyncSession,
+    *,
+    body_field: str = "description",
+    parent_fields: tuple[str, ...] = (),
+):
+    now = datetime.now(timezone.utc)
+    max_order_q = await db.execute(
+        select(func.max(parent_cls.display_order)).where(parent_cls.cafedra_code == cafedra_code)
+    )
+    start_order = (max_order_q.scalar() or 0) + 1
+    created = await _create_translated_section(
+        parent_cls, tr_cls, parent_id_name, cafedra_code, [request], now, db,
+        body_field=body_field, parent_fields=parent_fields, start_order=start_order,
+    )
+    return created[0]
+
+
+async def _update_section_item(
+    parent_cls: Type[Any],
+    tr_cls: Type[Any],
+    parent_id_name: str,
+    item_id: int,
+    request: Any,
+    db: AsyncSession,
+    *,
+    body_field: str = "description",
+    parent_fields: tuple[str, ...] = (),
+):
+    query = await db.execute(select(parent_cls).where(parent_cls.id == item_id))
+    parent = query.scalar_one_or_none()
+    if parent is None:
+        return None
+
+    now = datetime.now(timezone.utc)
+    data = request.dict(exclude_unset=True)
+
+    for field in parent_fields:
+        if field in data:
+            setattr(parent, field, getattr(request, field))
+    parent.updated_at = now
+
+    for lang in ["az", "en"]:
+        if lang not in data:
+            continue
+        block = getattr(request, lang)
+        if block is None:
+            continue
+        tr_query = await db.execute(
+            select(tr_cls).where(
+                getattr(tr_cls, parent_id_name) == parent.id,
+                tr_cls.lang_code == lang,
+            )
+        )
+        tr = tr_query.scalar_one_or_none()
+        supplied = data[lang] or {}
+        if tr:
+            if "title" in supplied and block.title is not None:
+                tr.title = block.title
+            if body_field in supplied:
+                tr.description = getattr(block, body_field)
+            tr.updated_at = now
+        else:
+            db.add(
+                tr_cls(
+                    **{
+                        parent_id_name: parent.id,
+                        "lang_code": lang,
+                        "title": block.title or "",
+                        "description": getattr(block, body_field),
+                        "created_at": now,
+                        "updated_at": now,
+                    }
+                )
+            )
+
+    return parent
+
+
+async def _delete_section_item(parent_cls: Type[Any], item_id: int, db: AsyncSession):
+    query = await db.execute(select(parent_cls).where(parent_cls.id == item_id))
+    parent = query.scalar_one_or_none()
+    if parent is None:
+        return None, None
+    cafedra_code = parent.cafedra_code
+    logo_url = getattr(parent, "logo_url", None)
+    await db.delete(parent)
+    return cafedra_code, logo_url
+
+
+async def create_research_area(cafedra_code: str, request: RichTextSectionItem, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        item = await _create_section_item(
+            CafedraResearchWork, CafedraResearchWorkTr, "research_work_id", cafedra_code, request, db,
+            body_field="html_content",
+        )
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 201, "message": "Research area added successfully.", "data": {"id": item.id}}, status_code=status.HTTP_201_CREATED)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_research_area(item_id: int, request: UpdateRichTextSectionItem, db: AsyncSession):
+    try:
+        item = await _update_section_item(
+            CafedraResearchWork, CafedraResearchWorkTr, "research_work_id", item_id, request, db,
+            body_field="html_content",
+        )
+        if item is None:
+            return JSONResponse(content={"status_code": 404, "message": "Research area not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        cafedra_code = item.cafedra_code
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Research area updated successfully.", "data": {"id": item_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_research_area(item_id: int, db: AsyncSession):
+    try:
+        cafedra_code, _ = await _delete_section_item(CafedraResearchWork, item_id, db)
+        if cafedra_code is None:
+            return JSONResponse(content={"status_code": 404, "message": "Research area not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Research area deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def create_project(cafedra_code: str, request: ProjectGrantItem, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        item = await _create_section_item(
+            CafedraProject, CafedraProjectTr, "project_id", cafedra_code, request, db,
+            parent_fields=("url",),
+        )
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 201, "message": "Project added successfully.", "data": {"id": item.id}}, status_code=status.HTTP_201_CREATED)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_project(item_id: int, request: UpdateProjectGrantItem, db: AsyncSession):
+    try:
+        item = await _update_section_item(
+            CafedraProject, CafedraProjectTr, "project_id", item_id, request, db,
+            parent_fields=("url",),
+        )
+        if item is None:
+            return JSONResponse(content={"status_code": 404, "message": "Project not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        cafedra_code = item.cafedra_code
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Project updated successfully.", "data": {"id": item_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_project(item_id: int, db: AsyncSession):
+    try:
+        cafedra_code, _ = await _delete_section_item(CafedraProject, item_id, db)
+        if cafedra_code is None:
+            return JSONResponse(content={"status_code": 404, "message": "Project not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Project deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def create_partner_company(cafedra_code: str, request: PartnerCompanyItem, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        item = await _create_section_item(
+            CafedraPartnerCompany, CafedraPartnerCompanyTr, "partner_company_id", cafedra_code, request, db,
+            parent_fields=("website_url",),
+        )
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 201, "message": "Partner company added successfully.", "data": {"id": item.id}}, status_code=status.HTTP_201_CREATED)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_partner_company(item_id: int, request: UpdatePartnerCompanyItem, db: AsyncSession):
+    try:
+        item = await _update_section_item(
+            CafedraPartnerCompany, CafedraPartnerCompanyTr, "partner_company_id", item_id, request, db,
+            parent_fields=("website_url",),
+        )
+        if item is None:
+            return JSONResponse(content={"status_code": 404, "message": "Partner company not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        cafedra_code = item.cafedra_code
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Partner company updated successfully.", "data": {"id": item_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_partner_company(item_id: int, db: AsyncSession):
+    try:
+        cafedra_code, logo_url = await _delete_section_item(CafedraPartnerCompany, item_id, db)
+        if cafedra_code is None:
+            return JSONResponse(content={"status_code": 404, "message": "Partner company not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        await db.commit()
+        if logo_url:
+            safe_delete_file(logo_url)
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Partner company deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def upload_partner_company_logo(item_id: int, image: UploadFile, db: AsyncSession):
+    try:
+        query = await db.execute(select(CafedraPartnerCompany).where(CafedraPartnerCompany.id == item_id))
+        company = query.scalar_one_or_none()
+        if not company:
+            return JSONResponse(content={"status_code": 404, "message": "Partner company not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        old_path = company.logo_url
+        new_path = await save_upload(image, "cafedra-partner-logos", ALLOWED_IMAGE_MIMES)
+        company.logo_url = new_path
+        company.updated_at = datetime.now(timezone.utc)
+        cafedra_code = company.cafedra_code
+        await db.commit()
+        if old_path:
+            safe_delete_file(old_path)
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Partner company logo uploaded successfully.", "data": {"logo_url": new_path}}, status_code=status.HTTP_200_OK)
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def create_publication(cafedra_code: str, request: PublicationItem, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        now = datetime.now(timezone.utc)
+        max_order_q = await db.execute(
+            select(func.max(CafedraScientificPublication.display_order)).where(
+                CafedraScientificPublication.cafedra_code == cafedra_code
+            )
+        )
+        start_order = (max_order_q.scalar() or 0) + 1
+        created = await _create_publications(cafedra_code, [request], now, db, start_order)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 201, "message": "Publication added successfully.", "data": {"id": created[0].id}}, status_code=status.HTTP_201_CREATED)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_publication(item_id: int, request: UpdatePublicationItem, db: AsyncSession):
+    try:
+        query = await db.execute(select(CafedraScientificPublication).where(CafedraScientificPublication.id == item_id))
+        publication = query.scalar_one_or_none()
+        if publication is None:
+            return JSONResponse(content={"status_code": 404, "message": "Publication not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        now = datetime.now(timezone.utc)
+        data = request.dict(exclude_unset=True)
+
+        if "index" in data and request.index is not None:
+            publication.publication_index = request.index
+        if "quartile" in data:
+            publication.quartile = request.quartile
+        if "date" in data:
+            publication.published_at = request.date
+        if "year" in data:
+            publication.year = request.year
+        if "url" in data:
+            publication.url = request.url
+        publication.updated_at = now
+
+        for lang in ["az", "en"]:
+            if lang not in data:
+                continue
+            block = getattr(request, lang)
+            if block is None:
+                continue
+            await _upsert_publication_tr(publication.id, lang, block, now, db)
+
+        cafedra_code = publication.cafedra_code
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Publication updated successfully.", "data": {"id": item_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_publication(item_id: int, db: AsyncSession):
+    try:
+        cafedra_code, _ = await _delete_section_item(CafedraScientificPublication, item_id, db)
+        if cafedra_code is None:
+            return JSONResponse(content={"status_code": 404, "message": "Publication not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Publication deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def reorder_publications(cafedra_code: str, ids: list[int], db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        query = await db.execute(
+            select(CafedraScientificPublication).where(
+                CafedraScientificPublication.cafedra_code == cafedra_code
+            )
+        )
+        publications = {p.id: p for p in query.scalars().all()}
+        unknown = [i for i in ids if i not in publications]
+        if unknown:
+            return JSONResponse(content={"status_code": 404, "message": "Publication not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        now = datetime.now(timezone.utc)
+        for index, publication_id in enumerate(ids):
+            publication = publications[publication_id]
+            publication.display_order = index
+            publication.updated_at = now
+
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Publications reordered successfully."}, status_code=status.HTTP_200_OK)
     except Exception:
         logger.exception("500 Internal Server Error")
         await db.rollback()

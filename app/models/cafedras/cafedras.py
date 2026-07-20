@@ -104,3 +104,9 @@ class Cafedra(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    scientific_publications = relationship(
+        "CafedraScientificPublication",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

@@ -11,6 +11,11 @@ class CafedraTr(Base):
     id = Column(Integer, primary_key=True, index=True)
     cafedra_name = Column(String(255), nullable=False)
     about_text = Column(Text)
+    research_areas_intro = Column(Text)
+    projects_grants_intro = Column(Text)
+    publications_intro = Column(Text)
+    industry_cooperation_intro = Column(Text)
+    international_cooperation_intro = Column(Text)
     cafedra_code = Column(
         String(50),
         ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
