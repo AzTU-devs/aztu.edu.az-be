@@ -1,9 +1,10 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAIError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +28,14 @@ STRICT OPERATING RULES:
 5. Do not engage in casual conversation or answer non-university related prompts.
 6. MAXIMUM response length: 500 characters. Shorter is better.
 7. Always respond in the same language the user used (Azerbaijani or English)."""
+
+logger = logging.getLogger("aztu.chat")
+
+# Shown to the visitor when the model cannot be reached. Deliberately says the
+# service is unavailable rather than inventing an answer.
+_FALLBACK_REPLY = (
+    "Bağışlayın, hazırda cavab verə bilmirəm. Zəhmət olmasa bir azdan yenidən cəhd edin."
+)
 
 _KB_PATH = Path(__file__).resolve().parents[2] / "aztu_knowledge_base.md"
 
@@ -90,14 +99,34 @@ async def get_chat_reply(
     messages.append({"role": "user", "content": message})
 
     # ── Call OpenAI ──────────────────────────────────────────────────────────
-    client = AsyncOpenAI(api_key=settings.OPEN_AI_KEY)
-    response = await client.chat.completions.create(
-        model="gpt-4o",
-        messages=messages,
-        max_tokens=400,
-        temperature=0.3,
-    )
-    reply = response.choices[0].message.content or ""
+    # A model failure must not surface as a bare 500 with no detail: that is
+    # exactly how a missing OPEN_AI_KEY went unnoticed, since a 401 comes back in
+    # milliseconds and looks like any other server error from the widget's side.
+    # The visitor gets a plain "try again" and the cause is logged once, loudly.
+    if not settings.OPEN_AI_KEY:
+        logger.error(
+            "OPEN_AI_KEY is not configured — the chatbot cannot answer. "
+            "Set it in the environment and restart."
+        )
+        reply = _FALLBACK_REPLY
+    else:
+        try:
+            client = AsyncOpenAI(api_key=settings.OPEN_AI_KEY, timeout=30.0)
+            response = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                max_tokens=400,
+                temperature=0.3,
+            )
+            reply = response.choices[0].message.content or _FALLBACK_REPLY
+        except OpenAIError as exc:
+            # Auth, quota, rate limit and timeouts all land here. The class name
+            # is what distinguishes "key is wrong" from "we are out of credit".
+            logger.error("OpenAI call failed (%s): %s", type(exc).__name__, exc)
+            reply = _FALLBACK_REPLY
+        except Exception:
+            logger.exception("Unexpected failure generating a chat reply")
+            reply = _FALLBACK_REPLY
 
     # ── Persist messages ─────────────────────────────────────────────────────
     db.add(ChatMessage(session_id=session.session_id, role="user", content=message))

@@ -60,6 +60,11 @@ async def lifespan(app: FastAPI):
     await sync_rbac()
     verify_permission_map(app)
     await seed_admin_user()
+    # Surfaced at boot rather than only when a visitor gets an unexplained
+    # failure — a missing key makes the chatbot 401 in milliseconds, which is
+    # indistinguishable from any other 500 at the widget.
+    if not settings.OPEN_AI_KEY:
+        logger.warning("OPEN_AI_KEY is not set — the chatbot will not answer.")
     start_scheduler()
     try:
         es = await get_es()
