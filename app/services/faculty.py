@@ -939,6 +939,18 @@ async def get_faculties(
             )
             tr = tr_query.scalar_one_or_none()
 
+            # Most faculties are authored in Azerbaijani first, so requesting a
+            # language that has no row yet would otherwise emit title=None and
+            # render a row identified only by its code.
+            if tr is None:
+                fallback_query = await db.execute(
+                    select(FacultyTr)
+                    .where(FacultyTr.faculty_code == faculty.faculty_code)
+                    .order_by((FacultyTr.lang_code == "az").desc())
+                    .limit(1)
+                )
+                tr = fallback_query.scalar_one_or_none()
+
             cafedra_count_query = await db.execute(
                 select(func.count()).select_from(Cafedra).where(
                     Cafedra.faculty_code == faculty.faculty_code

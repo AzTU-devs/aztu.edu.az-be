@@ -1035,6 +1035,17 @@ async def get_cafedras(
             tr_query = await db.execute(select(CafedraTr).where(CafedraTr.cafedra_code == cafedra.cafedra_code, CafedraTr.lang_code == lang))
             tr = tr_query.scalar_one_or_none()
 
+            # Cafedras are authored in Azerbaijani first; without this a language
+            # with no row yet emits title=None and the list shows only the code.
+            if tr is None:
+                fallback_q = await db.execute(
+                    select(CafedraTr)
+                    .where(CafedraTr.cafedra_code == cafedra.cafedra_code)
+                    .order_by((CafedraTr.lang_code == "az").desc())
+                    .limit(1)
+                )
+                tr = fallback_q.scalar_one_or_none()
+
             deputy_count_q = await db.execute(
                 select(func.count()).select_from(CafedraDeputyDirector).where(CafedraDeputyDirector.cafedra_code == cafedra.cafedra_code)
             )
