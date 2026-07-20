@@ -17,13 +17,25 @@ from app.core.security import (
 )
 from app.core.config import settings
 from app.core.rate_limit import limiter
+from app.core.auth_dependency import AUDIT_SCOPE_KEY, require_admin
 from app.models.admin.admin_user import AdminUser
+from app.services.rbac import get_role_snapshot
 
 router = APIRouter()
 logger = logging.getLogger("aztu.auth")
 
 REFRESH_COOKIE_NAME = "refresh_token"
 REFRESH_COOKIE_PATH = "/api/auth"
+
+
+def _mark_audit(request: Request, **fields) -> None:
+    """Fill in the actor on the routes where the permission dependency cannot know it.
+
+    Only the username is ever copied — never the body, never the password.
+    """
+    audit = request.scope.get(AUDIT_SCOPE_KEY)
+    if isinstance(audit, dict):
+        audit.update(fields)
 
 
 class LoginRequest(BaseModel):
@@ -51,6 +63,12 @@ async def login(
 
     # Constant-time path: always run verify even if user not found to prevent timing attacks
     if not user or not verify_password(body.password, user.hashed_password):
+        _mark_audit(
+            request,
+            actor_username=body.username[:50],
+            action_key="auth.login_failed",
+            outcome="denied",
+        )
         logger.warning(
             "Failed login attempt for username=%s ip=%s",
             body.username,
@@ -62,6 +80,12 @@ async def login(
         )
 
     if not user.is_active:
+        _mark_audit(
+            request,
+            actor_username=user.username,
+            action_key="auth.login_failed",
+            outcome="denied",
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled",
@@ -74,6 +98,8 @@ async def login(
     user.refresh_token_hash = hash_password(refresh_token)
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
+
+    _mark_audit(request, actor_id=user.id, actor_username=user.username)
 
     logger.info(
         "Successful login for username=%s ip=%s",
@@ -95,7 +121,44 @@ async def login(
     return TokenResponse(access_token=access_token)
 
 
+@router.get("/me")
+async def me(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: AdminUser = Depends(require_admin),
+):
+    snapshot = await get_role_snapshot(db, user.role_id)
+    role = user.role
+    return JSONResponse(
+        content={
+            "status_code": 200,
+            "data": {
+                "id": user.id,
+                "username": user.username,
+                "is_active": bool(user.is_active),
+                "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+                "role": None if role is None else {
+                    "id": role.id,
+                    "code": role.code,
+                    "name_az": role.name_az,
+                    "name_en": role.name_en,
+                    "is_system": bool(role.is_system),
+                },
+                "is_super_admin": bool(snapshot and snapshot.is_super_admin),
+                # Empty for a super admin — is_super_admin governs there.
+                "permissions": sorted(snapshot.permissions) if snapshot else [],
+                # The dashboard's route guard mirrors this: under "audit" it lets a
+                # missing permission through so a mis-mapped route cannot lock an
+                # admin out of a screen the API would have allowed.
+                "enforcement_mode": settings.PERMISSION_ENFORCEMENT_MODE,
+            },
+        },
+        status_code=status.HTTP_200_OK,
+    )
+
+
 @router.post("/refresh", response_model=TokenResponse)
+@limiter.limit("20/minute")
 async def refresh(
     request: Request,
     response: Response,
@@ -166,6 +229,7 @@ async def refresh(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
     refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
@@ -184,6 +248,7 @@ async def logout(
             if user:
                 user.refresh_token_hash = None
                 await db.commit()
+                _mark_audit(request, actor_id=user.id, actor_username=user.username)
 
     response.delete_cookie(
         key=REFRESH_COOKIE_NAME,

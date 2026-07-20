@@ -4,7 +4,9 @@ from sqlalchemy import select, func
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.core.config import settings
+from app.core.permissions import SUPER_ADMIN_CODE
 from app.models.admin.admin_user import AdminUser
+from app.models.admin.role import Role
 
 logger = logging.getLogger("aztu.startup")
 
@@ -30,10 +32,17 @@ async def seed_admin_user() -> None:
             logger.info("Admin users already exist — skipping seed.")
             return
 
+        super_admin_role_id = (
+            await db.execute(select(Role.id).where(Role.code == SUPER_ADMIN_CODE))
+        ).scalar_one_or_none()
+        if super_admin_role_id is None:
+            logger.error("super_admin role missing — sync_rbac() must run before seed_admin_user().")
+
         admin = AdminUser(
             username=settings.ADMIN_SEED_USERNAME,
             hashed_password=hash_password(settings.ADMIN_SEED_PASSWORD),
             is_active=True,
+            role_id=super_admin_role_id,
             created_at=datetime.now(timezone.utc),
         )
         db.add(admin)
