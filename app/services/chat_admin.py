@@ -12,6 +12,7 @@ from typing import Optional
 
 from fastapi import status
 from fastapi.responses import JSONResponse
+from sqlalchemy import delete as sqlalchemy_delete
 from sqlalchemy import distinct, exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -394,17 +395,21 @@ async def get_chat_transcript(
 
 
 async def delete_chat_session(db: AsyncSession, session_id: str) -> JSONResponse:
-    """Delete one conversation and, by cascade, its messages.
+    """Delete one conversation together with its messages.
 
-    ``chat_messages.session_id`` is declared ``ondelete="CASCADE"``, so removing
-    the session row takes the transcript with it in the same statement.
+    Deliberately two Core DELETEs rather than ``db.delete(session)``.
+    ``ChatSession.messages`` declares no ``cascade`` and no ``passive_deletes``,
+    so the ORM path loads the children and NULLs their ``session_id`` — which the
+    NOT NULL constraint rejects. Deleting the messages explicitly also means this
+    does not depend on the live table actually carrying the ON DELETE CASCADE the
+    model declares, which has not always held on this database.
     """
-    session = (
+    exists_row = (
         await db.execute(
-            select(ChatSession).where(ChatSession.session_id == session_id)
+            select(ChatSession.id).where(ChatSession.session_id == session_id)
         )
     ).scalar_one_or_none()
-    if session is None:
+    if exists_row is None:
         return _error("Söhbət tapılmadı.", status.HTTP_404_NOT_FOUND)
 
     message_count = (
@@ -415,7 +420,12 @@ async def delete_chat_session(db: AsyncSession, session_id: str) -> JSONResponse
         )
     ).scalar_one()
 
-    await db.delete(session)
+    await db.execute(
+        sqlalchemy_delete(ChatMessage).where(ChatMessage.session_id == session_id)
+    )
+    await db.execute(
+        sqlalchemy_delete(ChatSession).where(ChatSession.session_id == session_id)
+    )
     await db.commit()
 
     return _ok({"session_id": session_id, "deleted_messages": message_count})
