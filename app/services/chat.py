@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Optional
 
 from openai import AsyncOpenAI, OpenAIError
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -51,6 +52,48 @@ def _load_static_knowledge() -> str:
 _STATIC_KNOWLEDGE: str = _load_static_knowledge()
 
 
+async def _insert_session(
+    db: AsyncSession, session_id: str, ip_address: str
+) -> ChatSession:
+    """Insert a session, repairing a lagging id sequence if that is what fails.
+
+    ``chat_sessions.id`` is filled by its sequence, and on this deployment that
+    sequence has been left behind ``max(id)`` — rows imported with explicit ids
+    do not advance it. Every insert then collides, and because sequences are
+    non-transactional each failure still burns a value, so it crawls upward
+    through ids that are already taken instead of ever catching up.
+
+    Rather than depend on an operator having run the resync against the right
+    database, fix it in place and retry once. Only the pending session is in the
+    transaction at this point, so the rollback discards nothing else.
+    """
+    session = ChatSession(session_id=session_id, ip_address=ip_address)
+    db.add(session)
+    try:
+        await db.flush()
+        return session
+    except IntegrityError:
+        await db.rollback()
+
+    await db.execute(
+        text(
+            "select setval("
+            "  pg_get_serial_sequence('chat_sessions', 'id'),"
+            "  coalesce((select max(id) from chat_sessions), 0) + 1,"
+            "  false)"
+        )
+    )
+    logger.warning(
+        "chat_sessions id sequence was behind max(id); resynced it. "
+        "Run migrations_resync_sequences.sql — other tables are likely affected too."
+    )
+
+    session = ChatSession(session_id=session_id, ip_address=ip_address)
+    db.add(session)
+    await db.flush()
+    return session
+
+
 async def get_chat_reply(
     message: str,
     session_id: Optional[str],
@@ -73,9 +116,7 @@ async def get_chat_reply(
 
     if session is None:
         session_id = str(uuid.uuid4())
-        session = ChatSession(session_id=session_id, ip_address=ip_address)
-        db.add(session)
-        await db.flush()
+        session = await _insert_session(db, session_id, ip_address)
 
     # ── Load conversation history ────────────────────────────────────────────
     result = await db.execute(
