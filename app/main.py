@@ -46,6 +46,8 @@ from app.api.v1.router.search import router as search_router
 from app.api.v1.router.rbac import router as rbac_router
 from app.api.v1.router.admin_user import router as admin_user_router
 from app.api.v1.router.activity import router as activity_router
+from app.api.v1.router.visits import router as visits_router
+from app.api.v1.router.stats import router as stats_router
 from app.core.scheduler import start_scheduler, stop_scheduler
 from app.core.elasticsearch import get_es, close_es
 from app.services.search import ensure_indices
@@ -207,6 +209,8 @@ app.include_router(search_router,            prefix="/api/search",            ta
 app.include_router(rbac_router,              prefix="/api",                   tags=["RBAC"])
 app.include_router(admin_user_router,        prefix="/api/admin-users",       tags=["Admin Users"])
 app.include_router(activity_router,          prefix="/api/activity",          tags=["Activity Log"])
+app.include_router(visits_router,            prefix="/api/visits",            tags=["Visits"])
+app.include_router(stats_router,             prefix="/api/stats",             tags=["Stats"])
 
 
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)

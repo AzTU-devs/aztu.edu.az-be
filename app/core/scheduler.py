@@ -12,6 +12,7 @@ scheduler = AsyncIOScheduler()
 def start_scheduler() -> None:
     from app.services.chatbot_scraper import scrape_all_sources
     from app.services.activity import purge_expired_activity
+    from app.services.analytics import purge_expired_site_visits
 
     # Run on the 1st of every month at 03:00
     scheduler.add_job(
@@ -30,11 +31,21 @@ def start_scheduler() -> None:
         misfire_grace_time=3600,
     )
 
+    scheduler.add_job(
+        purge_expired_site_visits,
+        trigger=CronTrigger(hour=3, minute=45),
+        id="site_visit_retention_purge",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+
     scheduler.start()
     logger.info(
         "Scheduler started — knowledge scrape monthly on the 1st at 03:00, "
-        "activity-log purge nightly at 03:30 (retention %d days)",
+        "activity-log purge nightly at 03:30 (retention %d days), "
+        "site-visit purge nightly at 03:45 (retention %d days)",
         settings.AUDIT_LOG_RETENTION_DAYS,
+        settings.SITE_VISIT_RETENTION_DAYS,
     )
 
 

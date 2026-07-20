@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     # Public base URL used to build absolute media URLs (no trailing slash)
     PUBLIC_BASE_URL: str = ""
 
+    # Visitor analytics. The salt is mixed into sha256(salt + ip + user agent +
+    # day) so the stored visitor hash cannot be reversed to an IP. Override it in
+    # the environment; the default only keeps a fresh install working.
+    VISIT_HASH_SALT: str = "aztu-visit-salt"
+    SITE_VISIT_RETENTION_DAYS: int = 400
+
     # RBAC
     # "audit"  — denials are logged and recorded, the request still proceeds
     # "enforce" — denials return 403

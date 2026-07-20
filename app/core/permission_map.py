@@ -73,6 +73,9 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
         None, authenticated_only=True, audit_key="auth.password_changed"
     ),
     ("POST", "/api/chat/message"): RouteRule(None, public=True, no_audit=True),
+    # Visitor tracking fires on every public page view: no auth (the site has
+    # none) and no audit row, which would otherwise drown the activity log.
+    ("POST", "/api/visits/track"): RouteRule(None, public=True, no_audit=True),
 
     # ── news ───────────────────────────────────────────────────────────────
     ("POST", "/api/news/create"): RouteRule("news.create", target_type="news", label_fields=("az_title",)),
@@ -241,6 +244,14 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("DELETE", "/api/chatbot-knowledge/sources/{source_id}"): RouteRule("chatbot_knowledge.source.delete", target_type="knowledge_source", target_param="source_id"),
     ("POST", "/api/chatbot-knowledge/sources/{source_id}/scrape"): RouteRule("chatbot_knowledge.source.scrape", target_type="knowledge_source", target_param="source_id"),
     ("POST", "/api/chatbot-knowledge/sources/scrape-all"): RouteRule("chatbot_knowledge.scrape_all"),
+
+    # ── chat monitoring ────────────────────────────────────────────────────
+    # Mapped although they are GETs: unmapped reads fall through as public, and
+    # these return visitor IP addresses. The audit middleware skips GET, so no
+    # visitor IP can reach the activity log from here.
+    ("GET", "/api/chat/admin/sessions"): RouteRule("chat.read"),
+    ("GET", "/api/chat/admin/sessions/{session_id}/messages"): RouteRule("chat.read"),
+    ("GET", "/api/chat/admin/stats"): RouteRule("chat.read"),
 
     # ── search ─────────────────────────────────────────────────────────────
     ("GET", "/api/search/admin"): RouteRule("search.admin.read"),

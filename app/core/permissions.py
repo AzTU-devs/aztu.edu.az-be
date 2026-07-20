@@ -46,6 +46,7 @@ DOMAIN_LABELS: Dict[str, Tuple[str, str]] = {
     "menu": ("Menyu və altlıq", "Menu and footer"),
     "menu_header": ("Başlıq menyusu", "Header menu"),
     "chatbot_knowledge": ("Çatbot bilik bazası", "Chatbot knowledge base"),
+    "chat": ("Çat monitorinqi", "Chat monitoring"),
     "search": ("Axtarış", "Search"),
     "roles": ("Rollar", "Roles"),
     "admin_users": ("Admin istifadəçilər", "Admin users"),
@@ -210,6 +211,10 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     _p("chatbot_knowledge.source.delete", "Bilik mənbəyini silmək", "Delete knowledge source"),
     _p("chatbot_knowledge.source.scrape", "Bilik mənbəyini yeniləmək", "Scrape knowledge source"),
     _p("chatbot_knowledge.scrape_all", "Bütün bilik mənbələrini yeniləmək", "Scrape all knowledge sources"),
+    # ── chat ────────────────────────────────────────────────────────────────
+    # Grants sight of visitor IP addresses. Kept out of every system role below:
+    # only super_admin holds it implicitly, and it is assigned per role by hand.
+    _p("chat.read", "Çat söhbətlərinə və statistikasına baxmaq", "View chat conversations and stats"),
     # ── search ──────────────────────────────────────────────────────────────
     _p("search.admin.read", "Admin axtarışından istifadə etmək", "Use admin search"),
     # ── roles ───────────────────────────────────────────────────────────────

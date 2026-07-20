@@ -1616,3 +1616,21 @@ alter table admin_users add column if not exists profile_image varchar(1024);
 -- Widening is safe: no existing value can be too long for the new type.
 alter table admin_users        alter column username       type varchar(255);
 alter table admin_activity_log alter column admin_username type varchar(255);
+
+-- ── first-party visitor analytics for the public site ──────────────────────
+-- site_visit_daily is an aggregate counter (one row per day, upserted), not a
+-- log of page views: the row count is bounded by the age of the site.
+create table if not exists site_visit_daily (
+    day   date   primary key,
+    views bigint not null default 0
+);
+create index if not exists ix_site_visit_daily_day on site_visit_daily (day desc);
+
+-- One row per (day, visitor). The row count for a day IS that day's unique
+-- visitor count. visitor_hash is sha256(salt + ip + user agent + day) — the raw
+-- IP and user agent are never stored, and the hash rotates every day.
+create table if not exists site_visit_unique (
+    day          date      not null,
+    visitor_hash char(64)  not null,
+    primary key (day, visitor_hash)
+);
