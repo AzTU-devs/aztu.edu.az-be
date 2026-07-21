@@ -9,6 +9,8 @@ class ResearchInstitute(Base):
     id = Column(Integer, primary_key=True, index=True)
     institute_code = Column(String(50), unique=True, nullable=False)
     image = Column(String(1024))
+    website_url = Column(String(2048))
+    email = Column(String(255))
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 
@@ -52,6 +54,7 @@ class ResearchInstituteTr(Base):
     mission_html = Column(Text)
     goals_html = Column(Text)
     direction_html = Column(Text)
+    additional_info_html = Column(Text)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 
-from app.api.v1.schema.common import OptionalEmail
+from app.api.v1.schema.common import OptionalEmail, OptionalUrl
 
 
 class InstituteTranslation(BaseModel):
@@ -10,6 +10,7 @@ class InstituteTranslation(BaseModel):
     mission_html: str | None = None
     goals_html: str | None = None
     direction_html: str | None = None
+    additional_info_html: str | None = None
 
 
 class EducationTranslation(BaseModel):
@@ -61,6 +62,8 @@ class InstituteStaffPayload(BaseModel):
 
 class CreateResearchInstitute(BaseModel):
     image: str | None = None
+    website_url: OptionalUrl = None
+    email: OptionalEmail = None
     az: InstituteTranslation
     en: InstituteTranslation
     director: InstituteDirectorPayload | None = None
@@ -69,6 +72,8 @@ class CreateResearchInstitute(BaseModel):
 
 class UpdateResearchInstitute(BaseModel):
     image: str | None = None
+    website_url: OptionalUrl = None
+    email: OptionalEmail = None
     az: InstituteTranslation | None = None
     en: InstituteTranslation | None = None
     director: InstituteDirectorPayload | None = None

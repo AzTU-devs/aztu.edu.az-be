@@ -258,7 +258,14 @@ async def create_research_institute(request: CreateResearchInstitute, db: AsyncS
             )
 
         now = datetime.now(timezone.utc)
-        institute = ResearchInstitute(institute_code=institute_code, image=request.image, created_at=now, updated_at=now)
+        institute = ResearchInstitute(
+            institute_code=institute_code,
+            image=request.image,
+            website_url=request.website_url,
+            email=request.email,
+            created_at=now,
+            updated_at=now,
+        )
         db.add(institute)
 
         for lang_code, translation in [("az", request.az), ("en", request.en)]:
@@ -271,6 +278,7 @@ async def create_research_institute(request: CreateResearchInstitute, db: AsyncS
                 mission_html=translation.mission_html,
                 goals_html=translation.goals_html,
                 direction_html=translation.direction_html,
+                additional_info_html=translation.additional_info_html,
                 created_at=now,
                 updated_at=now,
             ))
@@ -338,6 +346,12 @@ async def get_research_institutes(start: int, end: int, lang: str, db: AsyncSess
                 "id": inst.id,
                 "institute_code": inst.institute_code,
                 "name": tr.name if tr else None,
+                "image": inst.image,
+                "website_url": inst.website_url,
+                "email": inst.email,
+                # Cards on the public site show a short excerpt, so the summary
+                # carries the about copy rather than forcing a per-item detail call.
+                "about_html": tr.about_html if tr else None,
                 "staff_count": staff_count,
                 "created_at": inst.created_at.isoformat() if inst.created_at else None,
             })
@@ -381,12 +395,15 @@ async def get_research_institute(institute_code: str, lang_code: str, db: AsyncS
             "id": institute.id,
             "institute_code": institute.institute_code,
             "image": institute.image,
+            "website_url": institute.website_url,
+            "email": institute.email,
             "name": tr.name if tr else None,
             "about_html": tr.about_html if tr else None,
             "vision_html": tr.vision_html if tr else None,
             "mission_html": tr.mission_html if tr else None,
             "goals_html": tr.goals_html if tr else None,
             "direction_html": tr.direction_html if tr else None,
+            "additional_info_html": tr.additional_info_html if tr else None,
             "director": await _serialize_director(director, lang_code, db),
             "staff": await _serialize_staff(institute_code, lang_code, db),
             "created_at": institute.created_at.isoformat() if institute.created_at else None,
@@ -395,6 +412,65 @@ async def get_research_institute(institute_code: str, lang_code: str, db: AsyncS
 
         return JSONResponse(
             content={"status_code": 200, "message": "Research Institute fetched successfully.", "institute": inst_obj},
+            status_code=status.HTTP_200_OK,
+        )
+
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+async def get_research_institute_admin(institute_code: str, db: AsyncSession):
+    """Both translations at once, shaped for the admin edit form.
+
+    The public detail endpoint resolves a single `lang`, which is right for the
+    site but useless for a form that edits AZ and EN side by side.
+    """
+    try:
+        inst_q = await db.execute(select(ResearchInstitute).where(ResearchInstitute.institute_code == institute_code))
+        institute = inst_q.scalar_one_or_none()
+
+        if not institute:
+            return JSONResponse(
+                content={"status_code": 404, "message": "Research Institute not found."},
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        tr_q = await db.execute(
+            select(ResearchInstituteTr).where(ResearchInstituteTr.institute_code == institute_code)
+        )
+        by_lang = {tr.lang_code: tr for tr in tr_q.scalars().all()}
+
+        def _translation(lang_code: str) -> dict:
+            tr = by_lang.get(lang_code)
+            return {
+                "name": tr.name if tr else "",
+                "about_html": (tr.about_html if tr else None) or "",
+                "vision_html": (tr.vision_html if tr else None) or "",
+                "mission_html": (tr.mission_html if tr else None) or "",
+                "goals_html": (tr.goals_html if tr else None) or "",
+                "additional_info_html": (tr.additional_info_html if tr else None) or "",
+            }
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "message": "Research Institute fetched successfully.",
+                "institute": {
+                    "id": institute.id,
+                    "institute_code": institute.institute_code,
+                    "image": institute.image,
+                    "website_url": institute.website_url,
+                    "email": institute.email,
+                    "az": _translation("az"),
+                    "en": _translation("en"),
+                    "created_at": institute.created_at.isoformat() if institute.created_at else None,
+                    "updated_at": institute.updated_at.isoformat() if institute.updated_at else None,
+                },
+            },
             status_code=status.HTTP_200_OK,
         )
 
@@ -420,8 +496,9 @@ async def update_research_institute(institute_code: str, request: UpdateResearch
         data = request.dict(exclude_unset=True)
         now = datetime.now(timezone.utc)
 
-        if "image" in data:
-            institute.image = data["image"]
+        for field in ["image", "website_url", "email"]:
+            if field in data:
+                setattr(institute, field, data[field])
 
         for lang_code in ["az", "en"]:
             tr_payload = data.get(lang_code)
@@ -429,7 +506,7 @@ async def update_research_institute(institute_code: str, request: UpdateResearch
                 tr_q = await db.execute(select(ResearchInstituteTr).where(ResearchInstituteTr.institute_code == institute_code, ResearchInstituteTr.lang_code == lang_code))
                 tr = tr_q.scalar_one_or_none()
                 if tr:
-                    for field in ["name", "about_html", "vision_html", "mission_html", "goals_html", "direction_html"]:
+                    for field in ["name", "about_html", "vision_html", "mission_html", "goals_html", "direction_html", "additional_info_html"]:
                         if field in tr_payload:
                             setattr(tr, field, tr_payload[field])
                     tr.updated_at = now

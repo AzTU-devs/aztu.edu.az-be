@@ -9,6 +9,7 @@ from app.services.research_institute import (
     create_research_institute,
     get_research_institutes,
     get_research_institute,
+    get_research_institute_admin,
     update_research_institute,
     delete_research_institute,
     upload_institute_image,
@@ -29,6 +30,15 @@ async def get_institutes_admin(
     _: AdminUser = Depends(require_admin),
 ):
     return await get_research_institutes(start=start, end=end, lang=lang, db=db)
+
+
+@router.get("/admin/{institute_code}")
+async def get_institute_admin(
+    institute_code: str,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await get_research_institute_admin(institute_code=institute_code, db=db)
 
 
 @router.get("/public/all")
