@@ -24,6 +24,8 @@ from app.api.v1.schema.cafedra import (
     UpdatePartnerCompanyItem,
     PublicationItem,
     UpdatePublicationItem,
+    PatentItem,
+    UpdatePatentItem,
     UpdateScientificIntros,
     ReorderRequest,
 )
@@ -67,9 +69,13 @@ from app.services.cafedra import (
     delete_partner_company,
     upload_partner_company_logo,
     create_publication,
+    create_patent,
     update_publication,
+    update_patent,
     delete_publication,
+    delete_patent,
     reorder_publications,
+    reorder_patents,
 )
 
 router = APIRouter()
@@ -620,3 +626,42 @@ async def delete_laboratory_endpoint(
     _: AdminUser = Depends(require_admin),
 ):
     return await delete_laboratory(laboratory_id=laboratory_id, db=db)
+
+
+@router.put("/patents/{item_id}")
+async def update_patent_endpoint(
+    item_id: int,
+    request: UpdatePatentItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await update_patent(item_id=item_id, request=request, db=db)
+
+
+@router.delete("/patents/{item_id}")
+async def delete_patent_endpoint(
+    item_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await delete_patent(item_id=item_id, db=db)
+
+
+@router.post("/{cafedra_code}/patents")
+async def create_patent_endpoint(
+    cafedra_code: str,
+    request: PatentItem,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await create_patent(cafedra_code=cafedra_code, request=request, db=db)
+
+
+@router.put("/{cafedra_code}/patents/reorder")
+async def reorder_patents_endpoint(
+    cafedra_code: str,
+    request: ReorderRequest,
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await reorder_patents(cafedra_code=cafedra_code, ids=request.ids, db=db)

@@ -110,3 +110,9 @@ class Cafedra(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    patents = relationship(
+        "CafedraPatent",
+        back_populates="cafedra",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

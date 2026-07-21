@@ -25,7 +25,9 @@ from app.api.v1.schema.cafedra import (
     PartnerCompanyItem,
     UpdatePartnerCompanyItem,
     PublicationItem,
+    PatentItem,
     UpdatePublicationItem,
+    UpdatePatentItem,
     UpdateScientificIntros,
 )
 from app.utils.file_upload import ALLOWED_IMAGE_MIMES, safe_delete_file, save_upload
@@ -75,6 +77,8 @@ from app.models.cafedras.cafedra_section import (
     CafedraDirectionOfActionTr,
     CafedraScientificPublication,
     CafedraScientificPublicationTr,
+    CafedraPatent,
+    CafedraPatentTr,
 )
 from app.utils.language import get_language
 
@@ -450,6 +454,112 @@ async def _serialize_publications(
                 "quartile": publication.quartile,
                 "date": publication.published_at,
                 "url": publication.url,
+            }
+        )
+    return items, years
+
+
+async def _upsert_patent_tr(
+    patent_id: int,
+    lang: str,
+    data: Any,
+    now: datetime,
+    db: AsyncSession,
+):
+    tr_q = await db.execute(
+        select(CafedraPatentTr).where(
+            CafedraPatentTr.patent_id == patent_id,
+            CafedraPatentTr.lang_code == lang,
+        )
+    )
+    tr = tr_q.scalar_one_or_none()
+    if tr:
+        if data.title is not None:
+            tr.title = data.title
+        tr.authors = data.authors
+        tr.updated_at = now
+    else:
+        db.add(
+            CafedraPatentTr(
+                patent_id=patent_id,
+                lang_code=lang,
+                title=data.title or "",
+                authors=data.authors,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+
+async def _create_patents(
+    cafedra_code: str,
+    items: list[Any],
+    now: datetime,
+    db: AsyncSession,
+    start_order: int = 0,
+):
+    created = []
+    for index, item in enumerate(items):
+        patent = CafedraPatent(
+            cafedra_code=cafedra_code,
+            patent_number=item.patent_number,
+            year=item.year,
+            url=item.url,
+            display_order=start_order + index,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(patent)
+        await db.flush()
+
+        for lang in ["az", "en"]:
+            await _upsert_patent_tr(patent.id, lang, getattr(item, lang), now, db)
+        created.append(patent)
+    return created
+
+
+async def _serialize_patents(
+    cafedra_code: str,
+    lang_code: str,
+    db: AsyncSession,
+) -> tuple[list[dict], list[dict]]:
+    patents_q = await db.execute(
+        select(CafedraPatent)
+        .where(CafedraPatent.cafedra_code == cafedra_code)
+        .order_by(
+            CafedraPatent.year.desc().nullslast(),
+            CafedraPatent.display_order.asc(),
+        )
+    )
+    patents = patents_q.scalars().all()
+
+    items: list[dict] = []
+    buckets: dict[Any, dict] = {}
+    years: list[dict] = []
+    for patent in patents:
+        tr_q = await db.execute(
+            select(CafedraPatentTr).where(
+                CafedraPatentTr.patent_id == patent.id,
+                CafedraPatentTr.lang_code == lang_code,
+            )
+        )
+        tr = tr_q.scalar_one_or_none()
+        year = patent.year
+        bucket = buckets.get(year)
+        if bucket is None:
+            bucket = {"year": year, "count": 0}
+            buckets[year] = bucket
+            years.append(bucket)
+        bucket["count"] += 1
+        items.append(
+            {
+                "id": patent.id,
+                "no": bucket["count"],
+                "year": year,
+                "patent_number": patent.patent_number,
+                "title": tr.title if tr else None,
+                "authors": tr.authors if tr else None,
+                "url": patent.url,
             }
         )
     return items, years
@@ -1895,6 +2005,7 @@ async def get_cafedra_scientific_activity(cafedra_code: str, lang_code: str, db:
         research_areas_intro = tr.research_areas_intro if tr else None
         projects_grants_intro = tr.projects_grants_intro if tr else None
         publications_intro = tr.publications_intro if tr else None
+        patents_intro = tr.patents_intro if tr else None
         industry_cooperation_intro = tr.industry_cooperation_intro if tr else None
         international_cooperation_intro = tr.international_cooperation_intro if tr else None
 
@@ -1912,6 +2023,7 @@ async def get_cafedra_scientific_activity(cafedra_code: str, lang_code: str, db:
         )
         laboratories = await _serialize_laboratories_for_cafedra(cafedra_code, lang_code, db)
         publications, publication_years = await _serialize_publications(cafedra_code, lang_code, db)
+        patents, patent_years = await _serialize_patents(cafedra_code, lang_code, db)
 
         sections = {
             "research_areas": {
@@ -1938,6 +2050,13 @@ async def get_cafedra_scientific_activity(cafedra_code: str, lang_code: str, db:
                 "intro_html": publications_intro,
                 "years": publication_years,
                 "items": publications,
+            },
+            "patents": {
+                "key": "patents",
+                "has_data": _has_data(patents_intro, patents),
+                "intro_html": patents_intro,
+                "years": patent_years,
+                "items": patents,
             },
             "industry_cooperation": {
                 "key": "industry_cooperation",
@@ -1998,6 +2117,7 @@ async def update_scientific_intros(cafedra_code: str, request: UpdateScientificI
                 "research_areas_intro",
                 "projects_grants_intro",
                 "publications_intro",
+                "patents_intro",
                 "industry_cooperation_intro",
                 "international_cooperation_intro",
             ]:
@@ -2382,6 +2502,105 @@ async def reorder_publications(cafedra_code: str, ids: list[int], db: AsyncSessi
         await db.commit()
         await on_cafedra_change(db, cafedra_code)
         return JSONResponse(content={"status_code": 200, "message": "Publications reordered successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def create_patent(cafedra_code: str, request: PatentItem, db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        now = datetime.now(timezone.utc)
+        max_order_q = await db.execute(
+            select(func.max(CafedraPatent.display_order)).where(
+                CafedraPatent.cafedra_code == cafedra_code
+            )
+        )
+        start_order = (max_order_q.scalar() or 0) + 1
+        created = await _create_patents(cafedra_code, [request], now, db, start_order)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 201, "message": "Patent added successfully.", "data": {"id": created[0].id}}, status_code=status.HTTP_201_CREATED)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def update_patent(item_id: int, request: UpdatePatentItem, db: AsyncSession):
+    try:
+        query = await db.execute(select(CafedraPatent).where(CafedraPatent.id == item_id))
+        patent = query.scalar_one_or_none()
+        if patent is None:
+            return JSONResponse(content={"status_code": 404, "message": "Patent not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        now = datetime.now(timezone.utc)
+        data = request.dict(exclude_unset=True)
+
+        if "patent_number" in data:
+            patent.patent_number = request.patent_number
+        if "year" in data:
+            patent.year = request.year
+        if "url" in data:
+            patent.url = request.url
+        patent.updated_at = now
+
+        for lang in ["az", "en"]:
+            if lang not in data:
+                continue
+            block = getattr(request, lang)
+            if block is None:
+                continue
+            await _upsert_patent_tr(patent.id, lang, block, now, db)
+
+        cafedra_code = patent.cafedra_code
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Patent updated successfully.", "data": {"id": item_id}}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def delete_patent(item_id: int, db: AsyncSession):
+    try:
+        cafedra_code, _ = await _delete_section_item(CafedraPatent, item_id, db)
+        if cafedra_code is None:
+            return JSONResponse(content={"status_code": 404, "message": "Patent not found."}, status_code=status.HTTP_404_NOT_FOUND)
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Patent deleted successfully."}, status_code=status.HTTP_200_OK)
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        await db.rollback()
+        return JSONResponse(content={"status_code": 500, "error": "Internal server error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+async def reorder_patents(cafedra_code: str, ids: list[int], db: AsyncSession):
+    try:
+        if not await _verify_cafedra(cafedra_code, db):
+            return JSONResponse(content={"status_code": 404, "message": "Cafedra not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        query = await db.execute(
+            select(CafedraPatent).where(CafedraPatent.cafedra_code == cafedra_code)
+        )
+        patents = {p.id: p for p in query.scalars().all()}
+        unknown = [i for i in ids if i not in patents]
+        if unknown:
+            return JSONResponse(content={"status_code": 404, "message": "Patent not found."}, status_code=status.HTTP_404_NOT_FOUND)
+
+        now = datetime.now(timezone.utc)
+        for index, patent_id in enumerate(ids):
+            patent = patents[patent_id]
+            patent.display_order = index
+            patent.updated_at = now
+
+        await db.commit()
+        await on_cafedra_change(db, cafedra_code)
+        return JSONResponse(content={"status_code": 200, "message": "Patents reordered successfully."}, status_code=status.HTTP_200_OK)
     except Exception:
         logger.exception("500 Internal Server Error")
         await db.rollback()

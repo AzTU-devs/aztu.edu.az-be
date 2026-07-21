@@ -79,6 +79,7 @@ RESOURCE_NOUNS: Dict[str, Noun] = {
     "cafedras.laboratory.gallery": Noun("laboratoriya qalereya şəkli", "laboratory gallery image", "laboratoriya qalereya şəklini", "laboratoriya qalereya şəklinin", "laboratoriya qalereya şəkillərinin"),
     "cafedras.partner_company": Noun("tərəfdaş şirkət", "partner company", "tərəfdaş şirkəti", "tərəfdaş şirkətin", "tərəfdaş şirkətlərin", "partner companies"),
     "cafedras.project": Noun("kafedra layihəsi", "cafedra project", "kafedra layihəsini", "kafedra layihəsinin", "kafedra layihələrinin"),
+    "cafedras.patent": Noun("patent", "patent", "patenti", "patentin", "patentlərin"),
     "cafedras.publication": Noun("elmi nəşr", "publication", "elmi nəşri", "elmi nəşrin", "elmi nəşrlərin"),
     "cafedras.research_area": Noun("tədqiqat sahəsi", "research area", "tədqiqat sahəsini", "tədqiqat sahəsinin", "tədqiqat sahələrinin"),
     "cafedras.scientific_council": Noun("elmi şura üzvü", "scientific council member", "elmi şura üzvünü", "elmi şura üzvünün", "elmi şura üzvlərinin"),

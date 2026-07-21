@@ -14,6 +14,7 @@ class CafedraTr(Base):
     research_areas_intro = Column(Text)
     projects_grants_intro = Column(Text)
     publications_intro = Column(Text)
+    patents_intro = Column(Text)
     industry_cooperation_intro = Column(Text)
     international_cooperation_intro = Column(Text)
     cafedra_code = Column(

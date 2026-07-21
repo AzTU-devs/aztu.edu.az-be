@@ -479,3 +479,50 @@ class CafedraScientificPublicationTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     publication = relationship("CafedraScientificPublication", back_populates="translations")
+
+
+class CafedraPatent(Base):
+    __tablename__ = "cafedra_patents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cafedra_code = Column(
+        String(50),
+        ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # Free text: real numbers take several shapes ("İ 2024 0058", "№053029").
+    patent_number = Column(String(100))
+    year = Column(Integer, index=True)
+    url = Column(String(2048))
+    display_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    cafedra = relationship("Cafedra", back_populates="patents")
+    translations = relationship(
+        "CafedraPatentTr",
+        back_populates="patent",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class CafedraPatentTr(Base):
+    __tablename__ = "cafedra_patent_tr"
+    __table_args__ = (
+        UniqueConstraint("patent_id", "lang_code", name="uq_cafedra_patent_tr_id_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    patent_id = Column(
+        Integer,
+        ForeignKey("cafedra_patents.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    lang_code = Column(String(10), nullable=False)
+    title = Column(String(1000), nullable=False)
+    authors = Column(Text)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    patent = relationship("CafedraPatent", back_populates="translations")

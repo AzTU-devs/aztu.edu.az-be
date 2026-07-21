@@ -379,10 +379,32 @@ class PublicationItem(BaseModel):
         return _validate_year(value)
 
 
+class PatentTranslation(BaseModel):
+    title: str = Field(..., max_length=1000)
+    authors: OptionalStr = None
+
+
+class PatentItem(BaseModel):
+    az: PatentTranslation
+    en: PatentTranslation
+    patent_number: OptionalStr = None
+    year: OptionalInt = None
+    url: OptionalUrl = None
+
+    class Config:
+        extra = "ignore"
+
+    @field_validator("year")
+    @classmethod
+    def _valid_year(cls, value):
+        return _validate_year(value)
+
+
 class ScientificIntroTranslation(BaseModel):
     research_areas_intro: OptionalStr = None
     projects_grants_intro: OptionalStr = None
     publications_intro: OptionalStr = None
+    patents_intro: OptionalStr = None
     industry_cooperation_intro: OptionalStr = None
     international_cooperation_intro: OptionalStr = None
 
@@ -459,6 +481,27 @@ class UpdatePublicationItem(BaseModel):
     index: PublicationIndex | None = None
     quartile: OptionalQuartile = None
     date: OptionalStr = None
+    year: OptionalInt = None
+    url: OptionalUrl = None
+
+    class Config:
+        extra = "ignore"
+
+    @field_validator("year")
+    @classmethod
+    def _valid_year(cls, value):
+        return _validate_year(value)
+
+
+class PatentTranslationUpdate(BaseModel):
+    title: Annotated[str, Field(max_length=1000)] | None = None
+    authors: OptionalStr = None
+
+
+class UpdatePatentItem(BaseModel):
+    az: PatentTranslationUpdate | None = None
+    en: PatentTranslationUpdate | None = None
+    patent_number: OptionalStr = None
     year: OptionalInt = None
     url: OptionalUrl = None
 
