@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -135,6 +135,127 @@ async def get_header_menu(lang_code: str, db: AsyncSession):
         )
     except Exception:
         logger.exception("get_header_menu failed")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+# ─────────────────────────────────────────────────────────────
+# GET  —  admin
+# ─────────────────────────────────────────────────────────────
+
+def _by_parent_and_lang(rows, parent_attr: str) -> Dict[int, Dict[str, Any]]:
+    """{parent_id: {"az": translation, "en": translation}}."""
+    grouped: Dict[int, Dict[str, Any]] = {}
+    for row in rows:
+        grouped.setdefault(getattr(row, parent_attr), {})[row.lang_code] = row
+    return grouped
+
+
+def _titles(by_lang: Dict[str, Any]) -> Dict[str, str]:
+    """Both translations side by side, plus an az-preferred pair the editor lists
+    rows by. A row half-translated still renders rather than vanishing."""
+    az = by_lang.get("az")
+    en = by_lang.get("en")
+    primary = az or en
+    return {
+        "title": primary.title if primary else "",
+        "slug": primary.slug if primary else "",
+        "title_az": az.title if az else "",
+        "title_en": en.title if en else "",
+        "slug_az": az.slug if az else "",
+        "slug_en": en.slug if en else "",
+    }
+
+
+async def get_header_menu_admin(db: AsyncSession):
+    """The whole tree as the dashboard editor needs it.
+
+    Three things the public reader deliberately withholds and the editor cannot
+    work without: inactive rows (otherwise deactivating one hides it forever),
+    both translations at once, and the raw `display_order` / `has_subitems` /
+    `is_active` columns it has to round-trip on save.
+
+    The header menu is a handful of rows by nature, so each level loads in one
+    query and is stitched in memory rather than walked per-parent.
+    """
+    try:
+        headers = (await db.execute(
+            select(MenuHeader).order_by(
+                MenuHeader.display_order.asc(), MenuHeader.id.asc()
+            )
+        )).scalars().all()
+
+        items = (await db.execute(
+            select(MenuHeaderItem).order_by(
+                MenuHeaderItem.display_order.asc(), MenuHeaderItem.id.asc()
+            )
+        )).scalars().all()
+
+        sub_items = (await db.execute(
+            select(MenuHeaderSubItem).order_by(
+                MenuHeaderSubItem.display_order.asc(), MenuHeaderSubItem.id.asc()
+            )
+        )).scalars().all()
+
+        header_tr = _by_parent_and_lang(
+            (await db.execute(select(MenuHeaderTranslation))).scalars().all(),
+            "header_id",
+        )
+        item_tr = _by_parent_and_lang(
+            (await db.execute(select(MenuHeaderItemTranslation))).scalars().all(),
+            "item_id",
+        )
+        sub_tr = _by_parent_and_lang(
+            (await db.execute(select(MenuHeaderSubItemTranslation))).scalars().all(),
+            "sub_item_id",
+        )
+
+        subs_by_item: Dict[int, List[dict]] = {}
+        for sub in sub_items:
+            subs_by_item.setdefault(sub.item_id, []).append({
+                "id": sub.id,
+                "item_id": sub.item_id,
+                "direct_url": sub.direct_url,
+                "display_order": sub.display_order,
+                "is_active": sub.is_active,
+                **_titles(sub_tr.get(sub.id, {})),
+            })
+
+        items_by_header: Dict[int, List[dict]] = {}
+        for item in items:
+            items_by_header.setdefault(item.header_id, []).append({
+                "id": item.id,
+                "header_id": item.header_id,
+                "direct_url": item.direct_url,
+                "has_subitems": item.has_subitems,
+                "display_order": item.display_order,
+                "is_active": item.is_active,
+                "sub_items": subs_by_item.get(item.id, []),
+                **_titles(item_tr.get(item.id, {})),
+            })
+
+        data = [
+            {
+                "id": header.id,
+                "image_url": header.image_url,
+                "direct_url": header.direct_url,
+                "has_subitems": header.has_subitems,
+                "display_order": header.display_order,
+                "is_active": header.is_active,
+                "items": items_by_header.get(header.id, []),
+                **_titles(header_tr.get(header.id, {})),
+            }
+            for header in headers
+        ]
+
+        return JSONResponse(
+            content={"status_code": 200, "data": data},
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("get_header_menu_admin failed")
         return JSONResponse(
             content={"status_code": 500, "error": "Internal server error"},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

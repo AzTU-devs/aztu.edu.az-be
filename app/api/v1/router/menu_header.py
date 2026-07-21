@@ -12,7 +12,7 @@ from app.api.v1.schema.menu import (
     CreateHeaderSubItem, UpdateHeaderSubItem,
 )
 from app.services.menu_header import (
-    get_header_menu,
+    get_header_menu, get_header_menu_admin,
     create_header, update_header, delete_header,
     create_header_item, update_header_item, delete_header_item,
     create_header_sub_item, update_header_sub_item, delete_header_sub_item,
@@ -32,6 +32,17 @@ async def get_header_menu_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_header_menu(lang_code=lang_code, db=db)
+
+
+# ─────────────────────────────────────────────────────────────
+# GET  —  admin (both languages, inactive rows included)
+# ─────────────────────────────────────────────────────────────
+
+@admin_router.get("/admin")
+async def get_header_menu_admin_endpoint(
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_header_menu_admin(db=db)
 
 
 # ─────────────────────────────────────────────────────────────
