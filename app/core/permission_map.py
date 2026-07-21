@@ -197,6 +197,11 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("PUT", "/api/research-institute/{institute_code}/image"): RouteRule("research_institutes.upload_image", target_type="research_institute", target_param="institute_code"),
     ("PUT", "/api/research-institute/{institute_code}/director/image"): RouteRule("research_institutes.director.upload_image", target_type="research_institute", target_param="institute_code"),
     ("PUT", "/api/research-institute/staff/{staff_id}/image"): RouteRule("research_institutes.staff.upload_image", target_type="research_institute_staff", target_param="staff_id"),
+    # ── research projects ──────────────────────────────────────────────────
+    ("POST", "/api/research-project/create"): RouteRule("research_projects.create", target_type="research_project"),
+    ("PUT", "/api/research-project/{project_code}"): RouteRule("research_projects.update", target_type="research_project", target_param="project_code"),
+    ("DELETE", "/api/research-project/{project_code}"): RouteRule("research_projects.delete", target_type="research_project", target_param="project_code"),
+    ("PUT", "/api/research-project/{project_code}/image"): RouteRule("research_projects.upload_image", target_type="research_project", target_param="project_code"),
 
     # ── menu / footer ──────────────────────────────────────────────────────
     ("POST", "/api/menu/footer/column"): RouteRule("menu.footer_column.create", target_type="footer_column"),

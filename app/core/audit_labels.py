@@ -232,6 +232,7 @@ _RESOLVER_SPECS: Dict[str, _Resolver] = {
     # the parallel research_institutes package is dead weight and redefines the
     # same tables on the same MetaData.
     "research_institute": _Resolver("app.models.research_institute.institute", "ResearchInstituteTr", "institute_code", "name"),
+    "research_project": _Resolver("app.models.research_project.project", "ResearchProjectTr", "project_code", "name"),
 }
 
 TARGET_LABEL_MAX_LENGTH = 200

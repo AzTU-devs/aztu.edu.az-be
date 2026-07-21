@@ -43,6 +43,7 @@ DOMAIN_LABELS: Dict[str, Tuple[str, str]] = {
     "cafedras": ("Kafedralar", "Cafedras"),
     "departments": ("Şöbələr", "Departments"),
     "research_institutes": ("Elmi tədqiqat institutları", "Research institutes"),
+    "research_projects": ("Tədqiqat layihələri", "Research projects"),
     "menu": ("Menyu və altlıq", "Menu and footer"),
     "menu_header": ("Başlıq menyusu", "Header menu"),
     "chatbot_knowledge": ("Çatbot bilik bazası", "Chatbot knowledge base"),
@@ -167,6 +168,11 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     _p("research_institutes.upload_image", "İnstitutun şəklini yükləmək", "Upload research institute image"),
     _p("research_institutes.director.upload_image", "İnstitut direktorunun şəklini yükləmək", "Upload research institute director image"),
     _p("research_institutes.staff.upload_image", "İnstitut əməkdaşının şəklini yükləmək", "Upload research institute staff image"),
+    # ── research_projects ───────────────────────────────────────────────────
+    _p("research_projects.create", "Tədqiqat layihəsi yaratmaq", "Create research project"),
+    _p("research_projects.update", "Tədqiqat layihəsini redaktə etmək", "Edit research project"),
+    _p("research_projects.delete", "Tədqiqat layihəsini silmək", "Delete research project"),
+    _p("research_projects.upload_image", "Layihənin şəklini yükləmək", "Upload research project image"),
     # ── menu ────────────────────────────────────────────────────────────────
     _p("menu.footer_column.create", "Altlıq sütunu yaratmaq", "Create footer column"),
     _p("menu.footer_column.update", "Altlıq sütununu redaktə etmək", "Edit footer column"),
