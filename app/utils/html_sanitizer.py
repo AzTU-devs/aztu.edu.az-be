@@ -35,6 +35,8 @@ ALLOWED_CSS_PROPERTIES = [
     "color", "background-color", "font-size", "font-weight", "font-style",
     "text-align", "text-decoration", "margin", "padding",
     "width", "height", "max-width",
+    # Paragraph spacing, set from the editor's line-height control.
+    "line-height",
 ]
 
 # Only allow http/https/mailto links — bleach default already blocks

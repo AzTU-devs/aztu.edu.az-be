@@ -45,6 +45,7 @@ from app.models.about.about_page import (
     AboutSection,
     AboutSectionTr,
 )
+from app.utils.html_sanitizer import sanitize_html
 from app.utils.file_upload import (
     ALLOWED_DOC_MIMES,
     ALLOWED_IMAGE_MIMES,
@@ -101,11 +102,24 @@ def _error(status_code: int, message: str) -> JSONResponse:
     return JSONResponse(content={"status_code": status_code, "message": message}, status_code=status_code)
 
 
+# Fields whose value is editor-authored HTML. Everything the dashboard sends is
+# scrubbed before it is stored, so the public site can render it verbatim — an
+# authenticated admin is still not a reason to serve unsanitised markup.
+RICH_TEXT_FIELDS = frozenset({
+    "body_html", "list_intro", "bio_html", "intro", "subtitle", "description",
+    "achievements", "note", "footer", "caption",
+})
+
+
 def _apply(target: Any, data: dict, fields: Iterable[str]) -> None:
     """Copy only the keys the caller actually sent (PATCH semantics)."""
     for field in fields:
-        if field in data:
-            setattr(target, field, data[field])
+        if field not in data:
+            continue
+        value = data[field]
+        if field in RICH_TEXT_FIELDS and isinstance(value, str):
+            value = sanitize_html(value)
+        setattr(target, field, value)
 
 
 async def _upsert_translations(
