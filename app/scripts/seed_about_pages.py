@@ -106,6 +106,8 @@ BLUEPRINT: list[dict] = [
         ("Vizyon 2030", "Strateji İnkişaf Planı", "Strateji Plan"),
         ("Vision 2030", "Strategic Development Plan", "Strategic Plan"),
         [
+            # Uploaded from the dashboard, with a separate AZ and EN file.
+            ("document", "documents", "Plan sənədi", "Plan document"),
             ("vision", "paragraphs", "Vizyon", "Vision"),
             ("mission", "paragraphs", "Missiya", "Mission"),
             ("pillars", "pillars", "Strateji Sütunlar", "Strategic Pillars"),
@@ -144,11 +146,19 @@ BLUEPRINT: list[dict] = [
         ("Rəhbərlik və İdarəetmə", "Rektor", "Rektor"),
         ("Leadership & Governance", "Rector", "Rector"),
         [
+            # The rector himself: name, degree, position, e-mail and photo,
+            # which the hero renders above everything else.
+            ("profile", "people", "Rektor", "Rector"),
+            # The two figures beside the portrait — academic degree and years
+            # of experience — as label/value pairs.
+            ("highlights", "facts", "Əsas göstəricilər", "At a glance"),
+            # One rich-text field, not three blocks: on the site the greeting,
+            # the priority list and the sign-off are a single letter, and an
+            # editor needs to control the spacing between its paragraphs.
             ("message", "paragraphs", "Rektorun Müraciəti", "Message from the Rector"),
-            ("priorities", "list", "Əsas fəaliyyət istiqamətlərimiz", "Our Key Priorities"),
-            ("message_closing", "paragraphs", "Müraciətin sonu", "Closing Remarks"),
-            ("responsibilities", "list", "Vəzifə Öhdəlikləri", "Responsibilities"),
             ("about_rector", "paragraphs", "Rektor haqqında", "About the Rector"),
+            ("responsibilities", "list", "Vəzifə Öhdəlikləri", "Responsibilities"),
+            # Heading + rich-text lead + the list of units underneath it.
             ("departments", "list", "Rektora tabe olan strukturlar", "Units Reporting to the Rector"),
             ("gallery", "gallery", "Rektorun Qalereyası", "Rector's Gallery"),
             RELATED,
@@ -366,6 +376,133 @@ BLUEPRINT: list[dict] = [
             ("doctoral_duration", "group_list", "Təhsil Müddəti", "Programme duration"),
             ("contact", "contact", "Əlaqə", "Contact"),
             RELATED,
+        ],
+    ),
+
+    # ── İdarəetmə → Ofis və Mərkəzlər ─────────────────────────────────────
+    # The header's Management dropdown has two halves. "Struktur bölmələr"
+    # already reads the departments API and is edited under Departamentlər;
+    # these seven screens were the static half, so they move here.
+    #
+    # They share one shape — about / objectives / functions / head / staff /
+    # contact — with a few page-specific blocks on top, which is exactly what
+    # this block model already expresses.
+    page(
+        "tto", "offices", "office", 50,
+        "idareetme/ofis-ve-merkezler/texnaloji-transfer-ofisi-tto",
+        "management/offices-and-centers/technology-transfer-office",
+        ("İdarəetmə", "Texnoloji Transfer Ofisi", "Texnoloji Transfer Ofisi"),
+        ("Management", "Technology Transfer Office", "Technology Transfer Office"),
+        [
+            ("about", "paragraphs", "Haqqında", "About"),
+            ("objectives", "list", "Məqsədlər", "Objectives"),
+            ("functions", "cards", "Əsas Funksiyalar", "Key Functions"),
+            ("partnerships", "table", "Tərəfdaşlıq və Ekosistem", "Partnerships and Ecosystem"),
+            ("international", "cards", "Beynəlxalq Əməkdaşlıq", "International Cooperation"),
+            ("innovation", "table", "İnnovasiya Tərəfdaşları", "Innovation Partners"),
+            ("head", "people", "Rəhbər", "Head of Office"),
+            ("staff", "people", "Əməkdaşlar", "Staff"),
+            ("contact", "contact", "Əlaqə", "Contact"),
+        ],
+    ),
+    page(
+        "qatim", "offices", "office", 51,
+        "idareetme/ofis-ve-merkezler/qatim",
+        "management/offices-and-centers/qatim",
+        ("İdarəetmə", "Keyfiyyətin Təminatı və Öyrənmə-Öyrətmə Mərkəzi", "QATİM"),
+        ("Management", "Quality Assurance and Teaching-Learning Centre", "QATIM"),
+        [
+            ("about", "paragraphs", "Haqqında", "About"),
+            ("objectives", "list", "Məqsədlər", "Objectives"),
+            ("functions", "cards", "Əsas Funksiyalar", "Key Functions"),
+            ("head", "people", "Rəhbər", "Head of Centre"),
+            ("staff", "people", "Əməkdaşlar", "Staff"),
+            ("contact", "contact", "Əlaqə", "Contact"),
+        ],
+    ),
+    page(
+        "sabah-center", "offices", "office", 52,
+        "idareetme/ofis-ve-merkezler/sabah-merkezi",
+        "management/offices-and-centers/sabah-center",
+        ("İdarəetmə", "SABAH Mərkəzi", "SABAH Mərkəzi"),
+        ("Management", "SABAH Centre", "SABAH Centre"),
+        [
+            ("about", "paragraphs", "Haqqında", "About"),
+            ("objectives", "list", "Məqsədlər", "Objectives"),
+            ("functions", "cards", "Əsas Funksiyalar", "Key Functions"),
+            ("head", "people", "Rəhbər", "Head of Centre"),
+            ("staff", "people", "Əməkdaşlar", "Staff"),
+            ("contact", "contact", "Əlaqə", "Contact"),
+        ],
+    ),
+    page(
+        "career-center", "offices", "office", 53,
+        "idareetme/ofis-ve-merkezler/karyera-ve-mesgulluq-merkezi",
+        "management/offices-and-centers/career-and-employment-center",
+        ("İdarəetmə", "Karyera və Məşğulluq Mərkəzi", "Karyera Mərkəzi"),
+        ("Management", "Career and Employment Centre", "Career Centre"),
+        [
+            ("about", "paragraphs", "Haqqında", "About"),
+            ("objectives", "list", "Məqsədlər", "Objectives"),
+            ("functions", "cards", "Əsas Funksiyalar", "Key Functions"),
+            ("head", "people", "Rəhbər", "Head of Centre"),
+            ("staff", "people", "Əməkdaşlar", "Staff"),
+            ("statute", "documents", "Əsasnamə", "Statute"),
+            ("contact", "contact", "Əlaqə", "Contact"),
+        ],
+    ),
+    page(
+        "lifelong-learning", "offices", "office", 54,
+        "idareetme/ofis-ve-merkezler/omurboyu-tehsil",
+        "management/offices-and-centers/lifelong-learning",
+        ("İdarəetmə", "Ömürboyu Təhsil Mərkəzi", "Ömürboyu Təhsil"),
+        ("Management", "Lifelong Learning Centre", "Lifelong Learning"),
+        [
+            ("about", "paragraphs", "Haqqında", "About"),
+            ("objectives", "list", "Məqsədlər", "Objectives"),
+            # Plain strings on this page, unlike the title+description cards
+            # the other offices use.
+            ("functions", "list", "Əsas Funksiyalar", "Key Functions"),
+            ("staff", "people", "Əməkdaşlar", "Staff"),
+            ("statute", "documents", "Əsasnamə", "Statute"),
+            ("contact", "contact", "Əlaqə", "Contact"),
+        ],
+    ),
+    page(
+        "library", "offices", "office", 55,
+        "idareetme/ofis-ve-merkezler/kitabxana-informasiya-merkezi",
+        "management/offices-and-centers/library-and-information-center",
+        ("İdarəetmə", "Kitabxana-İnformasiya Mərkəzi", "Kitabxana"),
+        ("Management", "Library and Information Centre", "Library"),
+        [
+            ("about", "paragraphs", "Haqqında", "About"),
+            ("departments", "list", "Şöbələr", "Departments"),
+            ("technical", "list", "Texniki proseslər", "Technical processes"),
+            ("dls", "list", "Elektron kitabxana xidmətləri", "Digital library services"),
+            ("info_services", "list", "İnformasiya xidmətləri", "Information services"),
+            ("activities", "list", "Fəaliyyətlər", "Activities"),
+            ("purpose", "paragraphs", "Məqsəd", "Purpose"),
+            ("report", "paragraphs", "Hesabat", "Report"),
+            ("visitors", "stats", "Ziyarətçi statistikası", "Visitor statistics"),
+            ("databases", "list", "Elektron bazalar", "Databases"),
+            ("email_queries", "paragraphs", "Elektron sorğular", "Email queries"),
+            ("head", "people", "Rəhbər", "Head of Centre"),
+            ("staff", "people", "Əməkdaşlar", "Staff"),
+            ("contact", "contact", "Əlaqə", "Contact"),
+        ],
+    ),
+    page(
+        "nabran", "offices", "office", 56,
+        "idareetme/ofis-ve-merkezler/nabran-istirahet-merkezi",
+        "management/offices-and-centers/nabran-recreation-center",
+        ("İdarəetmə", "Nabran İstirahət Mərkəzi", "Nabran"),
+        ("Management", "Nabran Recreation Centre", "Nabran"),
+        [
+            ("about", "paragraphs", "Haqqında", "About"),
+            ("stats", "stats", "Mərkəz haqqında", "At a glance"),
+            ("facilities", "list", "İmkanlar", "Facilities"),
+            ("gallery", "gallery", "Foto Qalereya", "Photo Gallery"),
+            ("contact", "contact", "Əlaqə", "Contact"),
         ],
     ),
 ]

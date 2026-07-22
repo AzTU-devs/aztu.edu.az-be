@@ -171,6 +171,12 @@ class AboutSectionTr(Base):
     note = Column(Text)
     cta_label = Column(String(255))
     pdf_url = Column(String(2048))
+    # The anniversary film is a different YouTube cut per language, so the URL
+    # belongs to the translation rather than the block.
+    video_url = Column(String(2048))
+    # A block can carry a heading, a rich-text lead AND a list (e.g. the units
+    # reporting to the Rector); `description` is already the plain lead.
+    list_intro = Column(Text)
     # Table column headers, per language: ["№", "S.A.A.", "Vəzifəsi"].
     headers = Column(JSONB)
 

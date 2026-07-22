@@ -163,7 +163,21 @@ select p.id, 'en', 'Vision 2030', 'Strategic Development Plan', 'Strategic Plan'
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'vision', 'paragraphs', 1, true
+select p.id, 'document', 'documents', 1, true
+from about_pages p where p.page_key = 'strategic-plan'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Plan sənədi'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'strategic-plan' and s.section_key = 'document'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Plan document'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'strategic-plan' and s.section_key = 'document'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'vision', 'paragraphs', 2, true
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -177,7 +191,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'strategic-plan' and s.section_key = 'vision'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'mission', 'paragraphs', 2, true
+select p.id, 'mission', 'paragraphs', 3, true
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -191,7 +205,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'strategic-plan' and s.section_key = 'mission'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'pillars', 'pillars', 3, true
+select p.id, 'pillars', 'pillars', 4, true
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -205,7 +219,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'strategic-plan' and s.section_key = 'pillars'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'values', 'list', 4, true
+select p.id, 'values', 'list', 5, true
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -219,7 +233,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'strategic-plan' and s.section_key = 'values'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'targets', 'list', 5, true
+select p.id, 'targets', 'list', 6, true
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -233,7 +247,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'strategic-plan' and s.section_key = 'targets'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'related', 'links', 6, true
+select p.id, 'related', 'links', 7, true
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -370,7 +384,35 @@ select p.id, 'en', 'Leadership & Governance', 'Rector', 'Rector'
 from about_pages p where p.page_key = 'rector'
 on conflict (page_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'message', 'paragraphs', 1, true
+select p.id, 'profile', 'people', 1, true
+from about_pages p where p.page_key = 'rector'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Rektor'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'rector' and s.section_key = 'profile'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Rector'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'rector' and s.section_key = 'profile'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'highlights', 'facts', 2, true
+from about_pages p where p.page_key = 'rector'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əsas göstəricilər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'rector' and s.section_key = 'highlights'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'At a glance'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'rector' and s.section_key = 'highlights'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'message', 'paragraphs', 3, true
 from about_pages p where p.page_key = 'rector'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -384,49 +426,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'rector' and s.section_key = 'message'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'priorities', 'list', 2, true
-from about_pages p where p.page_key = 'rector'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Əsas fəaliyyət istiqamətlərimiz'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'rector' and s.section_key = 'priorities'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'Our Key Priorities'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'rector' and s.section_key = 'priorities'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'message_closing', 'paragraphs', 3, true
-from about_pages p where p.page_key = 'rector'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Müraciətin sonu'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'rector' and s.section_key = 'message_closing'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'Closing Remarks'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'rector' and s.section_key = 'message_closing'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'responsibilities', 'list', 4, true
-from about_pages p where p.page_key = 'rector'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Vəzifə Öhdəlikləri'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'rector' and s.section_key = 'responsibilities'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'Responsibilities'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'rector' and s.section_key = 'responsibilities'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'about_rector', 'paragraphs', 5, true
+select p.id, 'about_rector', 'paragraphs', 4, true
 from about_pages p where p.page_key = 'rector'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -438,6 +438,20 @@ insert into about_section_tr (section_id, lang_code, title)
 select s.id, 'en', 'About the Rector'
 from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'rector' and s.section_key = 'about_rector'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'responsibilities', 'list', 5, true
+from about_pages p where p.page_key = 'rector'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Vəzifə Öhdəlikləri'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'rector' and s.section_key = 'responsibilities'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Responsibilities'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'rector' and s.section_key = 'responsibilities'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
 select p.id, 'departments', 'list', 6, true
@@ -1697,10 +1711,843 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'mba' and s.section_key = 'related'
 on conflict (section_id, lang_code) do nothing;
 
+-- ── tto ─────────────────────────────────────────────────────────
+insert into about_pages (page_key, group_key, template, slug_az, slug_en, display_order, is_active)
+values ('tto', 'offices', 'office', 'idareetme/ofis-ve-merkezler/texnaloji-transfer-ofisi-tto', 'management/offices-and-centers/technology-transfer-office', 50, false)
+on conflict (page_key) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'az', 'İdarəetmə', 'Texnoloji Transfer Ofisi', 'Texnoloji Transfer Ofisi'
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, lang_code) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'en', 'Management', 'Technology Transfer Office', 'Technology Transfer Office'
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'about', 'paragraphs', 1, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Haqqında'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'About'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'objectives', 'list', 2, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Məqsədlər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Objectives'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'functions', 'cards', 3, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əsas Funksiyalar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Key Functions'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'partnerships', 'table', 4, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Tərəfdaşlıq və Ekosistem'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'partnerships'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Partnerships and Ecosystem'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'partnerships'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'international', 'cards', 5, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Beynəlxalq Əməkdaşlıq'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'international'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'International Cooperation'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'international'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'innovation', 'table', 6, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'İnnovasiya Tərəfdaşları'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'innovation'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Innovation Partners'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'innovation'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'head', 'people', 7, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Rəhbər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Head of Office'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'staff', 'people', 8, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əməkdaşlar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Staff'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'contact', 'contact', 9, true
+from about_pages p where p.page_key = 'tto'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əlaqə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Contact'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'tto' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+
+-- ── qatim ───────────────────────────────────────────────────────
+insert into about_pages (page_key, group_key, template, slug_az, slug_en, display_order, is_active)
+values ('qatim', 'offices', 'office', 'idareetme/ofis-ve-merkezler/qatim', 'management/offices-and-centers/qatim', 51, false)
+on conflict (page_key) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'az', 'İdarəetmə', 'Keyfiyyətin Təminatı və Öyrənmə-Öyrətmə Mərkəzi', 'QATİM'
+from about_pages p where p.page_key = 'qatim'
+on conflict (page_id, lang_code) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'en', 'Management', 'Quality Assurance and Teaching-Learning Centre', 'QATIM'
+from about_pages p where p.page_key = 'qatim'
+on conflict (page_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'about', 'paragraphs', 1, true
+from about_pages p where p.page_key = 'qatim'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Haqqında'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'About'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'objectives', 'list', 2, true
+from about_pages p where p.page_key = 'qatim'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Məqsədlər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Objectives'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'functions', 'cards', 3, true
+from about_pages p where p.page_key = 'qatim'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əsas Funksiyalar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Key Functions'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'head', 'people', 4, true
+from about_pages p where p.page_key = 'qatim'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Rəhbər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Head of Centre'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'staff', 'people', 5, true
+from about_pages p where p.page_key = 'qatim'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əməkdaşlar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Staff'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'contact', 'contact', 6, true
+from about_pages p where p.page_key = 'qatim'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əlaqə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Contact'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'qatim' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+
+-- ── sabah-center ────────────────────────────────────────────────
+insert into about_pages (page_key, group_key, template, slug_az, slug_en, display_order, is_active)
+values ('sabah-center', 'offices', 'office', 'idareetme/ofis-ve-merkezler/sabah-merkezi', 'management/offices-and-centers/sabah-center', 52, false)
+on conflict (page_key) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'az', 'İdarəetmə', 'SABAH Mərkəzi', 'SABAH Mərkəzi'
+from about_pages p where p.page_key = 'sabah-center'
+on conflict (page_id, lang_code) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'en', 'Management', 'SABAH Centre', 'SABAH Centre'
+from about_pages p where p.page_key = 'sabah-center'
+on conflict (page_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'about', 'paragraphs', 1, true
+from about_pages p where p.page_key = 'sabah-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Haqqında'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'About'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'objectives', 'list', 2, true
+from about_pages p where p.page_key = 'sabah-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Məqsədlər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Objectives'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'functions', 'cards', 3, true
+from about_pages p where p.page_key = 'sabah-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əsas Funksiyalar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Key Functions'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'head', 'people', 4, true
+from about_pages p where p.page_key = 'sabah-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Rəhbər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Head of Centre'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'staff', 'people', 5, true
+from about_pages p where p.page_key = 'sabah-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əməkdaşlar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Staff'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'contact', 'contact', 6, true
+from about_pages p where p.page_key = 'sabah-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əlaqə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Contact'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'sabah-center' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+
+-- ── career-center ───────────────────────────────────────────────
+insert into about_pages (page_key, group_key, template, slug_az, slug_en, display_order, is_active)
+values ('career-center', 'offices', 'office', 'idareetme/ofis-ve-merkezler/karyera-ve-mesgulluq-merkezi', 'management/offices-and-centers/career-and-employment-center', 53, false)
+on conflict (page_key) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'az', 'İdarəetmə', 'Karyera və Məşğulluq Mərkəzi', 'Karyera Mərkəzi'
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, lang_code) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'en', 'Management', 'Career and Employment Centre', 'Career Centre'
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'about', 'paragraphs', 1, true
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Haqqında'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'About'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'objectives', 'list', 2, true
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Məqsədlər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Objectives'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'functions', 'cards', 3, true
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əsas Funksiyalar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Key Functions'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'head', 'people', 4, true
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Rəhbər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Head of Centre'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'staff', 'people', 5, true
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əməkdaşlar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Staff'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'statute', 'documents', 6, true
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əsasnamə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'statute'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Statute'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'statute'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'contact', 'contact', 7, true
+from about_pages p where p.page_key = 'career-center'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əlaqə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Contact'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'career-center' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+
+-- ── lifelong-learning ───────────────────────────────────────────
+insert into about_pages (page_key, group_key, template, slug_az, slug_en, display_order, is_active)
+values ('lifelong-learning', 'offices', 'office', 'idareetme/ofis-ve-merkezler/omurboyu-tehsil', 'management/offices-and-centers/lifelong-learning', 54, false)
+on conflict (page_key) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'az', 'İdarəetmə', 'Ömürboyu Təhsil Mərkəzi', 'Ömürboyu Təhsil'
+from about_pages p where p.page_key = 'lifelong-learning'
+on conflict (page_id, lang_code) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'en', 'Management', 'Lifelong Learning Centre', 'Lifelong Learning'
+from about_pages p where p.page_key = 'lifelong-learning'
+on conflict (page_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'about', 'paragraphs', 1, true
+from about_pages p where p.page_key = 'lifelong-learning'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Haqqında'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'About'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'objectives', 'list', 2, true
+from about_pages p where p.page_key = 'lifelong-learning'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Məqsədlər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Objectives'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'objectives'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'functions', 'list', 3, true
+from about_pages p where p.page_key = 'lifelong-learning'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əsas Funksiyalar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Key Functions'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'functions'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'staff', 'people', 4, true
+from about_pages p where p.page_key = 'lifelong-learning'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əməkdaşlar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Staff'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'statute', 'documents', 5, true
+from about_pages p where p.page_key = 'lifelong-learning'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əsasnamə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'statute'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Statute'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'statute'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'contact', 'contact', 6, true
+from about_pages p where p.page_key = 'lifelong-learning'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əlaqə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Contact'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'lifelong-learning' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+
+-- ── library ─────────────────────────────────────────────────────
+insert into about_pages (page_key, group_key, template, slug_az, slug_en, display_order, is_active)
+values ('library', 'offices', 'office', 'idareetme/ofis-ve-merkezler/kitabxana-informasiya-merkezi', 'management/offices-and-centers/library-and-information-center', 55, false)
+on conflict (page_key) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'az', 'İdarəetmə', 'Kitabxana-İnformasiya Mərkəzi', 'Kitabxana'
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, lang_code) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'en', 'Management', 'Library and Information Centre', 'Library'
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'about', 'paragraphs', 1, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Haqqında'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'About'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'departments', 'list', 2, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Şöbələr'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'departments'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Departments'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'departments'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'technical', 'list', 3, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Texniki proseslər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'technical'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Technical processes'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'technical'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'dls', 'list', 4, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Elektron kitabxana xidmətləri'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'dls'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Digital library services'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'dls'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'info_services', 'list', 5, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'İnformasiya xidmətləri'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'info_services'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Information services'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'info_services'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'activities', 'list', 6, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Fəaliyyətlər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'activities'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Activities'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'activities'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'purpose', 'paragraphs', 7, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Məqsəd'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'purpose'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Purpose'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'purpose'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'report', 'paragraphs', 8, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Hesabat'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'report'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Report'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'report'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'visitors', 'stats', 9, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Ziyarətçi statistikası'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'visitors'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Visitor statistics'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'visitors'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'databases', 'list', 10, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Elektron bazalar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'databases'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Databases'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'databases'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'email_queries', 'paragraphs', 11, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Elektron sorğular'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'email_queries'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Email queries'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'email_queries'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'head', 'people', 12, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Rəhbər'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Head of Centre'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'head'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'staff', 'people', 13, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əməkdaşlar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Staff'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'staff'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'contact', 'contact', 14, true
+from about_pages p where p.page_key = 'library'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əlaqə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Contact'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'library' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+
+-- ── nabran ──────────────────────────────────────────────────────
+insert into about_pages (page_key, group_key, template, slug_az, slug_en, display_order, is_active)
+values ('nabran', 'offices', 'office', 'idareetme/ofis-ve-merkezler/nabran-istirahet-merkezi', 'management/offices-and-centers/nabran-recreation-center', 56, false)
+on conflict (page_key) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'az', 'İdarəetmə', 'Nabran İstirahət Mərkəzi', 'Nabran'
+from about_pages p where p.page_key = 'nabran'
+on conflict (page_id, lang_code) do nothing;
+insert into about_page_tr (page_id, lang_code, eyebrow, title, breadcrumb)
+select p.id, 'en', 'Management', 'Nabran Recreation Centre', 'Nabran'
+from about_pages p where p.page_key = 'nabran'
+on conflict (page_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'about', 'paragraphs', 1, true
+from about_pages p where p.page_key = 'nabran'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Haqqında'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'About'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'about'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'stats', 'stats', 2, true
+from about_pages p where p.page_key = 'nabran'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Mərkəz haqqında'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'stats'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'At a glance'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'stats'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'facilities', 'list', 3, true
+from about_pages p where p.page_key = 'nabran'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'İmkanlar'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'facilities'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Facilities'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'facilities'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'gallery', 'gallery', 4, true
+from about_pages p where p.page_key = 'nabran'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Foto Qalereya'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'gallery'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Photo Gallery'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'gallery'
+on conflict (section_id, lang_code) do nothing;
+insert into about_sections (page_id, section_key, section_type, display_order, is_active)
+select p.id, 'contact', 'contact', 5, true
+from about_pages p where p.page_key = 'nabran'
+on conflict (page_id, section_key) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'az', 'Əlaqə'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+insert into about_section_tr (section_id, lang_code, title)
+select s.id, 'en', 'Contact'
+from about_sections s join about_pages p on p.id = s.page_id
+where p.page_key = 'nabran' and s.section_key = 'contact'
+on conflict (section_id, lang_code) do nothing;
+
 -- =====================================================================
 -- VERIFY
 -- =====================================================================
--- Expect 24 pages and 98 sections.
+-- Expect 31 pages and 152 sections.
 select (select count(*) from about_pages)    as pages,
        (select count(*) from about_sections) as sections;
 

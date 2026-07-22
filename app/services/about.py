@@ -71,7 +71,7 @@ SECTION_FIELDS = (
 )
 SECTION_TR_FIELDS = (
     "title", "subtitle", "description", "body_html", "footer", "note",
-    "cta_label", "pdf_url", "headers",
+    "cta_label", "pdf_url", "video_url", "list_intro", "headers",
 )
 
 ITEM_FIELDS = (

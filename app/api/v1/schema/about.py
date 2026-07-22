@@ -72,6 +72,8 @@ class AboutSectionTranslation(BaseModel):
     note: OptionalStr = None
     cta_label: OptionalStr = None
     pdf_url: OptionalUrl = None
+    video_url: OptionalUrl = None
+    list_intro: OptionalStr = None
     headers: Optional[List[str]] = None
 
 
