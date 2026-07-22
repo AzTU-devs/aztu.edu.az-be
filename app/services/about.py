@@ -150,6 +150,22 @@ def _tr_map(translations: Iterable[Any], fields: Iterable[str]) -> dict:
     return out
 
 
+def _is_blank(value: Any) -> bool:
+    """Nothing an editor has actually filled in.
+
+    Empty JSONB containers count: a table row whose EN cells were never typed
+    arrives as ``[]``, not None, and rendering that verbatim would put a blank
+    row on the English page instead of showing the Azerbaijani text.
+    """
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return value.strip() == ""
+    if isinstance(value, (list, dict)):
+        return len(value) == 0
+    return False
+
+
 def _pick(translations: Iterable[Any], lang: str, fields: Iterable[str]) -> dict:
     """One language's values, falling back to the other so a half-filled page still renders."""
     by_lang = {tr.lang_code: tr for tr in translations}
@@ -159,7 +175,7 @@ def _pick(translations: Iterable[Any], lang: str, fields: Iterable[str]) -> dict
     out = {}
     for field in fields:
         value = getattr(primary, field, None) if primary else None
-        if value in (None, ""):
+        if _is_blank(value):
             value = getattr(fallback, field, None) if fallback else None
         out[field] = value
     return out
