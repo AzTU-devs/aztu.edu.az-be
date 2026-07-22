@@ -40,21 +40,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'history' and s.section_key = 'milestones'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'stats', 'stats', 2, true
-from about_pages p where p.page_key = 'history'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Rəqəmlərlə AzTU'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'history' and s.section_key = 'stats'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'AzTU in Numbers'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'history' and s.section_key = 'stats'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'related', 'links', 3, true
+select p.id, 'related', 'links', 2, true
 from about_pages p where p.page_key = 'history'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -177,35 +163,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'strategic-plan' and s.section_key = 'document'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'vision', 'paragraphs', 2, true
-from about_pages p where p.page_key = 'strategic-plan'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Vizyon'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'strategic-plan' and s.section_key = 'vision'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'Vision'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'strategic-plan' and s.section_key = 'vision'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'mission', 'paragraphs', 3, true
-from about_pages p where p.page_key = 'strategic-plan'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Missiya'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'strategic-plan' and s.section_key = 'mission'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'Mission'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'strategic-plan' and s.section_key = 'mission'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'pillars', 'pillars', 4, true
+select p.id, 'pillars', 'pillars', 2, true
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -219,35 +177,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'strategic-plan' and s.section_key = 'pillars'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'values', 'list', 5, true
-from about_pages p where p.page_key = 'strategic-plan'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Korporativ Dəyərlər'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'strategic-plan' and s.section_key = 'values'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'Corporate Values'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'strategic-plan' and s.section_key = 'values'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'targets', 'list', 6, true
-from about_pages p where p.page_key = 'strategic-plan'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Əsas Performans Göstəriciləri (KPI)'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'strategic-plan' and s.section_key = 'targets'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'Key Performance Indicators (KPI)'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'strategic-plan' and s.section_key = 'targets'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'related', 'links', 7, true
+select p.id, 'related', 'links', 3, true
 from about_pages p where p.page_key = 'strategic-plan'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -440,21 +370,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'rector' and s.section_key = 'about_rector'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'responsibilities', 'list', 5, true
-from about_pages p where p.page_key = 'rector'
-on conflict (page_id, section_key) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'az', 'Vəzifə Öhdəlikləri'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'rector' and s.section_key = 'responsibilities'
-on conflict (section_id, lang_code) do nothing;
-insert into about_section_tr (section_id, lang_code, title)
-select s.id, 'en', 'Responsibilities'
-from about_sections s join about_pages p on p.id = s.page_id
-where p.page_key = 'rector' and s.section_key = 'responsibilities'
-on conflict (section_id, lang_code) do nothing;
-insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'departments', 'list', 6, true
+select p.id, 'departments', 'list', 5, true
 from about_pages p where p.page_key = 'rector'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -468,7 +384,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'rector' and s.section_key = 'departments'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'gallery', 'gallery', 7, true
+select p.id, 'gallery', 'gallery', 6, true
 from about_pages p where p.page_key = 'rector'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -482,7 +398,7 @@ from about_sections s join about_pages p on p.id = s.page_id
 where p.page_key = 'rector' and s.section_key = 'gallery'
 on conflict (section_id, lang_code) do nothing;
 insert into about_sections (page_id, section_key, section_type, display_order, is_active)
-select p.id, 'related', 'links', 8, true
+select p.id, 'related', 'links', 7, true
 from about_pages p where p.page_key = 'rector'
 on conflict (page_id, section_key) do nothing;
 insert into about_section_tr (section_id, lang_code, title)
@@ -2547,7 +2463,7 @@ on conflict (section_id, lang_code) do nothing;
 -- =====================================================================
 -- VERIFY
 -- =====================================================================
--- Expect 31 pages and 152 sections.
+-- Expect 31 pages and 146 sections.
 select (select count(*) from about_pages)    as pages,
        (select count(*) from about_sections) as sections;
 

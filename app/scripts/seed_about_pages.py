@@ -76,7 +76,6 @@ BLUEPRINT: list[dict] = [
         ("Our Legacy", "History of AzTU", "History"),
         [
             ("milestones", "timeline", "Əsas Mərhələlər", "Key Milestones"),
-            ("stats", "stats", "Rəqəmlərlə AzTU", "AzTU in Numbers"),
             RELATED,
         ],
     ),
@@ -108,11 +107,8 @@ BLUEPRINT: list[dict] = [
         [
             # Uploaded from the dashboard, with a separate AZ and EN file.
             ("document", "documents", "Plan sənədi", "Plan document"),
-            ("vision", "paragraphs", "Vizyon", "Vision"),
-            ("mission", "paragraphs", "Missiya", "Mission"),
+            # The repeatable heading + description containers.
             ("pillars", "pillars", "Strateji Sütunlar", "Strategic Pillars"),
-            ("values", "list", "Korporativ Dəyərlər", "Corporate Values"),
-            ("targets", "list", "Əsas Performans Göstəriciləri (KPI)", "Key Performance Indicators (KPI)"),
             RELATED,
         ],
     ),
@@ -157,7 +153,6 @@ BLUEPRINT: list[dict] = [
             # editor needs to control the spacing between its paragraphs.
             ("message", "paragraphs", "Rektorun Müraciəti", "Message from the Rector"),
             ("about_rector", "paragraphs", "Rektor haqqında", "About the Rector"),
-            ("responsibilities", "list", "Vəzifə Öhdəlikləri", "Responsibilities"),
             # Heading + rich-text lead + the list of units underneath it.
             ("departments", "list", "Rektora tabe olan strukturlar", "Units Reporting to the Rector"),
             ("gallery", "gallery", "Rektorun Qalereyası", "Rector's Gallery"),
