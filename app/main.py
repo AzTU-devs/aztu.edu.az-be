@@ -46,6 +46,7 @@ from app.api.v1.router.chatbot_knowledge import router as chatbot_knowledge_rout
 from app.api.v1.router.search import router as search_router
 from app.api.v1.router.rbac import router as rbac_router
 from app.api.v1.router.admin_user import router as admin_user_router
+from app.api.v1.router.about import router as about_router
 from app.api.v1.router.activity import router as activity_router
 from app.api.v1.router.visits import router as visits_router
 from app.api.v1.router.stats import router as stats_router
@@ -209,6 +210,7 @@ app.include_router(employee_router,    prefix="/api/employee",    tags=["Employe
 app.include_router(department_router,  prefix="/api/department",  tags=["Department"])
 app.include_router(research_institute_router, prefix="/api/research-institute", tags=["Research Institute"])
 app.include_router(research_project_router,   prefix="/api/research-project",   tags=["Research Project"])
+app.include_router(about_router,             prefix="/api/about",             tags=["About Pages"])
 app.include_router(article_router,           prefix="/api/article",           tags=["Article"])
 app.include_router(chat_router,              prefix="/api/chat",              tags=["Chat"])
 app.include_router(chatbot_knowledge_router, prefix="/api/chatbot-knowledge", tags=["Chatbot Knowledge"])

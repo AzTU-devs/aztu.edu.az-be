@@ -103,6 +103,11 @@ RESOURCE_NOUNS: Dict[str, Noun] = {
     "menu.quick_section_item": Noun("sürətli keçid bölmə elementi", "quick-access section item", "sürətli keçid bölmə elementini", "sürətli keçid bölmə elementinin", "sürətli keçid bölmə elementlərinin"),
     "menu.social_link": Noun("sosial şəbəkə linki", "social link", "sosial şəbəkə linkini", "sosial şəbəkə linkinin", "sosial şəbəkə linklərinin"),
 
+    "about": Noun("Haqqımızda səhifəsi", "about page", "Haqqımızda səhifəsini", "Haqqımızda səhifəsinin", "Haqqımızda səhifələrinin"),
+    "about.section": Noun("səhifə bölməsi", "page section", "səhifə bölməsini", "səhifə bölməsinin", "səhifə bölmələrinin"),
+    "about.item": Noun("bölmə elementi", "section item", "bölmə elementini", "bölmə elementinin", "bölmə elementlərinin"),
+    "about.person": Noun("səhifə şəxsi", "page person", "səhifə şəxsini", "səhifə şəxsinin", "səhifə şəxslərinin"),
+
     "menu_header": Noun("menyu başlığı", "menu header", "menyu başlığını", "menyu başlığının", "menyu başlıqlarının"),
     "menu_header.item": Noun("menyu elementi", "menu item", "menyu elementini", "menyu elementinin", "menyu elementlərinin"),
     "menu_header.sub_item": Noun("alt menyu elementi", "submenu item", "alt menyu elementini", "alt menyu elementinin", "alt menyu elementlərinin"),
@@ -234,6 +239,12 @@ _RESOLVER_SPECS: Dict[str, _Resolver] = {
     # same tables on the same MetaData.
     "research_institute": _Resolver("app.models.research_institute.institute", "ResearchInstituteTr", "institute_code", "name"),
     "research_project": _Resolver("app.models.research_project.project", "ResearchProjectTr", "project_code", "name"),
+    # The page's own title sits on a translation row keyed by id, which this
+    # single-model resolver cannot join to — the page_key is the label instead.
+    "about_page": _Resolver("app.models.about.about_page", "AboutPage", "page_key", "page_key", lang_attr=None),
+    "about_section": _Resolver("app.models.about.about_page", "AboutSectionTr", "section_id", "title", True),
+    "about_item": _Resolver("app.models.about.about_page", "AboutItemTr", "item_id", "title", True),
+    "about_person": _Resolver("app.models.about.about_page", "AboutPersonTr", "person_id", "full_name", True),
 }
 
 TARGET_LABEL_MAX_LENGTH = 200

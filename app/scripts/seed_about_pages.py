@@ -1,0 +1,483 @@
+"""Seed the About-page registry and each page's section skeleton.
+
+Usage:
+    python -m app.scripts.seed_about_pages            # create what is missing
+    python -m app.scripts.seed_about_pages --dry-run  # report, change nothing
+
+Idempotent and strictly additive. A page or section that already exists is left
+exactly as the editor left it — re-running this after adding a new page to
+BLUEPRINT only creates the new rows.
+
+The blueprint mirrors, field for field, what each /about screen renders today
+from the website's locale files. Seeding the *structure* (which blocks a page
+has, in what order, of what type) is what lets the dashboard show the right form
+per page on day one; the copy itself is then typed in by an editor.
+
+Pages land with is_active = false, so nothing is exposed publicly until it is
+explicitly published.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+from datetime import datetime, timezone
+
+from sqlalchemy import select
+
+from app.core.database import AsyncSessionLocal
+from app.models.about.about_page import (
+    AboutPage,
+    AboutPageTr,
+    AboutSection,
+    AboutSectionTr,
+)
+
+
+def page(
+    key: str,
+    group: str,
+    template: str,
+    order: int,
+    slug_az: str,
+    slug_en: str,
+    az: tuple[str, str, str],
+    en: tuple[str, str, str],
+    sections: list[tuple[str, str, str, str]],
+) -> dict:
+    """`az`/`en` are (eyebrow, title, breadcrumb); sections are (key, type, az, en)."""
+    return {
+        "page_key": key,
+        "group_key": group,
+        "template": template,
+        "display_order": order,
+        "slug_az": slug_az,
+        "slug_en": slug_en,
+        "az": {"eyebrow": az[0], "title": az[1], "breadcrumb": az[2]},
+        "en": {"eyebrow": en[0], "title": en[1], "breadcrumb": en[2]},
+        "sections": sections,
+    }
+
+
+RELATED = ("related", "links", "Bölmədə daha çox", "More in this section")
+
+
+BLUEPRINT: list[dict] = [
+    # ── Vizyon və Missiya ─────────────────────────────────────────────────
+    page(
+        "history", "vision_mission", "history", 1,
+        "vizyon-ve-missiya/aztu-nun-tarixi", "vision-mission/history-of-aztu",
+        ("Mirasımız", "AzTU-nun Tarixi", "Tarix"),
+        ("Our Legacy", "History of AzTU", "History"),
+        [
+            ("milestones", "timeline", "Əsas Mərhələlər", "Key Milestones"),
+            ("stats", "stats", "Rəqəmlərlə AzTU", "AzTU in Numbers"),
+            RELATED,
+        ],
+    ),
+    page(
+        "vision", "vision_mission", "statement", 2,
+        "vizyon-ve-missiya/vizyon", "vision-mission/vision",
+        ("İstiqamətimiz", "Vizyon", "Vizyon"),
+        ("Our Direction", "Vision", "Vision"),
+        [
+            ("statement", "quote", "Vizyon Bəyanatımız", "Our Vision Statement"),
+            RELATED,
+        ],
+    ),
+    page(
+        "mission", "vision_mission", "statement", 3,
+        "vizyon-ve-missiya/missiya", "vision-mission/mission",
+        ("Məqsədimiz", "Missiya", "Missiya"),
+        ("Our Purpose", "Mission", "Mission"),
+        [
+            ("statement", "quote", "Missiya Bəyanatımız", "Our Mission Statement"),
+            RELATED,
+        ],
+    ),
+    page(
+        "strategic-plan", "vision_mission", "strategic_plan", 4,
+        "vizyon-ve-missiya/strateji-plan", "vision-mission/strategic-plan",
+        ("Vizyon 2030", "Strateji İnkişaf Planı", "Strateji Plan"),
+        ("Vision 2030", "Strategic Development Plan", "Strategic Plan"),
+        [
+            ("vision", "paragraphs", "Vizyon", "Vision"),
+            ("mission", "paragraphs", "Missiya", "Mission"),
+            ("pillars", "pillars", "Strateji Sütunlar", "Strategic Pillars"),
+            ("values", "list", "Korporativ Dəyərlər", "Corporate Values"),
+            ("targets", "list", "Əsas Performans Göstəriciləri (KPI)", "Key Performance Indicators (KPI)"),
+            RELATED,
+        ],
+    ),
+    page(
+        "anniversary-film", "vision_mission", "video", 5,
+        "vizyon-ve-missiya/75-illik-yubiley-filmi", "vision-mission/75th-anniversary-film",
+        ("Tədbir", "75 İllik Yubiley Filmi", "Yubiley Filmi"),
+        ("Event", "75th Anniversary Film", "Anniversary Film"),
+        [
+            ("film", "video", "Film", "Film"),
+            RELATED,
+        ],
+    ),
+    page(
+        "vision-mission-goal", "vision_mission", "statement", 6,
+        "vizyon-ve-missiya/vizyon-missiya-meqsed", "vision-mission/vision-mission-goal",
+        ("Kimliyimiz", "Vizyon, Missiya və Məqsəd", "Vizyon, Missiya və Məqsəd"),
+        ("Our Identity", "Vision, Mission & Goal", "Vision, Mission & Goal"),
+        [
+            ("mission", "paragraphs", "Missiya", "Mission"),
+            ("vision", "paragraphs", "Vizyon", "Vision"),
+            ("goal", "paragraphs", "Məqsəd", "Goal"),
+            RELATED,
+        ],
+    ),
+
+    # ── Rəhbərlik və İdarəetmə ────────────────────────────────────────────
+    page(
+        "rector", "leadership", "rector", 10,
+        "rehbetlik-ve-idareetme/rektor", "leadership-and-management/rector",
+        ("Rəhbərlik və İdarəetmə", "Rektor", "Rektor"),
+        ("Leadership & Governance", "Rector", "Rector"),
+        [
+            ("message", "paragraphs", "Rektorun Müraciəti", "Message from the Rector"),
+            ("priorities", "list", "Əsas fəaliyyət istiqamətlərimiz", "Our Key Priorities"),
+            ("message_closing", "paragraphs", "Müraciətin sonu", "Closing Remarks"),
+            ("responsibilities", "list", "Vəzifə Öhdəlikləri", "Responsibilities"),
+            ("about_rector", "paragraphs", "Rektor haqqında", "About the Rector"),
+            ("departments", "list", "Rektora tabe olan strukturlar", "Units Reporting to the Rector"),
+            ("gallery", "gallery", "Rektorun Qalereyası", "Rector's Gallery"),
+            RELATED,
+        ],
+    ),
+    page(
+        "vice-rector", "leadership", "people", 11,
+        "vice-rector", "vice-rector",
+        ("Rəhbərlik və İdarəetmə", "Prorektorlar", "Prorektorlar"),
+        ("Leadership & Governance", "Vice-Rectors", "Vice-Rectors"),
+        [
+            ("overview", "paragraphs", "Ümumi məlumat", "Overview"),
+            ("vice_rectors", "people", "Prorektorlar", "Vice-Rectors"),
+            # Button and heading strings the detail page renders around a person.
+            ("labels", "list", "İnterfeys mətnləri", "Interface labels"),
+            RELATED,
+        ],
+    ),
+    page(
+        "rectors-office", "leadership", "people", 12,
+        "rectors-office", "rectors-office",
+        ("Rəhbərlik və İdarəetmə", "Rektorat", "Rektorat"),
+        ("Leadership & Governance", "Rector's Office", "Rectorate"),
+        [
+            ("staff", "people", "Rektorat heyəti", "Rectorate Staff"),
+        ],
+    ),
+    page(
+        "scientific-board", "leadership", "board", 13,
+        "scientific-board", "scientific-board",
+        ("Rəhbərlik və İdarəetmə", "Elmi Şura", "Elmi Şura"),
+        ("Leadership & Governance", "Scientific Board", "Scientific Board"),
+        [
+            ("about", "paragraphs", "Şura haqqında", "About the Board"),
+            ("scientific_council", "table", "Elmi Şuranın tərkibi", "Scientific Board Members"),
+            ("digital_council", "table", "Rəqəmsal Şura", "Digital Council"),
+            ("digital_council_secretariat", "table", "Katiblik", "Secretariat"),
+            RELATED,
+        ],
+    ),
+
+    # ── Bağlı Qurumlar ────────────────────────────────────────────────────
+    page(
+        "tau", "affiliated", "entity", 20,
+        "tau", "tau",
+        ("Bağlı Qurum", "Türkiyə–Azərbaycan Universiteti", "TAU"),
+        ("Affiliated Entity", "Türkiye–Azerbaijan University", "TAU"),
+        [
+            ("about", "paragraphs", "TAU haqqında", "About TAU"),
+            ("programmes", "list", "Təklif edilən proqramlar", "Programmes Offered"),
+            ("facts", "facts", "Qısa məlumat", "Key Facts"),
+            RELATED,
+        ],
+    ),
+    page(
+        "iit", "affiliated", "entity", 21,
+        "iit", "iit",
+        ("Bağlı Qurum", "İnformasiya Texnologiyaları İnstitutu", "İTİ"),
+        ("Affiliated Entity", "Institute of Information Technology", "IIT"),
+        [
+            ("about", "paragraphs", "İnstitut haqqında", "About the Institute"),
+            RELATED,
+        ],
+    ),
+    page(
+        "ics", "affiliated", "entity", 22,
+        "ics", "ics",
+        ("Bağlı Qurum", "İdarəetmə Sistemləri İnstitutu", "İSİ"),
+        ("Affiliated Entity", "Institute of Control Systems", "ICS"),
+        [
+            ("about", "paragraphs", "İnstitut haqqında", "About the Institute"),
+            RELATED,
+        ],
+    ),
+    page(
+        "baku-technical-colleges", "affiliated", "entity", 23,
+        "baku-technical-colleges", "baku-technical-colleges",
+        ("Bağlı Qurum", "Bakı Texniki Kolleci", "Bakı Texniki Kolleci"),
+        ("Affiliated Entity", "Baku Technical College", "Technical College"),
+        [
+            ("about", "paragraphs", "Kollec haqqında", "About the College"),
+            RELATED,
+        ],
+    ),
+    page(
+        "baku-state-colleges", "affiliated", "entity", 24,
+        "baku-state-colleges", "baku-state-colleges",
+        ("Bağlı Qurum", "Bakı Dövlət Rabitə və Nəqliyyat Kolleci", "BDRNK"),
+        ("Affiliated Entity", "Baku State College of Communication and Transport", "Communication College"),
+        [
+            ("about", "paragraphs", "Kollec haqqında", "About the College"),
+            RELATED,
+        ],
+    ),
+
+    # ── Siyasətlər və Sənədlər ────────────────────────────────────────────
+    page(
+        "general-policies", "policies", "policy_library", 30,
+        "normativ-senedler/siyaset-senedleri", "regulatory-documents/policy-documents",
+        ("Normativ Sənədlər", "Ümumi Siyasətlər", "Ümumi Siyasətlər"),
+        ("Regulatory Documents", "General Policies", "General Policies"),
+        [
+            ("categories", "list", "Kateqoriyalar", "Categories"),
+            ("documents", "documents", "Siyasət sənədləri", "Policy Documents"),
+        ],
+    ),
+    page(
+        "academic-policies", "policies", "policy_pdf", 31,
+        "academic-policies", "academic-policies",
+        ("Siyasətlər və Sənədlər", "Akademik Siyasətlər", "Akademik Siyasətlər"),
+        ("Policies & Documents", "Academic Policies", "Academic Policies"),
+        [
+            ("document", "documents", "Sənəd", "Document"),
+        ],
+    ),
+    page(
+        "sustainability-policies", "policies", "policy_pdf", 32,
+        "sustainability-policies", "sustainability-policies",
+        ("Siyasətlər və Sənədlər", "Davamlılıq Siyasətləri", "Davamlılıq Siyasətləri"),
+        ("Policies & Documents", "Sustainability Policies", "Sustainability Policies"),
+        [
+            ("document", "documents", "Sənəd", "Document"),
+        ],
+    ),
+    page(
+        "procedure-guidelines", "policies", "policy_pdf", 33,
+        "procedure-guidelines", "procedure-guidelines",
+        ("Siyasətlər və Sənədlər", "Prosedurlar və Qaydalar", "Prosedurlar və Qaydalar"),
+        ("Policies & Documents", "Procedures & Guidelines", "Procedures & Guidelines"),
+        [
+            ("document", "documents", "Sənəd", "Document"),
+        ],
+    ),
+    page(
+        "sustainability-documents", "policies", "policy_library", 34,
+        "sustainability-documents", "sustainability-documents",
+        ("Normativ Sənədlər", "Davamlılıq Sənədləri", "Davamlılıq Sənədləri"),
+        ("Regulatory Documents", "Sustainability Documents", "Sustainability Documents"),
+        [
+            ("documents", "documents", "Sənədlər", "Documents"),
+        ],
+    ),
+    page(
+        "accreditation", "policies", "accreditation", 35,
+        "accreditation", "accreditation",
+        ("Haqqımızda", "Akkreditasiya", "Akkreditasiya"),
+        ("About", "Accreditation", "Accreditation"),
+        [
+            ("what", "paragraphs", "Akkreditasiya nədir?", "What is accreditation?"),
+            ("importance", "list", "Akkreditasiyanın əhəmiyyəti", "Why accreditation matters"),
+            ("legal", "list", "Hüquqi əsaslar", "Legal basis"),
+            ("institutional", "list", "İnstitusional akkreditasiya", "Institutional accreditation"),
+            ("institutional_links", "links", "İnstitusional akkreditasiya sənədləri", "Institutional accreditation documents"),
+            ("program", "list", "Proqram akkreditasiyası", "Program accreditation"),
+            ("aqas", "list", "Beynəlxalq akkreditasiya – AQAS", "International accreditation – AQAS"),
+            ("aqas_programs", "gallery", "AQAS akkreditasiyalı proqramlar", "AQAS-accredited programmes"),
+            ("process", "list", "Akkreditasiya prosesi", "The accreditation process"),
+            ("reports", "documents", "Proqram akkreditasiyası yekun hesabatları", "Program accreditation final reports"),
+            ("certificates", "documents", "Proqram akkreditasiyası sertifikatları", "Program accreditation certificates"),
+            ("iso", "list", "ISO standartları", "ISO standards"),
+        ],
+    ),
+
+    # ── Reytinqlər və proqramlar ──────────────────────────────────────────
+    page(
+        "rankings", "other", "rankings", 40,
+        "reytinqler", "rankings",
+        ("Reytinqlər", "Beynəlxalq Reytinqlər", "Reytinqlər"),
+        ("Rankings", "International Rankings", "Rankings"),
+        [
+            ("importance", "list", "Əhəmiyyəti", "Why rankings matter"),
+            ("systems", "ranking_systems", "Reytinq sistemləri", "Ranking Systems"),
+            ("positions", "ranking_positions", "Beynəlxalq Reytinqlərdə Mövqeyimiz", "Our Positions in International Rankings"),
+            ("profile", "links", "Universitet profilləri", "University Profiles"),
+        ],
+    ),
+    page(
+        "hei", "other", "institute", 41,
+        "hei", "hei",
+        ("Təhsil və Proqramlar", "Yüksək Təhsil İnstitutu (YTİ)", "Yüksək Təhsil İnstitutu"),
+        ("Education and Programs", "Higher Education Institute (HEI)", "Higher Education Institute"),
+        [
+            ("about", "paragraphs", "İnstitut haqqında", "About the Institute"),
+            ("mission", "paragraphs", "Missiya və strateji istiqamətlər", "Mission and strategic direction"),
+            ("strategic_directions", "list", "Strateji istiqamətlər", "Strategic directions"),
+            ("academic_opportunities", "list", "Təhsil imkanları", "Academic opportunities"),
+            ("academic_languages", "list", "Tədris dilləri", "Languages of instruction"),
+            ("research", "list", "Elmi-tədqiqat fəaliyyəti", "Research activity"),
+            ("doctoral", "paragraphs", "Doktorantura təhsili", "Doctoral studies"),
+            ("doctoral_formats", "list", "Doktorantura formaları", "Doctoral study formats"),
+            ("doctoral_duration", "group_list", "Təhsil müddəti", "Programme duration"),
+            ("director", "people", "Direktor", "Director"),
+            ("staff", "people", "Əməkdaşlar", "Staff"),
+            ("contact", "contact", "Əlaqə", "Contact"),
+            ("board_duties", "list", "İdarə Heyətinin vəzifələri", "Board duties"),
+            ("board_rights", "list", "İdarə Heyətinin hüquqları", "Board rights"),
+            ("board_composition", "list", "İdarə Heyətinin tərkibi", "Board composition"),
+            ("board_requirements", "list", "İdarə Heyətinin üzvlərinə olan tələblər", "Requirements for board members"),
+            ("board_chairman", "paragraphs", "İdarə Heyətinin sədri", "Chair of the Board"),
+            RELATED,
+        ],
+    ),
+    page(
+        "mba", "other", "programme", 42,
+        "mba", "mba",
+        ("Təhsil və Proqramlar", "MBA Proqramı", "MBA"),
+        ("Education and Programs", "MBA Program", "MBA"),
+        [
+            ("about", "paragraphs", "MBA Proqramı Haqqında", "About the MBA Program"),
+            ("stats", "stats", "Proqramın Əsas Göstəriciləri", "Program at a Glance"),
+            ("languages", "list", "Tədris Dilləri", "Languages of Instruction"),
+            ("structure", "list", "Proqramın Strukturu", "Program Structure"),
+            ("doctoral", "paragraphs", "Doktorantura İstiqamətləri", "Doctoral Pathways"),
+            ("doctoral_formats", "list", "Doktorantura formaları", "Doctoral study formats"),
+            ("doctoral_duration", "group_list", "Təhsil Müddəti", "Programme duration"),
+            ("contact", "contact", "Əlaqə", "Contact"),
+            RELATED,
+        ],
+    ),
+]
+
+
+async def seed(dry_run: bool = False) -> None:
+    now = datetime.now(timezone.utc)
+    created_pages = 0
+    created_sections = 0
+
+    async with AsyncSessionLocal() as db:
+        for spec in BLUEPRINT:
+            existing = (
+                await db.execute(
+                    select(AboutPage).where(AboutPage.page_key == spec["page_key"])
+                )
+            ).scalar_one_or_none()
+
+            if existing is None:
+                print(f"+ page   {spec['page_key']}")
+                created_pages += 1
+                if dry_run:
+                    # Without the row there is no id to hang sections off, so the
+                    # dry run reports them all as pending and moves on.
+                    for section_key, section_type, _, _ in spec["sections"]:
+                        print(f"    + section {section_key} ({section_type})")
+                        created_sections += 1
+                    continue
+
+                existing = AboutPage(
+                    page_key=spec["page_key"],
+                    group_key=spec["group_key"],
+                    template=spec["template"],
+                    slug_az=spec["slug_az"],
+                    slug_en=spec["slug_en"],
+                    display_order=spec["display_order"],
+                    is_active=False,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(existing)
+                await db.flush()
+
+                for lang in ("az", "en"):
+                    db.add(
+                        AboutPageTr(
+                            page_id=existing.id,
+                            lang_code=lang,
+                            eyebrow=spec[lang]["eyebrow"],
+                            title=spec[lang]["title"],
+                            breadcrumb=spec[lang]["breadcrumb"],
+                            created_at=now,
+                            updated_at=now,
+                        )
+                    )
+
+            present = set(
+                (
+                    await db.execute(
+                        select(AboutSection.section_key).where(
+                            AboutSection.page_id == existing.id
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+
+            for order, (section_key, section_type, az_title, en_title) in enumerate(
+                spec["sections"], start=1
+            ):
+                if section_key in present:
+                    continue
+
+                print(f"    + section {spec['page_key']}/{section_key} ({section_type})")
+                created_sections += 1
+                if dry_run:
+                    continue
+
+                section = AboutSection(
+                    page_id=existing.id,
+                    section_key=section_key,
+                    section_type=section_type,
+                    display_order=order,
+                    is_active=True,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(section)
+                await db.flush()
+
+                for lang, title in (("az", az_title), ("en", en_title)):
+                    db.add(
+                        AboutSectionTr(
+                            section_id=section.id,
+                            lang_code=lang,
+                            title=title,
+                            created_at=now,
+                            updated_at=now,
+                        )
+                    )
+
+        if dry_run:
+            await db.rollback()
+        else:
+            await db.commit()
+
+    verb = "would create" if dry_run else "created"
+    print(f"\n{verb}: {created_pages} page(s), {created_sections} section(s)")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Seed the About-page registry.")
+    parser.add_argument("--dry-run", action="store_true", help="Report only; write nothing.")
+    args = parser.parse_args()
+    asyncio.run(seed(dry_run=args.dry_run))
+
+
+if __name__ == "__main__":
+    main()
