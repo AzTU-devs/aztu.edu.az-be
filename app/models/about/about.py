@@ -20,6 +20,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 
@@ -33,6 +34,9 @@ class AboutPage(Base):
     template = Column(String(50), nullable=False, default="statements")
     slug_az = Column(String(255))
     slug_en = Column(String(255))
+    # The downloadable plan: either an uploaded file's path or a pasted URL.
+    # One column, because from the page's point of view they are the same thing.
+    document_url = Column(String(2048))
     display_order = Column(Integer, nullable=False, default=0)
     # False keeps the page out of the public API while it is being filled in.
     is_active = Column(Boolean, nullable=False, default=False)
@@ -60,6 +64,20 @@ class AboutPage(Base):
         passive_deletes=True,
         order_by="AboutLink.display_order",
     )
+    pillars = relationship(
+        "AboutPillar",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutPillar.display_order",
+    )
+    lists = relationship(
+        "AboutList",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutList.display_order",
+    )
     milestones = relationship(
         "AboutMilestone",
         back_populates="page",
@@ -84,6 +102,10 @@ class AboutPageTr(Base):
     description = Column(Text)
     # Heading of the "More in this section" block.
     links_title = Column(String(500))
+    # Text on the document download button.
+    document_label = Column(String(500))
+    # Heading above the pillar cards.
+    pillars_title = Column(String(500))
 
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
@@ -220,3 +242,96 @@ class AboutMilestoneTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     milestone = relationship("AboutMilestone", back_populates="translations")
+
+
+class AboutPillar(Base):
+    """One numbered card under "Strateji Sütunlar"."""
+
+    __tablename__ = "about_pillars"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="pillars")
+    translations = relationship(
+        "AboutPillarTr",
+        back_populates="pillar",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AboutPillarTr(Base):
+    __tablename__ = "about_pillar_tr"
+    __table_args__ = (
+        UniqueConstraint("pillar_id", "lang_code", name="uq_about_pillar_tr_pillar_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    pillar_id = Column(Integer, ForeignKey("about_pillars.id", ondelete="CASCADE"), nullable=False)
+    lang_code = Column(String(10), nullable=False)
+
+    title = Column(String(500))
+    description = Column(Text)
+    # Ordered plain strings — the chips under the card.
+    tags = Column(JSONB)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    pillar = relationship("AboutPillar", back_populates="translations")
+
+
+class AboutList(Base):
+    """A heading plus an ordered set of one-line entries.
+
+    Used twice on the strategic plan — the corporate values (bulleted) and the
+    KPIs (numbered). `style` is the only thing that differs.
+    """
+
+    __tablename__ = "about_lists"
+    __table_args__ = (
+        UniqueConstraint("page_id", "list_key", name="uq_about_lists_page_key"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    list_key = Column(String(100), nullable=False)
+    # bullet | number
+    style = Column(String(20), nullable=False, default="bullet")
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="lists")
+    translations = relationship(
+        "AboutListTr",
+        back_populates="list",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AboutListTr(Base):
+    __tablename__ = "about_list_tr"
+    __table_args__ = (
+        UniqueConstraint("list_id", "lang_code", name="uq_about_list_tr_list_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    list_id = Column(Integer, ForeignKey("about_lists.id", ondelete="CASCADE"), nullable=False)
+    lang_code = Column(String(10), nullable=False)
+
+    title = Column(String(500))
+    # Ordered plain strings, one per rendered line.
+    items = Column(JSONB)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    list = relationship("AboutList", back_populates="translations")

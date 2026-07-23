@@ -16,7 +16,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional
 
-from fastapi import status
+from fastapi import UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,21 +29,30 @@ from app.models.about.about import (
     AboutBlockTr,
     AboutLink,
     AboutLinkTr,
+    AboutList,
+    AboutListTr,
+    AboutPillar,
+    AboutPillarTr,
     AboutMilestone,
     AboutMilestoneTr,
     AboutPage,
     AboutPageTr,
 )
+from app.utils.file_upload import ALLOWED_DOC_MIMES, safe_delete_file, save_upload
 from app.utils.html_sanitizer import sanitize_html
 
 logger = get_logger(__name__)
 
 LANGS = ("az", "en")
 
-PAGE_TR_FIELDS = ("title", "description", "links_title")
+PAGE_TR_FIELDS = (
+    "title", "description", "links_title", "document_label", "pillars_title",
+)
 BLOCK_TR_FIELDS = ("title", "body")
 LINK_TR_FIELDS = ("label",)
 MILESTONE_TR_FIELDS = ("title", "description")
+PILLAR_TR_FIELDS = ("title", "description", "tags")
+LIST_TR_FIELDS = ("title", "items")
 
 # Editor-authored HTML. Scrubbed on the way in so the website can render it
 # verbatim — an authenticated admin is still not a reason to store raw markup.
@@ -170,6 +179,8 @@ def _page_query():
         selectinload(AboutPage.blocks).selectinload(AboutBlock.translations),
         selectinload(AboutPage.links).selectinload(AboutLink.translations),
         selectinload(AboutPage.milestones).selectinload(AboutMilestone.translations),
+        selectinload(AboutPage.pillars).selectinload(AboutPillar.translations),
+        selectinload(AboutPage.lists).selectinload(AboutList.translations),
     )
 
 
@@ -185,6 +196,7 @@ def _serialize_admin(page: AboutPage) -> dict:
         "template": page.template,
         "slug_az": page.slug_az,
         "slug_en": page.slug_en,
+        "document_url": page.document_url,
         "is_active": page.is_active,
         **_tr_map(page.translations, PAGE_TR_FIELDS),
         "blocks": [
@@ -213,6 +225,23 @@ def _serialize_admin(page: AboutPage) -> dict:
             }
             for milestone in sorted(page.milestones, key=_milestone_order)
         ],
+        "pillars": [
+            {
+                "id": pillar.id,
+                "display_order": pillar.display_order,
+                **_tr_map(pillar.translations, PILLAR_TR_FIELDS),
+            }
+            for pillar in sorted(page.pillars, key=lambda r: r.display_order)
+        ],
+        "lists": [
+            {
+                "id": entry.id,
+                "list_key": entry.list_key,
+                "style": entry.style,
+                **_tr_map(entry.translations, LIST_TR_FIELDS),
+            }
+            for entry in sorted(page.lists, key=lambda l: l.display_order)
+        ],
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }
 
@@ -223,6 +252,7 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
         "page_key": page.page_key,
         "template": page.template,
         "slug": page.slug_az if lang == "az" else page.slug_en,
+        "document_url": page.document_url,
         **copy,
         # Derived, not authored: the dashboard has no SEO fields by design.
         "seo": {
@@ -249,6 +279,18 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
                 **_pick(milestone.translations, lang, MILESTONE_TR_FIELDS),
             }
             for milestone in sorted(page.milestones, key=_milestone_order)
+        ],
+        "pillars": [
+            _pick(pillar.translations, lang, PILLAR_TR_FIELDS)
+            for pillar in sorted(page.pillars, key=lambda r: r.display_order)
+        ],
+        "lists": [
+            {
+                "list_key": entry.list_key,
+                "style": entry.style,
+                **_pick(entry.translations, lang, LIST_TR_FIELDS),
+            }
+            for entry in sorted(page.lists, key=lambda l: l.display_order)
         ],
     }
 
@@ -394,6 +436,60 @@ async def _replace_milestones(db: AsyncSession, page_id: int, milestones: list, 
         )
 
 
+async def _replace_pillars(db: AsyncSession, page_id: int, pillars: list, now: datetime):
+    """Rewrites the pillar cards. They carry no stable key — the card's number
+    is just its position — so the payload is the complete, ordered truth."""
+    await db.execute(sqlalchemy_delete(AboutPillar).where(AboutPillar.page_id == page_id))
+
+    for index, entry in enumerate(pillars):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        pillar = AboutPillar(
+            page_id=page_id, display_order=index, created_at=now, updated_at=now
+        )
+        db.add(pillar)
+        await db.flush()
+        await _upsert_translations(
+            db, AboutPillarTr, "pillar_id", pillar.id, payload, PILLAR_TR_FIELDS, now
+        )
+
+
+async def _upsert_lists(db: AsyncSession, page_id: int, lists: list, now: datetime):
+    """Updates the titled lists in place.
+
+    Unlike the pillars these are matched on `list_key`, because the website
+    addresses them by name (values, kpis) and the set is fixed by the page's
+    design rather than by the editor.
+    """
+    existing = {
+        entry.list_key: entry
+        for entry in (
+            await db.execute(select(AboutList).where(AboutList.page_id == page_id))
+        ).scalars().all()
+    }
+
+    for index, entry in enumerate(lists):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        key = (payload.get("list_key") or "").strip()
+        if not key:
+            continue
+
+        row = existing.get(key)
+        if row is None:
+            row = AboutList(
+                page_id=page_id, list_key=key, created_at=now, updated_at=now
+            )
+            db.add(row)
+            await db.flush()
+
+        if payload.get("style"):
+            row.style = payload["style"]
+        row.display_order = index
+        row.updated_at = now
+        await _upsert_translations(
+            db, AboutListTr, "list_id", row.id, payload, LIST_TR_FIELDS, now
+        )
+
+
 async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession):
     try:
         page = (
@@ -405,7 +501,7 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
         now = _now()
         data = request.dict(exclude_unset=True)
 
-        for field in ("slug_az", "slug_en"):
+        for field in ("slug_az", "slug_en", "document_url"):
             if field in data:
                 setattr(page, field, data[field])
         page.updated_at = now
@@ -420,6 +516,10 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
             await _replace_links(db, page.id, data["links"], now)
         if data.get("milestones") is not None:
             await _replace_milestones(db, page.id, data["milestones"], now)
+        if data.get("pillars") is not None:
+            await _replace_pillars(db, page.id, data["pillars"], now)
+        if data.get("lists") is not None:
+            await _upsert_lists(db, page.id, data["lists"], now)
 
         await db.commit()
         return JSONResponse(content={"status_code": 200, "message": "About page updated."})
@@ -453,3 +553,36 @@ async def publish_page(page_key: str, is_active: bool, db: AsyncSession):
         await db.rollback()
         logger.exception("Failed to change publication state for %s", page_key)
         return _error(500, "Failed to change publication state.")
+
+
+async def upload_document(page_key: str, file: UploadFile, db: AsyncSession):
+    """Stores the plan file and points the page at it.
+
+    The same column also holds a pasted URL, so uploading simply replaces
+    whatever was there. Only document types are accepted — serving arbitrary
+    uploads (HTML, SVG) from this domain would be an XSS vector.
+    """
+    try:
+        page = (
+            await db.execute(select(AboutPage).where(AboutPage.page_key == page_key))
+        ).scalar_one_or_none()
+        if page is None:
+            return _error(404, "About page not found.")
+
+        previous = page.document_url
+        path = await save_upload(file, "about/documents", ALLOWED_DOC_MIMES)
+        page.document_url = path
+        page.updated_at = _now()
+        await db.commit()
+
+        # Only clean up a file we stored; a previously pasted URL is not ours.
+        if previous and not previous.startswith(("http://", "https://")):
+            safe_delete_file(previous)
+
+        return JSONResponse(
+            content={"status_code": 200, "message": "Document uploaded.", "path": path}
+        )
+    except Exception:
+        await db.rollback()
+        logger.exception("Failed to upload document for %s", page_key)
+        return _error(500, "Failed to upload document.")

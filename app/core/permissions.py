@@ -181,6 +181,7 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     # ── about ───────────────────────────────────────────────────────────────
     _p("about.update", "Haqqımızda səhifəsini redaktə etmək", "Edit about page"),
     _p("about.activate", "Haqqımızda səhifəsini dərc etmək", "Publish about page"),
+    _p("about.upload", "Haqqımızda səhifəsinə sənəd yükləmək", "Upload about page document"),
     # ── menu ────────────────────────────────────────────────────────────────
     _p("menu.footer_column.create", "Altlıq sütunu yaratmaq", "Create footer column"),
     _p("menu.footer_column.update", "Altlıq sütununu redaktə etmək", "Edit footer column"),

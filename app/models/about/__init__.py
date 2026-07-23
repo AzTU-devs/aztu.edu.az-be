@@ -7,4 +7,8 @@ from app.models.about.about import (  # noqa: F401
     AboutLinkTr,
     AboutMilestone,
     AboutMilestoneTr,
+    AboutPillar,
+    AboutPillarTr,
+    AboutList,
+    AboutListTr,
 )

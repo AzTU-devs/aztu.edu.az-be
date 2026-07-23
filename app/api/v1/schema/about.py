@@ -20,6 +20,8 @@ class AboutPageTranslation(BaseModel):
     title: OptionalStr = None
     description: OptionalStr = None
     links_title: OptionalStr = None
+    document_label: OptionalStr = None
+    pillars_title: OptionalStr = None
 
 
 class AboutBlockTranslation(BaseModel):
@@ -56,9 +58,35 @@ class AboutMilestonePayload(BaseModel):
     en: Optional[AboutMilestoneTranslation] = None
 
 
+class AboutPillarTranslation(BaseModel):
+    title: OptionalStr = None
+    description: OptionalStr = None
+    # Ordered plain strings — the chips under the card.
+    tags: Optional[List[str]] = None
+
+
+class AboutPillarPayload(BaseModel):
+    az: Optional[AboutPillarTranslation] = None
+    en: Optional[AboutPillarTranslation] = None
+
+
+class AboutListTranslation(BaseModel):
+    title: OptionalStr = None
+    items: Optional[List[str]] = None
+
+
+class AboutListPayload(BaseModel):
+    list_key: OptionalStr = None
+    style: OptionalStr = None
+    az: Optional[AboutListTranslation] = None
+    en: Optional[AboutListTranslation] = None
+
+
 class UpdateAboutPage(BaseModel):
     slug_az: OptionalStr = None
     slug_en: OptionalStr = None
+    # Either a pasted URL or the path returned by the upload endpoint.
+    document_url: OptionalUrl = None
     # `is_active` is deliberately absent: publishing is its own endpoint under
     # its own permission, so a page cannot go live as a side effect of saving
     # a half-written paragraph.
@@ -70,6 +98,8 @@ class UpdateAboutPage(BaseModel):
     blocks: Optional[List[AboutBlockPayload]] = None
     links: Optional[List[AboutLinkPayload]] = None
     milestones: Optional[List[AboutMilestonePayload]] = None
+    pillars: Optional[List[AboutPillarPayload]] = None
+    lists: Optional[List[AboutListPayload]] = None
 
     class Config:
         extra = "ignore"

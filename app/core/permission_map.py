@@ -209,6 +209,7 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
 
     # ── about ──────────────────────────────────────────────────────────────
     ("PUT", "/api/about/admin/pages/{page_key}"): RouteRule("about.update", target_type="about_page", target_param="page_key"),
+    ("PUT", "/api/about/admin/pages/{page_key}/document"): RouteRule("about.upload", target_type="about_page", target_param="page_key"),
     ("PUT", "/api/about/admin/pages/{page_key}/publish"): RouteRule("about.activate", target_type="about_page", target_param="page_key"),
 
     # ── menu / footer ──────────────────────────────────────────────────────
