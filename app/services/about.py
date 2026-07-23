@@ -108,6 +108,10 @@ def _error(status_code: int, message: str) -> JSONResponse:
 RICH_TEXT_FIELDS = frozenset({
     "body_html", "list_intro", "bio_html", "intro", "subtitle", "description",
     "achievements", "note", "footer", "caption",
+    # Titles are authored in the editor too (the page heading, and the heading
+    # of a timeline milestone or a strategic-plan container), so they carry
+    # markup and must be scrubbed like any other rich field.
+    "title",
 })
 
 
