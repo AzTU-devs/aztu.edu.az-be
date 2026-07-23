@@ -51,6 +51,10 @@ class AdminActivityLog(Base):
     ip = Column(String(45), nullable=True)
     user_agent = Column(Text, nullable=True)
     request_id = Column(String(36), nullable=True)
+    # What was sent and what came back, both sanitised and size-capped before
+    # they reach this table — see app/core/audit_payload.py.
+    request_body = Column(JSONB, nullable=True)
+    response_body = Column(JSONB, nullable=True)
     meta = Column(JSONB, nullable=True)
 
     created_at = Column(

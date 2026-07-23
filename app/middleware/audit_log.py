@@ -21,6 +21,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+import uuid
+
+from starlette.responses import Response as PlainResponse
+
+from app.core import audit_payload
 from app.core.audit_labels import label_from_fields, resolve_target_label
 from app.core.auth_dependency import AUDIT_SCOPE_KEY, SECRET_FIELD_NAMES
 from app.core.database import AsyncSessionLocal
@@ -39,6 +44,10 @@ SKIP_PREFIXES = ("/static", "/docs", "/redoc", "/openapi")
 LOGIN_PATH = "/api/auth/login"
 
 USER_AGENT_MAX_LENGTH = 500
+
+# Only JSON responses are captured. This API answers every mutation with JSON,
+# and buffering anything else risks pulling a file download into memory.
+CAPTURED_RESPONSE_TYPES = ("application/json",)
 USERNAME_MAX_LENGTH = 50
 UNKNOWN_USERNAME = "anonymous"
 
@@ -83,17 +92,50 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         if _should_skip(request):
             return await call_next(request)
 
+        # Correlates this log row with the application log and the caller's own
+        # records. The column existed but nothing ever populated it.
+        request_id = str(uuid.uuid4())
+        request.scope["aztu_request_id"] = request_id
+
         response = await call_next(request)
 
+        # `call_next` hands back a streaming response, so the body has to be
+        # drained to be logged — and then handed on as a fresh response, or the
+        # client receives nothing. Only JSON is drained; anything else is passed
+        # through untouched so downloads keep streaming.
+        response_body = None
+        content_type = (response.headers.get("content-type") or "").lower()
+        if any(ct in content_type for ct in CAPTURED_RESPONSE_TYPES):
+            try:
+                chunks = [chunk async for chunk in response.body_iterator]
+                raw = b"".join(chunks)
+                response_body = audit_payload.from_json_bytes(raw)
+                response = PlainResponse(
+                    content=raw,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type=response.media_type,
+                )
+            except Exception:
+                logger.exception("Audit could not buffer the response body")
+
+        response.headers["X-Request-ID"] = request_id
+
         try:
-            await self._record(request, response)
+            await self._record(request, response, response_body, request_id)
         except Exception:
             logger.exception(
                 "Audit log write failed for %s %s", request.method, request.url.path
             )
         return response
 
-    async def _record(self, request: Request, response: Response) -> None:
+    async def _record(
+        self,
+        request: Request,
+        response: Response,
+        response_body=None,
+        request_id: Optional[str] = None,
+    ) -> None:
         audit = request.scope.get(AUDIT_SCOPE_KEY)
         status_code = response.status_code
         path = request.url.path
@@ -160,6 +202,9 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                 outcome=outcome,
                 ip=_client_ip(request),
                 user_agent=user_agent,
+                request_id=request_id,
+                request_body=audit.get("request_body"),
+                response_body=response_body,
                 meta=_safe_meta(label_fields),
             )
             db.add(row)

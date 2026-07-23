@@ -14,6 +14,7 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit_labels import action_label, render_message
+from app.core.audit_payload import classify_client
 from app.core.logger import get_logger
 from app.models.admin.activity_log import AdminActivityLog
 from app.models.admin.admin_user import AdminUser
@@ -48,6 +49,12 @@ def _row_payload(row: AdminActivityLog) -> dict:
         "outcome": row.outcome,
         "ip": row.ip,
         "user_agent": row.user_agent,
+        # Derived at read time, never stored: the classification can be improved
+        # later without a backfill, and it is only ever what the caller claimed.
+        "client": classify_client(row.user_agent),
+        "request_id": row.request_id,
+        "request_body": row.request_body,
+        "response_body": row.response_body,
         "meta": row.meta,
     }
 

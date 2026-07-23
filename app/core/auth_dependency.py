@@ -10,7 +10,7 @@ still costs a single user query.
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -18,6 +18,8 @@ from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
+from app.core import audit_payload
+from app.core.audit_payload import SECRET_FIELD_NAMES  # re-exported
 from app.core.config import settings
 from app.core.permission_map import ROUTE_PERMISSIONS, RouteRule
 from app.core.security import decode_token
@@ -39,14 +41,9 @@ SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 FORM_CONTENT_TYPES = ("multipart/form-data", "application/x-www-form-urlencoded")
 LABEL_VALUE_MAX_LENGTH = 200
 
-# Belt and braces on top of the per-route whitelist: these names can never be copied
-# into the audit log, whatever a future permission_map entry asks for.
-SECRET_FIELD_NAMES = frozenset(
-    {
-        "password", "new_password", "current_password", "confirm_password",
-        "hashed_password", "token", "access_token", "refresh_token", "api_key", "secret",
-    }
-)
+# `SECRET_FIELD_NAMES` lives in `audit_payload` (imported above) alongside the
+# rest of the redaction rules, and is re-exported here because the permission
+# layer and the audit middleware both reach for it via this module.
 
 _UNAUTHORIZED = {"WWW-Authenticate": "Bearer"}
 _FORBIDDEN_MESSAGE = "Bu əməliyyat üçün icazəniz yoxdur."
@@ -134,6 +131,48 @@ async def _label_fields(request: Request, rule: RouteRule) -> dict:
     return out
 
 
+async def _capture_request_body(request: Request) -> Optional[Any]:
+    """Sanitised copy of what the caller sent, for the activity log.
+
+    Read here rather than in the audit middleware for one reason: at this point
+    Starlette caches the body on the request, so the route handler still parses
+    it normally afterwards. The middleware runs outside that cache and consuming
+    the stream there would starve the handler.
+
+    File uploads are summarised, never buffered — see `audit_payload`.
+    """
+    content_type = (request.headers.get("content-type") or "").lower()
+
+    if any(ct in content_type for ct in FORM_CONTENT_TYPES):
+        try:
+            form = await request.form()
+        except Exception:
+            return None
+        fields, files = {}, []
+        for key, value in form.multi_items():
+            if hasattr(value, "filename"):
+                files.append(
+                    {
+                        "field": key,
+                        "filename": getattr(value, "filename", None),
+                        "content_type": getattr(value, "content_type", None),
+                        "size": getattr(getattr(value, "file", None), "tell", lambda: None)(),
+                    }
+                )
+            else:
+                fields[key] = str(value)[:LABEL_VALUE_MAX_LENGTH]
+        return audit_payload.from_form(fields, files)
+
+    if "json" not in content_type:
+        return None
+
+    try:
+        raw = await request.body()
+    except Exception:
+        return None
+    return audit_payload.from_json_bytes(raw)
+
+
 async def _seed_audit_ctx(request: Request, user: Optional[AdminUser], rule: RouteRule) -> None:
     """Write contract C3 into the raw scope so the audit middleware can read it."""
     if rule.no_audit:
@@ -154,6 +193,7 @@ async def _seed_audit_ctx(request: Request, user: Optional[AdminUser], rule: Rou
         "target_type": rule.target_type,
         "target_id": str(target_id) if target_id is not None else None,
         "label_fields": await _label_fields(request, rule),
+        "request_body": await _capture_request_body(request),
         "outcome": "success",
     }
 
