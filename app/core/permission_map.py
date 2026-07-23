@@ -207,32 +207,6 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("DELETE", "/api/research-project/{project_code}"): RouteRule("research_projects.delete", target_type="research_project", target_param="project_code"),
     ("PUT", "/api/research-project/{project_code}/image"): RouteRule("research_projects.upload_image", target_type="research_project", target_param="project_code"),
 
-    # ── about pages ────────────────────────────────────────────────────────
-    # `about_page` labels itself with the page_key ("rector", "strategic-plan"):
-    # the title lives on a translation row keyed by id, which the single-model
-    # resolver cannot reach, and the key is recognisable enough on its own.
-    ("POST", "/api/about/admin/pages"): RouteRule("about.create", target_type="about_page"),
-    ("PUT", "/api/about/admin/pages/{page_key}"): RouteRule("about.update", target_type="about_page", target_param="page_key"),
-    ("PUT", "/api/about/admin/pages/{page_key}/publish"): RouteRule("about.activate", target_type="about_page", target_param="page_key"),
-    ("DELETE", "/api/about/admin/pages/{page_key}"): RouteRule("about.delete", target_type="about_page", target_param="page_key"),
-    ("PUT", "/api/about/admin/pages/{page_key}/image"): RouteRule("about.upload_image", target_type="about_page", target_param="page_key"),
-    ("PUT", "/api/about/admin/pages/{page_key}/file"): RouteRule("about.upload_file", target_type="about_page", target_param="page_key"),
-    ("POST", "/api/about/admin/pages/{page_key}/sections"): RouteRule("about.section.create", target_type="about_page", target_param="page_key"),
-    ("PUT", "/api/about/admin/pages/{page_key}/sections/order"): RouteRule("about.section.reorder", target_type="about_page", target_param="page_key"),
-    ("PUT", "/api/about/admin/sections/{section_id}"): RouteRule("about.section.update", target_type="about_section", target_param="section_id"),
-    ("DELETE", "/api/about/admin/sections/{section_id}"): RouteRule("about.section.delete", target_type="about_section", target_param="section_id"),
-    ("POST", "/api/about/admin/sections/{section_id}/items"): RouteRule("about.item.create", target_type="about_section", target_param="section_id"),
-    ("PUT", "/api/about/admin/sections/{section_id}/items/order"): RouteRule("about.item.reorder", target_type="about_section", target_param="section_id"),
-    ("PUT", "/api/about/admin/items/{item_id}"): RouteRule("about.item.update", target_type="about_item", target_param="item_id"),
-    ("DELETE", "/api/about/admin/items/{item_id}"): RouteRule("about.item.delete", target_type="about_item", target_param="item_id"),
-    ("PUT", "/api/about/admin/items/{item_id}/image"): RouteRule("about.item.upload_image", target_type="about_item", target_param="item_id"),
-    ("PUT", "/api/about/admin/items/{item_id}/file"): RouteRule("about.item.upload_file", target_type="about_item", target_param="item_id"),
-    ("POST", "/api/about/admin/sections/{section_id}/people"): RouteRule("about.person.create", target_type="about_section", target_param="section_id"),
-    ("PUT", "/api/about/admin/sections/{section_id}/people/order"): RouteRule("about.person.reorder", target_type="about_section", target_param="section_id"),
-    ("PUT", "/api/about/admin/people/{person_id}"): RouteRule("about.person.update", target_type="about_person", target_param="person_id"),
-    ("DELETE", "/api/about/admin/people/{person_id}"): RouteRule("about.person.delete", target_type="about_person", target_param="person_id"),
-    ("PUT", "/api/about/admin/people/{person_id}/image"): RouteRule("about.person.upload_image", target_type="about_person", target_param="person_id"),
-
     # ── menu / footer ──────────────────────────────────────────────────────
     ("POST", "/api/menu/footer/column"): RouteRule("menu.footer_column.create", target_type="footer_column"),
     ("PUT", "/api/menu/footer/column/{column_id}"): RouteRule("menu.footer_column.update", target_type="footer_column", target_param="column_id"),
