@@ -29,6 +29,8 @@ from app.models.about.about import (
     AboutBlockTr,
     AboutLink,
     AboutLinkTr,
+    AboutMilestone,
+    AboutMilestoneTr,
     AboutPage,
     AboutPageTr,
 )
@@ -41,6 +43,7 @@ LANGS = ("az", "en")
 PAGE_TR_FIELDS = ("title", "description", "links_title")
 BLOCK_TR_FIELDS = ("title", "body")
 LINK_TR_FIELDS = ("label",)
+MILESTONE_TR_FIELDS = ("title", "description")
 
 # Editor-authored HTML. Scrubbed on the way in so the website can render it
 # verbatim — an authenticated admin is still not a reason to store raw markup.
@@ -59,6 +62,20 @@ def _error(status_code: int, message: str) -> JSONResponse:
     return JSONResponse(
         content={"status_code": status_code, "message": message}, status_code=status_code
     )
+
+
+def _milestone_order(milestone: Any) -> tuple:
+    """Newest first, as the page requires.
+
+    The year is free text, so the sort reads the first 3-4 digit run out of it
+    ("1887-1905" sorts as 1887). An entry with no digits is the present day
+    ("Bu gün" / "Today") and therefore sorts ahead of every dated one.
+    `display_order` only breaks ties.
+    """
+    match = re.search(r"\d{3,4}", milestone.year or "")
+    if match is None:
+        return (0, 0, milestone.display_order)
+    return (1, -int(match.group()), milestone.display_order)
 
 
 def _plain_text(html: Optional[str]) -> str:
@@ -152,6 +169,7 @@ def _page_query():
         selectinload(AboutPage.translations),
         selectinload(AboutPage.blocks).selectinload(AboutBlock.translations),
         selectinload(AboutPage.links).selectinload(AboutLink.translations),
+        selectinload(AboutPage.milestones).selectinload(AboutMilestone.translations),
     )
 
 
@@ -164,6 +182,7 @@ def _serialize_admin(page: AboutPage) -> dict:
     return {
         "id": page.id,
         "page_key": page.page_key,
+        "template": page.template,
         "slug_az": page.slug_az,
         "slug_en": page.slug_en,
         "is_active": page.is_active,
@@ -186,6 +205,14 @@ def _serialize_admin(page: AboutPage) -> dict:
             }
             for link in sorted(page.links, key=lambda l: l.display_order)
         ],
+        "milestones": [
+            {
+                "id": milestone.id,
+                "year": milestone.year,
+                **_tr_map(milestone.translations, MILESTONE_TR_FIELDS),
+            }
+            for milestone in sorted(page.milestones, key=_milestone_order)
+        ],
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }
 
@@ -194,6 +221,7 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
     copy = _pick(page.translations, lang, PAGE_TR_FIELDS)
     return {
         "page_key": page.page_key,
+        "template": page.template,
         "slug": page.slug_az if lang == "az" else page.slug_en,
         **copy,
         # Derived, not authored: the dashboard has no SEO fields by design.
@@ -215,6 +243,13 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
             }
             for link in sorted(page.links, key=lambda l: l.display_order)
         ],
+        "milestones": [
+            {
+                "year": milestone.year,
+                **_pick(milestone.translations, lang, MILESTONE_TR_FIELDS),
+            }
+            for milestone in sorted(page.milestones, key=_milestone_order)
+        ],
     }
 
 
@@ -231,6 +266,7 @@ async def get_pages_admin(db: AsyncSession):
         payload = [
             {
                 "page_key": page.page_key,
+                "template": page.template,
                 "is_active": page.is_active,
                 "title_az": _tr_map(page.translations, ("title",))["az"]["title"],
                 "title_en": _tr_map(page.translations, ("title",))["en"]["title"],
@@ -333,6 +369,31 @@ async def _replace_links(db: AsyncSession, page_id: int, links: list, now: datet
         )
 
 
+async def _replace_milestones(db: AsyncSession, page_id: int, milestones: list, now: datetime):
+    """Rewrites the timeline. Milestones carry no stable key, so the payload is
+    the complete truth; `display_order` records the order they were sent in and
+    only ever breaks ties between equal years."""
+    await db.execute(
+        sqlalchemy_delete(AboutMilestone).where(AboutMilestone.page_id == page_id)
+    )
+
+    for index, entry in enumerate(milestones):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        milestone = AboutMilestone(
+            page_id=page_id,
+            year=payload.get("year"),
+            display_order=index,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(milestone)
+        await db.flush()
+        await _upsert_translations(
+            db, AboutMilestoneTr, "milestone_id", milestone.id, payload,
+            MILESTONE_TR_FIELDS, now,
+        )
+
+
 async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession):
     try:
         page = (
@@ -357,6 +418,8 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
             await _replace_blocks(db, page.id, data["blocks"], now)
         if data.get("links") is not None:
             await _replace_links(db, page.id, data["links"], now)
+        if data.get("milestones") is not None:
+            await _replace_milestones(db, page.id, data["milestones"], now)
 
         await db.commit()
         return JSONResponse(content={"status_code": 200, "message": "About page updated."})

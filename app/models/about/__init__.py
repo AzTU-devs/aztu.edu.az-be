@@ -5,4 +5,6 @@ from app.models.about.about import (  # noqa: F401
     AboutBlockTr,
     AboutLink,
     AboutLinkTr,
+    AboutMilestone,
+    AboutMilestoneTr,
 )

@@ -43,6 +43,19 @@ class AboutLinkPayload(BaseModel):
     en: Optional[AboutLinkTranslation] = None
 
 
+class AboutMilestoneTranslation(BaseModel):
+    title: OptionalStr = None
+    description: OptionalStr = None
+
+
+class AboutMilestonePayload(BaseModel):
+    # Free text on purpose: the timeline ends on "Bu gün" / "Today", and some
+    # entries span a range. The API decides the ordering, not this value's type.
+    year: OptionalStr = None
+    az: Optional[AboutMilestoneTranslation] = None
+    en: Optional[AboutMilestoneTranslation] = None
+
+
 class UpdateAboutPage(BaseModel):
     slug_az: OptionalStr = None
     slug_en: OptionalStr = None
@@ -56,6 +69,7 @@ class UpdateAboutPage(BaseModel):
     # Omit a key to leave those rows untouched; send [] to clear them.
     blocks: Optional[List[AboutBlockPayload]] = None
     links: Optional[List[AboutLinkPayload]] = None
+    milestones: Optional[List[AboutMilestonePayload]] = None
 
     class Config:
         extra = "ignore"

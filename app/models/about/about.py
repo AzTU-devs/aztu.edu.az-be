@@ -28,6 +28,9 @@ class AboutPage(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     page_key = Column(String(100), unique=True, nullable=False)
+    # Which shape this page is: statements | timeline. Drives the dashboard
+    # form and, later, the website renderer.
+    template = Column(String(50), nullable=False, default="statements")
     slug_az = Column(String(255))
     slug_en = Column(String(255))
     display_order = Column(Integer, nullable=False, default=0)
@@ -56,6 +59,13 @@ class AboutPage(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="AboutLink.display_order",
+    )
+    milestones = relationship(
+        "AboutMilestone",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutMilestone.display_order",
     )
 
 
@@ -164,3 +174,49 @@ class AboutLinkTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     link = relationship("AboutLink", back_populates="translations")
+
+
+class AboutMilestone(Base):
+    """One year on the history timeline."""
+
+    __tablename__ = "about_milestones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    # Shown verbatim: "1950", "1887-1905", "Bu gün". Text, because the timeline
+    # ends on a non-numeric entry — ordering is decided in the service.
+    year = Column(String(50))
+    # Tie-break only; the API orders by the year itself, newest first.
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="milestones")
+    translations = relationship(
+        "AboutMilestoneTr",
+        back_populates="milestone",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AboutMilestoneTr(Base):
+    __tablename__ = "about_milestone_tr"
+    __table_args__ = (
+        UniqueConstraint("milestone_id", "lang_code", name="uq_about_milestone_tr_ms_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    milestone_id = Column(
+        Integer, ForeignKey("about_milestones.id", ondelete="CASCADE"), nullable=False
+    )
+    lang_code = Column(String(10), nullable=False)
+
+    title = Column(String(500))
+    description = Column(Text)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    milestone = relationship("AboutMilestone", back_populates="translations")
