@@ -103,6 +103,8 @@ RESOURCE_NOUNS: Dict[str, Noun] = {
     "menu.quick_section_item": Noun("sürətli keçid bölmə elementi", "quick-access section item", "sürətli keçid bölmə elementini", "sürətli keçid bölmə elementinin", "sürətli keçid bölmə elementlərinin"),
     "menu.social_link": Noun("sosial şəbəkə linki", "social link", "sosial şəbəkə linkini", "sosial şəbəkə linkinin", "sosial şəbəkə linklərinin"),
 
+    "about": Noun("Haqqımızda səhifəsi", "about page", "Haqqımızda səhifəsini", "Haqqımızda səhifəsinin", "Haqqımızda səhifələrinin"),
+
     "menu_header": Noun("menyu başlığı", "menu header", "menyu başlığını", "menyu başlığının", "menyu başlıqlarının"),
     "menu_header.item": Noun("menyu elementi", "menu item", "menyu elementini", "menyu elementinin", "menyu elementlərinin"),
     "menu_header.sub_item": Noun("alt menyu elementi", "submenu item", "alt menyu elementini", "alt menyu elementinin", "alt menyu elementlərinin"),
@@ -234,6 +236,7 @@ _RESOLVER_SPECS: Dict[str, _Resolver] = {
     # same tables on the same MetaData.
     "research_institute": _Resolver("app.models.research_institute.institute", "ResearchInstituteTr", "institute_code", "name"),
     "research_project": _Resolver("app.models.research_project.project", "ResearchProjectTr", "project_code", "name"),
+    "about_page": _Resolver("app.models.about.about", "AboutPage", "page_key", "page_key", lang_attr=None),
 }
 
 TARGET_LABEL_MAX_LENGTH = 200

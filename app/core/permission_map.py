@@ -207,6 +207,10 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("DELETE", "/api/research-project/{project_code}"): RouteRule("research_projects.delete", target_type="research_project", target_param="project_code"),
     ("PUT", "/api/research-project/{project_code}/image"): RouteRule("research_projects.upload_image", target_type="research_project", target_param="project_code"),
 
+    # ── about ──────────────────────────────────────────────────────────────
+    ("PUT", "/api/about/admin/pages/{page_key}"): RouteRule("about.update", target_type="about_page", target_param="page_key"),
+    ("PUT", "/api/about/admin/pages/{page_key}/publish"): RouteRule("about.activate", target_type="about_page", target_param="page_key"),
+
     # ── menu / footer ──────────────────────────────────────────────────────
     ("POST", "/api/menu/footer/column"): RouteRule("menu.footer_column.create", target_type="footer_column"),
     ("PUT", "/api/menu/footer/column/{column_id}"): RouteRule("menu.footer_column.update", target_type="footer_column", target_param="column_id"),
