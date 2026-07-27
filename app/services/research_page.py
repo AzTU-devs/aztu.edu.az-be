@@ -39,7 +39,7 @@ from app.models.research.research import (
     ResearchPriority,
     ResearchPriorityTr,
 )
-from app.utils.file_upload import ALLOWED_DOC_MIMES, save_upload
+from app.utils.file_upload import ALLOWED_DOC_MIMES, safe_delete_file, save_upload
 from app.utils.html_sanitizer import sanitize_html
 
 logger = get_logger(__name__)
@@ -61,6 +61,13 @@ RICH_TEXT_FIELDS = frozenset({"description", "body_html"})
 # SEO is derived here rather than typed in the dashboard: the meta description
 # is the hero copy with its markup removed, clipped to a sensible length.
 SEO_DESCRIPTION_LIMIT = 160
+
+# Where patent certificates are stored, and the marker that tells one of our own
+# files apart from a link an editor pasted. Written once so the upload and the
+# orphan sweep cannot drift apart — if they did, the sweep would either miss
+# every file or start deleting things it did not store.
+UPLOAD_SUBDIR = "research/documents"
+UPLOAD_DIR = f"static/{UPLOAD_SUBDIR}/"
 
 
 def _now() -> datetime:
@@ -363,9 +370,21 @@ async def _replace_priorities(
         )
 
 
+def _stored_upload(url: Optional[str]) -> bool:
+    """True for a file this endpoint stored, false for a link an editor pasted.
+
+    Matched on the directory `save_upload` writes to rather than on "is not
+    http", because `save_upload` returns an absolute URL whenever
+    `PUBLIC_BASE_URL` is set — a scheme test would quietly stop recognising our
+    own files in exactly the deployments that have that configured.
+    `safe_delete_file` independently refuses anything outside the static root.
+    """
+    return bool(url) and UPLOAD_DIR in url
+
+
 async def _replace_patent_years(
     db: AsyncSession, page_id: int, years: list, now: datetime
-):
+) -> list:
     """Rewrites the whole patents table, years and rows together.
 
     Replaced wholesale rather than diffed: neither a year nor a patent row has
@@ -374,7 +393,36 @@ async def _replace_patent_years(
 
     A year with no label and no rows is an empty block the editor added and
     never filled in; it is dropped rather than stored.
+
+    Returns the certificates that were stored here and are no longer referenced
+    by anything — a replaced or deleted upload. They are not unlinked here: the
+    caller does it after the commit, so a rollback can never leave a surviving
+    row pointing at a file that is already gone. Uploads named with
+    `secrets.token_hex` are unfindable once the last reference goes, so a sweep
+    that never runs is a leak nothing can later reclaim.
     """
+    kept = set()
+    for year_entry in years:
+        year_payload = (
+            year_entry if isinstance(year_entry, dict) else year_entry.dict(exclude_unset=True)
+        )
+        for entry in year_payload.get("patents") or []:
+            payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+            url = (payload.get("document_url") or "").strip()
+            if url:
+                kept.add(url)
+
+    previous = (
+        await db.execute(
+            select(ResearchPatent.document_url)
+            .join(ResearchPatentYear, ResearchPatent.year_id == ResearchPatentYear.id)
+            .where(ResearchPatentYear.page_id == page_id)
+        )
+    ).scalars().all()
+    orphans = [
+        url for url in previous if url not in kept and _stored_upload(url)
+    ]
+
     await db.execute(
         sqlalchemy_delete(ResearchPatentYear).where(ResearchPatentYear.page_id == page_id)
     )
@@ -413,6 +461,8 @@ async def _replace_patent_years(
                 db, ResearchPatentTr, "patent_id", patent.id, payload,
                 PATENT_TR_FIELDS, now,
             )
+
+    return orphans
 
 
 async def _replace_links(db: AsyncSession, page_id: int, links: list, now: datetime):
@@ -460,14 +510,23 @@ async def update_page(page_key: str, request: UpdateResearchPage, db: AsyncSessi
             db, ResearchPageTr, "page_id", page.id, data, PAGE_TR_FIELDS, now
         )
 
+        orphans: list = []
         if data.get("priorities") is not None:
             await _replace_priorities(db, page.id, data["priorities"], now)
         if data.get("patent_years") is not None:
-            await _replace_patent_years(db, page.id, data["patent_years"], now)
+            orphans = await _replace_patent_years(db, page.id, data["patent_years"], now)
         if data.get("links") is not None:
             await _replace_links(db, page.id, data["links"], now)
 
         await db.commit()
+
+        # Only after the rows are durably gone, and never inside the try that
+        # could roll back: a file unlinked ahead of a failed commit would leave
+        # a surviving row pointing at nothing. A failure to unlink is logged and
+        # otherwise ignored — the save itself has already succeeded.
+        for path in orphans:
+            safe_delete_file(path)
+
         return JSONResponse(
             content={"status_code": 200, "message": "Research page updated."}
         )
@@ -528,7 +587,7 @@ async def upload_document(page_key: str, file: UploadFile, db: AsyncSession):
         if page is None:
             return _error(404, "Research page not found.")
 
-        path = await save_upload(file, "research/documents", ALLOWED_DOC_MIMES)
+        path = await save_upload(file, UPLOAD_SUBDIR, ALLOWED_DOC_MIMES)
         return JSONResponse(
             content={"status_code": 200, "message": "Document uploaded.", "path": path}
         )
