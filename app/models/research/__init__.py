@@ -5,4 +5,7 @@ from app.models.research.research import (  # noqa: F401
     ResearchPriorityTr,
     ResearchPageLink,
     ResearchPageLinkTr,
+    ResearchPatentYear,
+    ResearchPatent,
+    ResearchPatentTr,
 )

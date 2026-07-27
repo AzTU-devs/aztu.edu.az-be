@@ -216,6 +216,7 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     # ── research pages (the Tədqiqat section's editorial screens) ───────────
     ("PUT", "/api/research/admin/pages/{page_key}"): RouteRule("research_pages.update", target_type="research_page", target_param="page_key"),
     ("PUT", "/api/research/admin/pages/{page_key}/publish"): RouteRule("research_pages.activate", target_type="research_page", target_param="page_key"),
+    ("PUT", "/api/research/admin/pages/{page_key}/document"): RouteRule("research_pages.upload", target_type="research_page", target_param="page_key"),
 
     # ── menu / footer ──────────────────────────────────────────────────────
     ("POST", "/api/menu/footer/column"): RouteRule("menu.footer_column.create", target_type="footer_column"),
