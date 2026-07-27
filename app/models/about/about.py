@@ -37,6 +37,17 @@ class AboutPage(Base):
     # The downloadable plan: either an uploaded file's path or a pasted URL.
     # One column, because from the page's point of view they are the same thing.
     document_url = Column(String(2048))
+
+    # ── Rector-page (template = "rector") columns ────────────────────────────
+    # Language-neutral facts about the person the page is about. They live on
+    # the row, not the ``*_tr`` sibling, because "30+ Years", an email and a
+    # portrait read the same in every language.
+    experience = Column(String(100))
+    email = Column(String(255))
+    # The rector's portrait: an uploaded file's path or a pasted URL, like
+    # ``document_url``.
+    image_url = Column(String(2048))
+
     display_order = Column(Integer, nullable=False, default=0)
     # False keeps the page out of the public API while it is being filled in.
     is_active = Column(Boolean, nullable=False, default=False)
@@ -85,6 +96,13 @@ class AboutPage(Base):
         passive_deletes=True,
         order_by="AboutMilestone.display_order",
     )
+    images = relationship(
+        "AboutImage",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutImage.display_order",
+    )
 
 
 class AboutPageTr(Base):
@@ -106,6 +124,16 @@ class AboutPageTr(Base):
     document_label = Column(String(500))
     # Heading above the pillar cards.
     pillars_title = Column(String(500))
+
+    # ── Rector-page (template = "rector") translations ───────────────────────
+    # The rector's academic degree ("Technical Sciences") and title
+    # ("Professor") — short strings shown in the hero stat cards.
+    degree = Column(String(255))
+    position = Column(String(255))
+    # Rich text: the rector's full message (the editor keeps line spacing) and
+    # the "About the rector" biography.
+    message = Column(Text)
+    about = Column(Text)
 
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
@@ -335,3 +363,24 @@ class AboutListTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     list = relationship("AboutList", back_populates="translations")
+
+
+class AboutImage(Base):
+    """One picture in a page's gallery — used by the rector page.
+
+    Images are language-neutral, so there is no ``*_tr`` sibling: the row is
+    just a stored file (or pasted URL) and its position in the strip.
+    """
+
+    __tablename__ = "about_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    # An uploaded file's path or a pasted URL — the page treats them alike.
+    image_url = Column(String(2048), nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="images")

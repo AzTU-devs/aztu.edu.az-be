@@ -13,7 +13,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from app.api.v1.schema.common import OptionalStr, OptionalUrl
+from app.api.v1.schema.common import OptionalEmail, OptionalStr, OptionalUrl
 
 
 class AboutPageTranslation(BaseModel):
@@ -22,6 +22,11 @@ class AboutPageTranslation(BaseModel):
     links_title: OptionalStr = None
     document_label: OptionalStr = None
     pillars_title: OptionalStr = None
+    # Rector page: the academic degree, the title, the message and the bio.
+    degree: OptionalStr = None
+    position: OptionalStr = None
+    message: OptionalStr = None
+    about: OptionalStr = None
 
 
 class AboutBlockTranslation(BaseModel):
@@ -82,11 +87,22 @@ class AboutListPayload(BaseModel):
     en: Optional[AboutListTranslation] = None
 
 
+class AboutImagePayload(BaseModel):
+    # A pasted URL or the path returned by the image upload endpoint.
+    image_url: OptionalUrl = None
+
+
 class UpdateAboutPage(BaseModel):
     slug_az: OptionalStr = None
     slug_en: OptionalStr = None
     # Either a pasted URL or the path returned by the upload endpoint.
     document_url: OptionalUrl = None
+
+    # Rector page, language-neutral: kept on the page, not per translation.
+    experience: OptionalStr = None
+    email: OptionalEmail = None
+    # The portrait — a pasted URL or the path returned by the image upload.
+    image_url: OptionalUrl = None
     # `is_active` is deliberately absent: publishing is its own endpoint under
     # its own permission, so a page cannot go live as a side effect of saving
     # a half-written paragraph.
@@ -100,6 +116,8 @@ class UpdateAboutPage(BaseModel):
     milestones: Optional[List[AboutMilestonePayload]] = None
     pillars: Optional[List[AboutPillarPayload]] = None
     lists: Optional[List[AboutListPayload]] = None
+    # The gallery strip — sent whole and replaces what is stored.
+    images: Optional[List[AboutImagePayload]] = None
 
     class Config:
         extra = "ignore"

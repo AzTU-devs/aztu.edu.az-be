@@ -27,6 +27,7 @@ from app.core.logger import get_logger
 from app.models.about.about import (
     AboutBlock,
     AboutBlockTr,
+    AboutImage,
     AboutLink,
     AboutLinkTr,
     AboutList,
@@ -38,7 +39,12 @@ from app.models.about.about import (
     AboutPage,
     AboutPageTr,
 )
-from app.utils.file_upload import ALLOWED_DOC_MIMES, safe_delete_file, save_upload
+from app.utils.file_upload import (
+    ALLOWED_DOC_MIMES,
+    ALLOWED_IMAGE_MIMES,
+    safe_delete_file,
+    save_upload,
+)
 from app.utils.html_sanitizer import sanitize_html
 
 logger = get_logger(__name__)
@@ -47,6 +53,8 @@ LANGS = ("az", "en")
 
 PAGE_TR_FIELDS = (
     "title", "description", "links_title", "document_label", "pillars_title",
+    # Rector page.
+    "degree", "position", "message", "about",
 )
 BLOCK_TR_FIELDS = ("title", "body")
 LINK_TR_FIELDS = ("label",)
@@ -54,9 +62,13 @@ MILESTONE_TR_FIELDS = ("title", "description")
 PILLAR_TR_FIELDS = ("title", "description", "tags")
 LIST_TR_FIELDS = ("title", "items")
 
+# Language-neutral page columns writable from the dashboard (rector page).
+PAGE_FIELDS = ("slug_az", "slug_en", "document_url", "experience", "email", "image_url")
+
 # Editor-authored HTML. Scrubbed on the way in so the website can render it
 # verbatim — an authenticated admin is still not a reason to store raw markup.
-RICH_TEXT_FIELDS = frozenset({"description", "body"})
+# `message` and `about` are the rector page's rich-text fields.
+RICH_TEXT_FIELDS = frozenset({"description", "body", "message", "about"})
 
 # SEO is derived here rather than typed in the dashboard: the meta description
 # is the hero copy with its markup removed, clipped to a sensible length.
@@ -181,6 +193,7 @@ def _page_query():
         selectinload(AboutPage.milestones).selectinload(AboutMilestone.translations),
         selectinload(AboutPage.pillars).selectinload(AboutPillar.translations),
         selectinload(AboutPage.lists).selectinload(AboutList.translations),
+        selectinload(AboutPage.images),
     )
 
 
@@ -197,6 +210,9 @@ def _serialize_admin(page: AboutPage) -> dict:
         "slug_az": page.slug_az,
         "slug_en": page.slug_en,
         "document_url": page.document_url,
+        "experience": page.experience,
+        "email": page.email,
+        "image_url": page.image_url,
         "is_active": page.is_active,
         **_tr_map(page.translations, PAGE_TR_FIELDS),
         "blocks": [
@@ -242,6 +258,14 @@ def _serialize_admin(page: AboutPage) -> dict:
             }
             for entry in sorted(page.lists, key=lambda l: l.display_order)
         ],
+        "images": [
+            {
+                "id": image.id,
+                "image_url": image.image_url,
+                "display_order": image.display_order,
+            }
+            for image in sorted(page.images, key=lambda i: i.display_order)
+        ],
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }
 
@@ -253,6 +277,9 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
         "template": page.template,
         "slug": page.slug_az if lang == "az" else page.slug_en,
         "document_url": page.document_url,
+        "experience": page.experience,
+        "email": page.email,
+        "image_url": page.image_url,
         **copy,
         # Derived, not authored: the dashboard has no SEO fields by design.
         "seo": {
@@ -291,6 +318,10 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
                 **_pick(entry.translations, lang, LIST_TR_FIELDS),
             }
             for entry in sorted(page.lists, key=lambda l: l.display_order)
+        ],
+        "images": [
+            image.image_url
+            for image in sorted(page.images, key=lambda i: i.display_order)
         ],
     }
 
@@ -411,6 +442,50 @@ async def _replace_links(db: AsyncSession, page_id: int, links: list, now: datet
         )
 
 
+async def _replace_images(db: AsyncSession, page_id: int, images: list, now: datetime):
+    """Rewrites the gallery in the order given.
+
+    Images carry no stable key, so the payload is the complete, ordered truth.
+    Any stored file that was dropped from the strip is removed from disk so the
+    static directory does not fill up with orphans; a pasted URL is left alone.
+    """
+    kept: set[str] = set()
+    rows = []
+    for index, entry in enumerate(images):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        url = (payload.get("image_url") or "").strip()
+        if not url:
+            continue
+        kept.add(url)
+        rows.append((index, url))
+
+    previous = (
+        await db.execute(select(AboutImage).where(AboutImage.page_id == page_id))
+    ).scalars().all()
+    orphans = [
+        image.image_url
+        for image in previous
+        if image.image_url
+        and image.image_url not in kept
+        and not image.image_url.startswith(("http://", "https://"))
+    ]
+
+    await db.execute(sqlalchemy_delete(AboutImage).where(AboutImage.page_id == page_id))
+    for index, url in rows:
+        db.add(
+            AboutImage(
+                page_id=page_id,
+                image_url=url,
+                display_order=index,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    for path in orphans:
+        safe_delete_file(path)
+
+
 async def _replace_milestones(db: AsyncSession, page_id: int, milestones: list, now: datetime):
     """Rewrites the timeline. Milestones carry no stable key, so the payload is
     the complete truth; `display_order` records the order they were sent in and
@@ -501,7 +576,19 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
         now = _now()
         data = request.dict(exclude_unset=True)
 
-        for field in ("slug_az", "slug_en", "document_url"):
+        # Replacing the portrait with a different stored file orphans the old
+        # one — clean it up, but never touch a pasted URL (not ours to delete).
+        if "image_url" in data:
+            previous_portrait = page.image_url
+            new_portrait = data["image_url"]
+            if (
+                previous_portrait
+                and previous_portrait != new_portrait
+                and not previous_portrait.startswith(("http://", "https://"))
+            ):
+                safe_delete_file(previous_portrait)
+
+        for field in PAGE_FIELDS:
             if field in data:
                 setattr(page, field, data[field])
         page.updated_at = now
@@ -520,6 +607,8 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
             await _replace_pillars(db, page.id, data["pillars"], now)
         if data.get("lists") is not None:
             await _upsert_lists(db, page.id, data["lists"], now)
+        if data.get("images") is not None:
+            await _replace_images(db, page.id, data["images"], now)
 
         await db.commit()
         return JSONResponse(content={"status_code": 200, "message": "About page updated."})
@@ -586,3 +675,28 @@ async def upload_document(page_key: str, file: UploadFile, db: AsyncSession):
         await db.rollback()
         logger.exception("Failed to upload document for %s", page_key)
         return _error(500, "Failed to upload document.")
+
+
+async def upload_image(page_key: str, file: UploadFile, db: AsyncSession):
+    """Stores one image and returns its path.
+
+    Used for both the rector's portrait and the gallery: the endpoint only
+    stores the file and hands back the URL, and the whole-page save decides
+    where it lands (``image_url`` or the ``images`` strip). Nothing is written
+    to the page here, so an upload the editor then discards leaves no dangling
+    row — only a file, which the next save's orphan sweep removes.
+    """
+    try:
+        page = (
+            await db.execute(select(AboutPage).where(AboutPage.page_key == page_key))
+        ).scalar_one_or_none()
+        if page is None:
+            return _error(404, "About page not found.")
+
+        path = await save_upload(file, "about/images", ALLOWED_IMAGE_MIMES)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Image uploaded.", "path": path}
+        )
+    except Exception:
+        logger.exception("Failed to upload image for %s", page_key)
+        return _error(500, "Failed to upload image.")
