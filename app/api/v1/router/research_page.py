@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.schema.research import PublishResearchPage, UpdateResearchPage
@@ -11,6 +11,7 @@ from app.services.research_page import (
     get_pages_admin,
     publish_page,
     update_page,
+    upload_document,
 )
 from app.utils.language import get_language
 
@@ -55,6 +56,19 @@ async def publish_page_endpoint(
     _: AdminUser = Depends(require_admin),
 ):
     return await publish_page(page_key=page_key, is_active=request.is_active, db=db)
+
+
+@router.put("/admin/pages/{page_key}/document")
+async def upload_document_endpoint(
+    page_key: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    """Stores a file and returns its path; the caller saves that path with the
+    rest of the form. Page-scoped rather than row-scoped because patent rows are
+    replaced on every save and their ids do not survive one."""
+    return await upload_document(page_key=page_key, file=file, db=db)
 
 
 # ── Public ─────────────────────────────────────────────────────────────────────

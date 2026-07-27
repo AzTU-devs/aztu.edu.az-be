@@ -7,9 +7,9 @@ Two read shapes, deliberately different:
 * ``get_page_public`` resolves one language, refuses unpublished pages, and adds
   the derived SEO fields — it is what the website consumes.
 
-The page saves as one document. `priorities` and `links` arrive whole and
-replace what is stored, which matches the dashboard's single Save button and
-avoids a per-row endpoint surface for a page this small.
+The page saves as one document. `priorities`, `patent_years` and `links` arrive
+whole and replace what is stored, which matches the dashboard's single Save
+button and avoids a per-row endpoint surface for a page this small.
 
 Named ``research_page`` rather than ``research`` so it is never mistaken for the
 research *institute* / *project* services, which manage entities rather than
@@ -20,7 +20,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional
 
-from fastapi import status
+from fastapi import HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,22 +33,30 @@ from app.models.research.research import (
     ResearchPageLink,
     ResearchPageLinkTr,
     ResearchPageTr,
+    ResearchPatent,
+    ResearchPatentTr,
+    ResearchPatentYear,
     ResearchPriority,
     ResearchPriorityTr,
 )
+from app.utils.file_upload import ALLOWED_DOC_MIMES, save_upload
 from app.utils.html_sanitizer import sanitize_html
 
 logger = get_logger(__name__)
 
 LANGS = ("az", "en")
 
-PAGE_TR_FIELDS = ("title", "description", "vision_html", "links_title")
+PAGE_TR_FIELDS = ("title", "description", "body_html", "links_title")
 PRIORITY_TR_FIELDS = ("title", "description")
+PATENT_TR_FIELDS = ("name", "authors")
 LINK_TR_FIELDS = ("label",)
 
 # Editor-authored HTML. Scrubbed on the way in so the website can render it
 # verbatim — an authenticated admin is still not a reason to store raw markup.
-RICH_TEXT_FIELDS = frozenset({"description", "vision_html"})
+#
+# `name` and `authors` are absent on purpose: the patents table renders them as
+# plain text, so they are stored as typed and escaped by the renderer.
+RICH_TEXT_FIELDS = frozenset({"description", "body_html"})
 
 # SEO is derived here rather than typed in the dashboard: the meta description
 # is the hero copy with its markup removed, clipped to a sensible length.
@@ -63,6 +71,22 @@ def _error(status_code: int, message: str) -> JSONResponse:
     return JSONResponse(
         content={"status_code": status_code, "message": message}, status_code=status_code
     )
+
+
+def _year_order(year_row: Any) -> tuple:
+    """Oldest year first.
+
+    Deliberately ascending, and deliberately not the editor's choice: the
+    patents page reverses the list before rendering, so ascending here is what
+    puts the newest year at the top of the page. Adding "2026" therefore lands
+    at the top of the site with no reordering to do.
+
+    The year is free text, so the sort reads the first 3-4 digit run out of it.
+    An entry with no digits at all is malformed rather than meaningful; it sorts
+    first here, which is last on the page, where it does the least harm.
+    """
+    match = re.search(r"\d{3,4}", year_row.year or "")
+    return (int(match.group()) if match else -1, year_row.display_order)
 
 
 def _plain_text(html: Optional[str]) -> str:
@@ -156,6 +180,9 @@ def _page_query():
         selectinload(ResearchPage.translations),
         selectinload(ResearchPage.priorities).selectinload(ResearchPriority.translations),
         selectinload(ResearchPage.links).selectinload(ResearchPageLink.translations),
+        selectinload(ResearchPage.patent_years)
+        .selectinload(ResearchPatentYear.patents)
+        .selectinload(ResearchPatent.translations),
     )
 
 
@@ -180,6 +207,25 @@ def _serialize_admin(page: ResearchPage) -> dict:
                 **_tr_map(priority.translations, PRIORITY_TR_FIELDS),
             }
             for priority in sorted(page.priorities, key=lambda p: p.display_order)
+        ],
+        "patent_years": [
+            {
+                "id": year_row.id,
+                "year": year_row.year,
+                "patents": [
+                    {
+                        "id": patent.id,
+                        "patent_number": patent.patent_number,
+                        "document_url": patent.document_url,
+                        "display_order": patent.display_order,
+                        **_tr_map(patent.translations, PATENT_TR_FIELDS),
+                    }
+                    for patent in sorted(year_row.patents, key=lambda p: p.display_order)
+                ],
+            }
+            # Same order the website gets, so the editor is looking at the
+            # stored truth rather than a second arrangement of it.
+            for year_row in sorted(page.patent_years, key=_year_order)
         ],
         "links": [
             {
@@ -209,6 +255,27 @@ def _serialize_public(page: ResearchPage, lang: str) -> dict:
         "priorities": [
             _pick(priority.translations, lang, PRIORITY_TR_FIELDS)
             for priority in sorted(page.priorities, key=lambda p: p.display_order)
+        ],
+        # Oldest year first — the patents page reverses this list before it
+        # renders, so ascending here is what puts the newest year on top.
+        "years": [
+            {
+                "year": year_row.year,
+                "patents": [
+                    {
+                        # The row number is the position, derived rather than
+                        # stored so it can never disagree with the ordering.
+                        "no": str(index + 1),
+                        "number": patent.patent_number,
+                        "link": patent.document_url,
+                        **_pick(patent.translations, lang, PATENT_TR_FIELDS),
+                    }
+                    for index, patent in enumerate(
+                        sorted(year_row.patents, key=lambda p: p.display_order)
+                    )
+                ],
+            }
+            for year_row in sorted(page.patent_years, key=_year_order)
         ],
         "links": [
             {
@@ -296,6 +363,58 @@ async def _replace_priorities(
         )
 
 
+async def _replace_patent_years(
+    db: AsyncSession, page_id: int, years: list, now: datetime
+):
+    """Rewrites the whole patents table, years and rows together.
+
+    Replaced wholesale rather than diffed: neither a year nor a patent row has
+    an identity the editor controls, and the payload is the complete, ordered
+    truth. Deleting the year cascades to its patents and their translations.
+
+    A year with no label and no rows is an empty block the editor added and
+    never filled in; it is dropped rather than stored.
+    """
+    await db.execute(
+        sqlalchemy_delete(ResearchPatentYear).where(ResearchPatentYear.page_id == page_id)
+    )
+
+    for year_index, year_entry in enumerate(years):
+        year_payload = (
+            year_entry if isinstance(year_entry, dict) else year_entry.dict(exclude_unset=True)
+        )
+        patents = year_payload.get("patents") or []
+        if not (year_payload.get("year") or "").strip() and not patents:
+            continue
+
+        year_row = ResearchPatentYear(
+            page_id=page_id,
+            year=year_payload.get("year"),
+            display_order=year_index,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(year_row)
+        await db.flush()
+
+        for index, entry in enumerate(patents):
+            payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+            patent = ResearchPatent(
+                year_id=year_row.id,
+                patent_number=payload.get("patent_number"),
+                document_url=payload.get("document_url"),
+                display_order=index,
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(patent)
+            await db.flush()
+            await _upsert_translations(
+                db, ResearchPatentTr, "patent_id", patent.id, payload,
+                PATENT_TR_FIELDS, now,
+            )
+
+
 async def _replace_links(db: AsyncSession, page_id: int, links: list, now: datetime):
     """Rewrites the button list. Buttons carry no stable key, so they are
     replaced wholesale — the payload is the complete, ordered truth."""
@@ -343,6 +462,8 @@ async def update_page(page_key: str, request: UpdateResearchPage, db: AsyncSessi
 
         if data.get("priorities") is not None:
             await _replace_priorities(db, page.id, data["priorities"], now)
+        if data.get("patent_years") is not None:
+            await _replace_patent_years(db, page.id, data["patent_years"], now)
         if data.get("links") is not None:
             await _replace_links(db, page.id, data["links"], now)
 
@@ -384,3 +505,37 @@ async def publish_page(page_key: str, is_active: bool, db: AsyncSession):
         await db.rollback()
         logger.exception("Failed to change publication state for %s", page_key)
         return _error(500, "Failed to change publication state.")
+
+
+async def upload_document(page_key: str, file: UploadFile, db: AsyncSession):
+    """Stores a certificate file and hands its path back to the dashboard.
+
+    Deliberately writes to no row. Patent rows are replaced wholesale on save,
+    so their ids do not survive one, and an upload keyed on a patent id would be
+    writing to a row that the next save destroys. Instead the path travels back
+    through the form and is stored by the same PUT as everything else.
+
+    The page is still looked up so an upload cannot be aimed at a page that does
+    not exist, and only document types are accepted — serving arbitrary uploads
+    (HTML, SVG) from this domain would be an XSS vector.
+    """
+    try:
+        page = (
+            await db.execute(
+                select(ResearchPage.id).where(ResearchPage.page_key == page_key)
+            )
+        ).scalar_one_or_none()
+        if page is None:
+            return _error(404, "Research page not found.")
+
+        path = await save_upload(file, "research/documents", ALLOWED_DOC_MIMES)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Document uploaded.", "path": path}
+        )
+    except HTTPException:
+        # save_upload rejects oversized files and disallowed types with a status
+        # of its own; letting it through keeps that reason visible to the editor.
+        raise
+    except Exception:
+        logger.exception("Failed to upload document for %s", page_key)
+        return _error(500, "Failed to upload document.")

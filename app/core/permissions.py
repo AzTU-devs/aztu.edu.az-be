@@ -189,6 +189,7 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     # entities, which are managed on their own screens under their own keys.
     _p("research_pages.update", "Tədqiqat səhifəsini redaktə etmək", "Edit research page"),
     _p("research_pages.activate", "Tədqiqat səhifəsini dərc etmək", "Publish research page"),
+    _p("research_pages.upload", "Tədqiqat səhifəsinə sənəd yükləmək", "Upload research page document"),
     # ── menu ────────────────────────────────────────────────────────────────
     _p("menu.footer_column.create", "Altlıq sütunu yaratmaq", "Create footer column"),
     _p("menu.footer_column.update", "Altlıq sütununu redaktə etmək", "Edit footer column"),
