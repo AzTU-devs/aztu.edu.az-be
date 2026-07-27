@@ -105,6 +105,8 @@ RESOURCE_NOUNS: Dict[str, Noun] = {
 
     "about": Noun("Haqqımızda səhifəsi", "about page", "Haqqımızda səhifəsini", "Haqqımızda səhifəsinin", "Haqqımızda səhifələrinin"),
 
+    "research_pages": Noun("Tədqiqat səhifəsi", "research page", "Tədqiqat səhifəsini", "Tədqiqat səhifəsinin", "Tədqiqat səhifələrinin"),
+
     "menu_header": Noun("menyu başlığı", "menu header", "menyu başlığını", "menyu başlığının", "menyu başlıqlarının"),
     "menu_header.item": Noun("menyu elementi", "menu item", "menyu elementini", "menyu elementinin", "menyu elementlərinin"),
     "menu_header.sub_item": Noun("alt menyu elementi", "submenu item", "alt menyu elementini", "alt menyu elementinin", "alt menyu elementlərinin"),
@@ -237,6 +239,7 @@ _RESOLVER_SPECS: Dict[str, _Resolver] = {
     "research_institute": _Resolver("app.models.research_institute.institute", "ResearchInstituteTr", "institute_code", "name"),
     "research_project": _Resolver("app.models.research_project.project", "ResearchProjectTr", "project_code", "name"),
     "about_page": _Resolver("app.models.about.about", "AboutPage", "page_key", "page_key", lang_attr=None),
+    "research_page": _Resolver("app.models.research.research", "ResearchPage", "page_key", "page_key", lang_attr=None),
 }
 
 TARGET_LABEL_MAX_LENGTH = 200

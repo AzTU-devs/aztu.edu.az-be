@@ -45,6 +45,7 @@ DOMAIN_LABELS: Dict[str, Tuple[str, str]] = {
     "research_institutes": ("Elmi tədqiqat institutları", "Research institutes"),
     "research_projects": ("Tədqiqat layihələri", "Research projects"),
     "about": ("Haqqımızda", "About"),
+    "research_pages": ("Tədqiqat səhifələri", "Research pages"),
     "menu": ("Menyu və altlıq", "Menu and footer"),
     "menu_header": ("Başlıq menyusu", "Header menu"),
     "chatbot_knowledge": ("Çatbot bilik bazası", "Chatbot knowledge base"),
@@ -182,6 +183,12 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     _p("about.update", "Haqqımızda səhifəsini redaktə etmək", "Edit about page"),
     _p("about.activate", "Haqqımızda səhifəsini dərc etmək", "Publish about page"),
     _p("about.upload", "Haqqımızda səhifəsinə sənəd yükləmək", "Upload about page document"),
+    # ── research_pages ──────────────────────────────────────────────────────
+    # The editorial pages of the Tədqiqat section (priorities and, later, its
+    # siblings) — deliberately separate from the research institute/project
+    # entities, which are managed on their own screens under their own keys.
+    _p("research_pages.update", "Tədqiqat səhifəsini redaktə etmək", "Edit research page"),
+    _p("research_pages.activate", "Tədqiqat səhifəsini dərc etmək", "Publish research page"),
     # ── menu ────────────────────────────────────────────────────────────────
     _p("menu.footer_column.create", "Altlıq sütunu yaratmaq", "Create footer column"),
     _p("menu.footer_column.update", "Altlıq sütununu redaktə etmək", "Edit footer column"),
@@ -299,7 +306,7 @@ SYSTEM_ROLES: Tuple[SystemRoleDef, ...] = (
         name_en="Content editor",
         description_az="Xəbər, elan, hero, layihə və əməkdaşlıqları idarə edir. Silmək icazəsi yoxdur.",
         permissions=_without(
-            keys_for_domains("news", "news_categories", "announcements", "hero", "projects", "collaborations", "about"),
+            keys_for_domains("news", "news_categories", "announcements", "hero", "projects", "collaborations", "about", "research_pages"),
             "delete",
         ),
     ),
