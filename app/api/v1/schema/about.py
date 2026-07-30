@@ -25,6 +25,8 @@ class AboutPageTranslation(BaseModel):
     domains: OptionalStr = None
     section_title: OptionalStr = None
     section_body: OptionalStr = None
+    # Scientific-board page: the heading above the councils list.
+    councils_title: OptionalStr = None
     # Rector page: the academic degree, the title, the message and the bio.
     degree: OptionalStr = None
     position: OptionalStr = None
@@ -111,6 +113,29 @@ class AboutPersonPayload(BaseModel):
     en: Optional[AboutPersonTranslation] = None
 
 
+class AboutCouncilMemberTranslation(BaseModel):
+    name: OptionalStr = None
+    surname: OptionalStr = None
+    position: OptionalStr = None
+
+
+class AboutCouncilMemberPayload(BaseModel):
+    az: Optional[AboutCouncilMemberTranslation] = None
+    en: Optional[AboutCouncilMemberTranslation] = None
+
+
+class AboutCouncilTranslation(BaseModel):
+    name: OptionalStr = None
+
+
+class AboutCouncilPayload(BaseModel):
+    az: Optional[AboutCouncilTranslation] = None
+    en: Optional[AboutCouncilTranslation] = None
+    # The council roster and its secretariat, each sent whole and ordered.
+    members: Optional[List[AboutCouncilMemberPayload]] = None
+    secretaries: Optional[List[AboutCouncilMemberPayload]] = None
+
+
 class UpdateAboutPage(BaseModel):
     slug_az: OptionalStr = None
     slug_en: OptionalStr = None
@@ -136,6 +161,8 @@ class UpdateAboutPage(BaseModel):
     pillars: Optional[List[AboutPillarPayload]] = None
     lists: Optional[List[AboutListPayload]] = None
     persons: Optional[List[AboutPersonPayload]] = None
+    # The scientific-board councils — each with its members and secretariat.
+    councils: Optional[List[AboutCouncilPayload]] = None
     # The gallery strip — sent whole and replaces what is stored.
     images: Optional[List[AboutImagePayload]] = None
 

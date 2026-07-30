@@ -103,6 +103,13 @@ class AboutPage(Base):
         passive_deletes=True,
         order_by="AboutMilestone.display_order",
     )
+    councils = relationship(
+        "AboutCouncil",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutCouncil.display_order",
+    )
     images = relationship(
         "AboutImage",
         back_populates="page",
@@ -136,6 +143,8 @@ class AboutPageTr(Base):
     # The page's second heading ("Executive Leadership") and its lead.
     section_title = Column(String(500))
     section_body = Column(Text)
+    # Heading above the councils list on the scientific-board page.
+    councils_title = Column(String(500))
 
     # ── Rector-page (template = "rector") translations ───────────────────────
     # The rector's academic degree ("Technical Sciences") and title
@@ -448,3 +457,111 @@ class AboutPersonTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     person = relationship("AboutPerson", back_populates="translations")
+
+
+class AboutCouncil(Base):
+    """One council on the scientific-board page.
+
+    A page carries an unlimited, ordered list of councils; each council owns a
+    bilingual name and two rosters of people — its members and its secretariat —
+    which live on ``AboutCouncilMember`` keyed by ``role``.
+    """
+
+    __tablename__ = "about_councils"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="councils")
+    translations = relationship(
+        "AboutCouncilTr",
+        back_populates="council",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    members = relationship(
+        "AboutCouncilMember",
+        back_populates="council",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutCouncilMember.display_order",
+    )
+
+
+class AboutCouncilTr(Base):
+    __tablename__ = "about_council_tr"
+    __table_args__ = (
+        UniqueConstraint("council_id", "lang_code", name="uq_about_council_tr_council_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    council_id = Column(
+        Integer, ForeignKey("about_councils.id", ondelete="CASCADE"), nullable=False
+    )
+    lang_code = Column(String(10), nullable=False)
+
+    # "Böyük Elmi Şura" / "Grand Scientific Council".
+    name = Column(String(500))
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    council = relationship("AboutCouncil", back_populates="translations")
+
+
+class AboutCouncilMember(Base):
+    """One person on a council — either a member or a secretariat member.
+
+    ``role`` is the discriminator ("member" | "secretary"); a name, surname and
+    duty read differently per language, so they live on the ``*_tr`` sibling.
+    """
+
+    __tablename__ = "about_council_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    council_id = Column(
+        Integer, ForeignKey("about_councils.id", ondelete="CASCADE"), nullable=False
+    )
+    # Which roster this row belongs to: member | secretary.
+    role = Column(String(20), nullable=False, default="member")
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    council = relationship("AboutCouncil", back_populates="members")
+    translations = relationship(
+        "AboutCouncilMemberTr",
+        back_populates="member",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AboutCouncilMemberTr(Base):
+    __tablename__ = "about_council_member_tr"
+    __table_args__ = (
+        UniqueConstraint(
+            "member_id", "lang_code", name="uq_about_council_member_tr_member_lang"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(
+        Integer, ForeignKey("about_council_members.id", ondelete="CASCADE"), nullable=False
+    )
+    lang_code = Column(String(10), nullable=False)
+
+    name = Column(String(255))
+    surname = Column(String(255))
+    # The person's duty on the council ("Chair", "Secretary").
+    position = Column(String(500))
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    member = relationship("AboutCouncilMember", back_populates="translations")

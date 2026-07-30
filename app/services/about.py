@@ -27,6 +27,10 @@ from app.core.logger import get_logger
 from app.models.about.about import (
     AboutBlock,
     AboutBlockTr,
+    AboutCouncil,
+    AboutCouncilMember,
+    AboutCouncilMemberTr,
+    AboutCouncilTr,
     AboutImage,
     AboutLink,
     AboutLinkTr,
@@ -59,6 +63,8 @@ PAGE_TR_FIELDS = (
     "degree", "position", "message", "about",
     # Vice-rector page.
     "domains", "section_title", "section_body",
+    # Scientific-board page.
+    "councils_title",
 )
 BLOCK_TR_FIELDS = ("title", "body")
 LINK_TR_FIELDS = ("label",)
@@ -67,6 +73,8 @@ PILLAR_TR_FIELDS = ("title", "description", "tags")
 LIST_TR_FIELDS = ("title", "items")
 PERSON_FIELDS = ("email", "phone", "phone_code", "image_url")
 PERSON_TR_FIELDS = ("name", "degree", "position", "bio")
+COUNCIL_TR_FIELDS = ("name",)
+COUNCIL_MEMBER_TR_FIELDS = ("name", "surname", "position")
 
 # Language-neutral page columns writable from the dashboard (rector page).
 PAGE_FIELDS = ("slug_az", "slug_en", "document_url", "experience", "email", "image_url")
@@ -188,6 +196,36 @@ def _pick(translations: Iterable[Any], lang: str, fields: Iterable[str]) -> dict
     return out
 
 
+ROLE_MEMBER = "member"
+ROLE_SECRETARY = "secretary"
+
+
+def _members(council: Any, role: str) -> list:
+    """One council's roster for a role, in display order."""
+    return sorted(
+        (m for m in council.members if m.role == role),
+        key=lambda m: m.display_order,
+    )
+
+
+def _members_admin(council: Any, role: str) -> list:
+    return [
+        {
+            "id": member.id,
+            "display_order": member.display_order,
+            **_tr_map(member.translations, COUNCIL_MEMBER_TR_FIELDS),
+        }
+        for member in _members(council, role)
+    ]
+
+
+def _members_public(council: Any, role: str, lang: str) -> list:
+    return [
+        _pick(member.translations, lang, COUNCIL_MEMBER_TR_FIELDS)
+        for member in _members(council, role)
+    ]
+
+
 # ── Loading ────────────────────────────────────────────────────────────────────
 
 
@@ -201,6 +239,10 @@ def _page_query():
         selectinload(AboutPage.lists).selectinload(AboutList.translations),
         selectinload(AboutPage.images),
         selectinload(AboutPage.persons).selectinload(AboutPerson.translations),
+        selectinload(AboutPage.councils).selectinload(AboutCouncil.translations),
+        selectinload(AboutPage.councils)
+        .selectinload(AboutCouncil.members)
+        .selectinload(AboutCouncilMember.translations),
     )
 
 
@@ -282,6 +324,16 @@ def _serialize_admin(page: AboutPage) -> dict:
             }
             for person in sorted(page.persons, key=lambda x: x.display_order)
         ],
+        "councils": [
+            {
+                "id": council.id,
+                "display_order": council.display_order,
+                **_tr_map(council.translations, COUNCIL_TR_FIELDS),
+                "members": _members_admin(council, ROLE_MEMBER),
+                "secretaries": _members_admin(council, ROLE_SECRETARY),
+            }
+            for council in sorted(page.councils, key=lambda c: c.display_order)
+        ],
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }
 
@@ -345,6 +397,14 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
                 **_pick(person.translations, lang, PERSON_TR_FIELDS),
             }
             for person in sorted(page.persons, key=lambda x: x.display_order)
+        ],
+        "councils": [
+            {
+                **_pick(council.translations, lang, COUNCIL_TR_FIELDS),
+                "members": _members_public(council, ROLE_MEMBER, lang),
+                "secretaries": _members_public(council, ROLE_SECRETARY, lang),
+            }
+            for council in sorted(page.councils, key=lambda c: c.display_order)
         ],
     }
 
@@ -604,6 +664,51 @@ async def _replace_persons(db: AsyncSession, page_id: int, persons: list, now: d
         )
 
 
+async def _replace_councils(db: AsyncSession, page_id: int, councils: list, now: datetime):
+    """Rewrites the scientific-board councils.
+
+    A council and the people on it carry no stable key — position is identity —
+    so the payload is the complete, ordered truth. Deleting the councils cascades
+    to their members and every translation, and the whole set is recreated. Each
+    council's two rosters (``members`` and ``secretaries``) are stored on one
+    table, told apart by ``role``.
+    """
+    await db.execute(sqlalchemy_delete(AboutCouncil).where(AboutCouncil.page_id == page_id))
+
+    for index, entry in enumerate(councils):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        council = AboutCouncil(
+            page_id=page_id, display_order=index, created_at=now, updated_at=now
+        )
+        db.add(council)
+        await db.flush()
+        await _upsert_translations(
+            db, AboutCouncilTr, "council_id", council.id, payload, COUNCIL_TR_FIELDS, now
+        )
+
+        for role, key in ((ROLE_MEMBER, "members"), (ROLE_SECRETARY, "secretaries")):
+            for order, raw in enumerate(payload.get(key) or []):
+                member_payload = raw if isinstance(raw, dict) else raw.dict(exclude_unset=True)
+                member = AboutCouncilMember(
+                    council_id=council.id,
+                    role=role,
+                    display_order=order,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(member)
+                await db.flush()
+                await _upsert_translations(
+                    db,
+                    AboutCouncilMemberTr,
+                    "member_id",
+                    member.id,
+                    member_payload,
+                    COUNCIL_MEMBER_TR_FIELDS,
+                    now,
+                )
+
+
 async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession):
     try:
         page = (
@@ -648,6 +753,8 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
             await _upsert_lists(db, page.id, data["lists"], now)
         if data.get("persons") is not None:
             await _replace_persons(db, page.id, data["persons"], now)
+        if data.get("councils") is not None:
+            await _replace_councils(db, page.id, data["councils"], now)
         if data.get("images") is not None:
             await _replace_images(db, page.id, data["images"], now)
 
