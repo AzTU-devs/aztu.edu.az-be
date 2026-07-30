@@ -409,6 +409,8 @@ class AboutPerson(Base):
     phone = Column(String(100))
     # Optional internal extension.
     phone_code = Column(String(50))
+    # Portrait: an uploaded file's path or a pasted URL.
+    image_url = Column(String(2048))
     display_order = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime(timezone=True), nullable=False)

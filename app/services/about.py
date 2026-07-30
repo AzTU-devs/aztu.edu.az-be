@@ -65,7 +65,7 @@ LINK_TR_FIELDS = ("label",)
 MILESTONE_TR_FIELDS = ("title", "description")
 PILLAR_TR_FIELDS = ("title", "description", "tags")
 LIST_TR_FIELDS = ("title", "items")
-PERSON_FIELDS = ("email", "phone", "phone_code")
+PERSON_FIELDS = ("email", "phone", "phone_code", "image_url")
 PERSON_TR_FIELDS = ("name", "degree", "position", "bio")
 
 # Language-neutral page columns writable from the dashboard (rector page).

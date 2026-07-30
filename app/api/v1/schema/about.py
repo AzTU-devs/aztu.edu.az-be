@@ -106,6 +106,7 @@ class AboutPersonPayload(BaseModel):
     email: OptionalEmail = None
     phone: OptionalStr = None
     phone_code: OptionalStr = None
+    image_url: OptionalStr = None
     az: Optional[AboutPersonTranslation] = None
     en: Optional[AboutPersonTranslation] = None
 
