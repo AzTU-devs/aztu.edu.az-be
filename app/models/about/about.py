@@ -420,6 +420,10 @@ class AboutPerson(Base):
     phone_code = Column(String(50))
     # Portrait: an uploaded file's path or a pasted URL.
     image_url = Column(String(2048))
+    # Former-rectors page: the years the person held office. Language-neutral
+    # free text ("1950", "1955") — a year reads the same in both languages.
+    year_start = Column(String(20))
+    year_end = Column(String(20))
     display_order = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime(timezone=True), nullable=False)
@@ -446,6 +450,9 @@ class AboutPersonTr(Base):
 
     # "Prof. Subhan Namazov" — name with scientific title prefix.
     name = Column(String(500))
+    # Family name, kept separate on the former-rectors page and for a partner
+    # institution's director. Vice-rectors leave it null (the name carries all).
+    surname = Column(String(500))
     # "Doctor of Technical Sciences, Professor".
     degree = Column(String(500))
     # "Vice-Rector for Academic Affairs".

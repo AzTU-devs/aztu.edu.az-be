@@ -99,6 +99,8 @@ class AboutImagePayload(BaseModel):
 
 class AboutPersonTranslation(BaseModel):
     name: OptionalStr = None
+    # Former-rectors page and a partner institution's director.
+    surname: OptionalStr = None
     degree: OptionalStr = None
     position: OptionalStr = None
     bio: OptionalStr = None
@@ -109,6 +111,9 @@ class AboutPersonPayload(BaseModel):
     phone: OptionalStr = None
     phone_code: OptionalStr = None
     image_url: OptionalStr = None
+    # Former-rectors page: the years the person held office.
+    year_start: OptionalStr = None
+    year_end: OptionalStr = None
     az: Optional[AboutPersonTranslation] = None
     en: Optional[AboutPersonTranslation] = None
 
