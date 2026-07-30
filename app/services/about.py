@@ -32,6 +32,8 @@ from app.models.about.about import (
     AboutLinkTr,
     AboutList,
     AboutListTr,
+    AboutPerson,
+    AboutPersonTr,
     AboutPillar,
     AboutPillarTr,
     AboutMilestone,
@@ -55,12 +57,16 @@ PAGE_TR_FIELDS = (
     "title", "description", "links_title", "document_label", "pillars_title",
     # Rector page.
     "degree", "position", "message", "about",
+    # Vice-rector page.
+    "domains", "section_title", "section_body",
 )
 BLOCK_TR_FIELDS = ("title", "body")
 LINK_TR_FIELDS = ("label",)
 MILESTONE_TR_FIELDS = ("title", "description")
 PILLAR_TR_FIELDS = ("title", "description", "tags")
 LIST_TR_FIELDS = ("title", "items")
+PERSON_FIELDS = ("email", "phone", "phone_code")
+PERSON_TR_FIELDS = ("name", "degree", "position", "bio")
 
 # Language-neutral page columns writable from the dashboard (rector page).
 PAGE_FIELDS = ("slug_az", "slug_en", "document_url", "experience", "email", "image_url")
@@ -68,7 +74,7 @@ PAGE_FIELDS = ("slug_az", "slug_en", "document_url", "experience", "email", "ima
 # Editor-authored HTML. Scrubbed on the way in so the website can render it
 # verbatim — an authenticated admin is still not a reason to store raw markup.
 # `message` and `about` are the rector page's rich-text fields.
-RICH_TEXT_FIELDS = frozenset({"description", "body", "message", "about"})
+RICH_TEXT_FIELDS = frozenset({"description", "body", "message", "about", "section_body", "bio"})
 
 # SEO is derived here rather than typed in the dashboard: the meta description
 # is the hero copy with its markup removed, clipped to a sensible length.
@@ -194,6 +200,7 @@ def _page_query():
         selectinload(AboutPage.pillars).selectinload(AboutPillar.translations),
         selectinload(AboutPage.lists).selectinload(AboutList.translations),
         selectinload(AboutPage.images),
+        selectinload(AboutPage.persons).selectinload(AboutPerson.translations),
     )
 
 
@@ -266,6 +273,15 @@ def _serialize_admin(page: AboutPage) -> dict:
             }
             for image in sorted(page.images, key=lambda i: i.display_order)
         ],
+        "persons": [
+            {
+                "id": person.id,
+                "display_order": person.display_order,
+                **{field: getattr(person, field) for field in PERSON_FIELDS},
+                **_tr_map(person.translations, PERSON_TR_FIELDS),
+            }
+            for person in sorted(page.persons, key=lambda x: x.display_order)
+        ],
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }
 
@@ -322,6 +338,13 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
         "images": [
             image.image_url
             for image in sorted(page.images, key=lambda i: i.display_order)
+        ],
+        "persons": [
+            {
+                **{field: getattr(person, field) for field in PERSON_FIELDS},
+                **_pick(person.translations, lang, PERSON_TR_FIELDS),
+            }
+            for person in sorted(page.persons, key=lambda x: x.display_order)
         ],
     }
 
@@ -565,6 +588,22 @@ async def _upsert_lists(db: AsyncSession, page_id: int, lists: list, now: dateti
         )
 
 
+async def _replace_persons(db: AsyncSession, page_id: int, persons: list, now: datetime):
+    """Rewrites the vice-rector cards. They carry no stable key — a card's
+    position is its identity — so the payload is the complete, ordered truth."""
+    await db.execute(sqlalchemy_delete(AboutPerson).where(AboutPerson.page_id == page_id))
+
+    for index, entry in enumerate(persons):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        person = AboutPerson(page_id=page_id, display_order=index, created_at=now, updated_at=now)
+        _apply(person, payload, PERSON_FIELDS)
+        db.add(person)
+        await db.flush()
+        await _upsert_translations(
+            db, AboutPersonTr, "person_id", person.id, payload, PERSON_TR_FIELDS, now
+        )
+
+
 async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession):
     try:
         page = (
@@ -607,6 +646,8 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
             await _replace_pillars(db, page.id, data["pillars"], now)
         if data.get("lists") is not None:
             await _upsert_lists(db, page.id, data["lists"], now)
+        if data.get("persons") is not None:
+            await _replace_persons(db, page.id, data["persons"], now)
         if data.get("images") is not None:
             await _replace_images(db, page.id, data["images"], now)
 

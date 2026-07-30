@@ -22,6 +22,9 @@ class AboutPageTranslation(BaseModel):
     links_title: OptionalStr = None
     document_label: OptionalStr = None
     pillars_title: OptionalStr = None
+    domains: OptionalStr = None
+    section_title: OptionalStr = None
+    section_body: OptionalStr = None
     # Rector page: the academic degree, the title, the message and the bio.
     degree: OptionalStr = None
     position: OptionalStr = None
@@ -92,6 +95,21 @@ class AboutImagePayload(BaseModel):
     image_url: OptionalUrl = None
 
 
+class AboutPersonTranslation(BaseModel):
+    name: OptionalStr = None
+    degree: OptionalStr = None
+    position: OptionalStr = None
+    bio: OptionalStr = None
+
+
+class AboutPersonPayload(BaseModel):
+    email: OptionalEmail = None
+    phone: OptionalStr = None
+    phone_code: OptionalStr = None
+    az: Optional[AboutPersonTranslation] = None
+    en: Optional[AboutPersonTranslation] = None
+
+
 class UpdateAboutPage(BaseModel):
     slug_az: OptionalStr = None
     slug_en: OptionalStr = None
@@ -116,6 +134,7 @@ class UpdateAboutPage(BaseModel):
     milestones: Optional[List[AboutMilestonePayload]] = None
     pillars: Optional[List[AboutPillarPayload]] = None
     lists: Optional[List[AboutListPayload]] = None
+    persons: Optional[List[AboutPersonPayload]] = None
     # The gallery strip — sent whole and replaces what is stored.
     images: Optional[List[AboutImagePayload]] = None
 

@@ -89,6 +89,13 @@ class AboutPage(Base):
         passive_deletes=True,
         order_by="AboutList.display_order",
     )
+    persons = relationship(
+        "AboutPerson",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutPerson.display_order",
+    )
     milestones = relationship(
         "AboutMilestone",
         back_populates="page",
@@ -124,6 +131,11 @@ class AboutPageTr(Base):
     document_label = Column(String(500))
     # Heading above the pillar cards.
     pillars_title = Column(String(500))
+    # Comma/·-separated category line for the vice-rector hero.
+    domains = Column(Text)
+    # The page's second heading ("Executive Leadership") and its lead.
+    section_title = Column(String(500))
+    section_body = Column(Text)
 
     # ── Rector-page (template = "rector") translations ───────────────────────
     # The rector's academic degree ("Technical Sciences") and title
@@ -384,3 +396,53 @@ class AboutImage(Base):
     updated_at = Column(DateTime(timezone=True))
 
     page = relationship("AboutPage", back_populates="images")
+
+
+class AboutPerson(Base):
+    """A vice-rector card, with its own detail ("see profile") copy."""
+
+    __tablename__ = "about_persons"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    email = Column(String(255))
+    phone = Column(String(100))
+    # Optional internal extension.
+    phone_code = Column(String(50))
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="persons")
+    translations = relationship(
+        "AboutPersonTr",
+        back_populates="person",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AboutPersonTr(Base):
+    __tablename__ = "about_person_tr"
+    __table_args__ = (
+        UniqueConstraint("person_id", "lang_code", name="uq_about_person_tr_person_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    person_id = Column(Integer, ForeignKey("about_persons.id", ondelete="CASCADE"), nullable=False)
+    lang_code = Column(String(10), nullable=False)
+
+    # "Prof. Subhan Namazov" — name with scientific title prefix.
+    name = Column(String(500))
+    # "Doctor of Technical Sciences, Professor".
+    degree = Column(String(500))
+    # "Vice-Rector for Academic Affairs".
+    position = Column(String(500))
+    # The long profile behind the card's "see profile" button — rich text.
+    bio = Column(Text)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    person = relationship("AboutPerson", back_populates="translations")

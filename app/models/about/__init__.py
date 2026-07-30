@@ -12,4 +12,6 @@ from app.models.about.about import (  # noqa: F401
     AboutList,
     AboutListTr,
     AboutImage,
+    AboutPerson,
+    AboutPersonTr,
 )
