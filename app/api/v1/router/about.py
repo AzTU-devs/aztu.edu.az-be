@@ -12,6 +12,7 @@ from app.services.about import (
     publish_page,
     update_page,
     upload_document,
+    upload_file,
     upload_image,
 )
 from app.utils.language import get_language
@@ -77,6 +78,16 @@ async def upload_image_endpoint(
     _: AdminUser = Depends(require_admin),
 ):
     return await upload_image(page_key=page_key, file=file, db=db)
+
+
+@router.put("/admin/pages/{page_key}/file")
+async def upload_file_endpoint(
+    page_key: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    return await upload_file(page_key=page_key, file=file, db=db)
 
 
 # ── Public ─────────────────────────────────────────────────────────────────────

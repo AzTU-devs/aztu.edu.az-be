@@ -141,6 +141,30 @@ class AboutCouncilPayload(BaseModel):
     secretaries: Optional[List[AboutCouncilMemberPayload]] = None
 
 
+class AboutDocCategoryTranslation(BaseModel):
+    name: OptionalStr = None
+
+
+class AboutDocCategoryPayload(BaseModel):
+    # Stable, page-local key a document references. Assigned in the dashboard.
+    category_key: OptionalStr = None
+    az: Optional[AboutDocCategoryTranslation] = None
+    en: Optional[AboutDocCategoryTranslation] = None
+
+
+class AboutDocumentTranslation(BaseModel):
+    name: OptionalStr = None
+
+
+class AboutDocumentPayload(BaseModel):
+    # Which category this document belongs to (a category_key), or blank.
+    category_key: OptionalStr = None
+    # An uploaded file's path or a pasted URL — any format.
+    file_url: OptionalStr = None
+    az: Optional[AboutDocumentTranslation] = None
+    en: Optional[AboutDocumentTranslation] = None
+
+
 class UpdateAboutPage(BaseModel):
     slug_az: OptionalStr = None
     slug_en: OptionalStr = None
@@ -168,6 +192,9 @@ class UpdateAboutPage(BaseModel):
     persons: Optional[List[AboutPersonPayload]] = None
     # The scientific-board councils — each with its members and secretariat.
     councils: Optional[List[AboutCouncilPayload]] = None
+    # Regulatory-documents page: the categories and the document cards.
+    doc_categories: Optional[List[AboutDocCategoryPayload]] = None
+    documents: Optional[List[AboutDocumentPayload]] = None
     # The gallery strip — sent whole and replaces what is stored.
     images: Optional[List[AboutImagePayload]] = None
 

@@ -16,7 +16,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional
 
-from fastapi import UploadFile, status
+from fastapi import HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import delete as sqlalchemy_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +31,10 @@ from app.models.about.about import (
     AboutCouncilMember,
     AboutCouncilMemberTr,
     AboutCouncilTr,
+    AboutDocCategory,
+    AboutDocCategoryTr,
+    AboutDocument,
+    AboutDocumentTr,
     AboutImage,
     AboutLink,
     AboutLinkTr,
@@ -75,6 +79,8 @@ PERSON_FIELDS = ("email", "phone", "phone_code", "image_url", "year_start", "yea
 PERSON_TR_FIELDS = ("name", "surname", "degree", "position", "bio")
 COUNCIL_TR_FIELDS = ("name",)
 COUNCIL_MEMBER_TR_FIELDS = ("name", "surname", "position")
+DOC_CATEGORY_TR_FIELDS = ("name",)
+DOCUMENT_TR_FIELDS = ("name",)
 
 # Language-neutral page columns writable from the dashboard (rector page).
 PAGE_FIELDS = ("slug_az", "slug_en", "document_url", "experience", "email", "image_url")
@@ -243,6 +249,8 @@ def _page_query():
         selectinload(AboutPage.councils)
         .selectinload(AboutCouncil.members)
         .selectinload(AboutCouncilMember.translations),
+        selectinload(AboutPage.doc_categories).selectinload(AboutDocCategory.translations),
+        selectinload(AboutPage.documents).selectinload(AboutDocument.translations),
     )
 
 
@@ -334,6 +342,25 @@ def _serialize_admin(page: AboutPage) -> dict:
             }
             for council in sorted(page.councils, key=lambda c: c.display_order)
         ],
+        "doc_categories": [
+            {
+                "id": category.id,
+                "category_key": category.category_key,
+                "display_order": category.display_order,
+                **_tr_map(category.translations, DOC_CATEGORY_TR_FIELDS),
+            }
+            for category in sorted(page.doc_categories, key=lambda c: c.display_order)
+        ],
+        "documents": [
+            {
+                "id": document.id,
+                "category_key": document.category_key,
+                "file_url": document.file_url,
+                "display_order": document.display_order,
+                **_tr_map(document.translations, DOCUMENT_TR_FIELDS),
+            }
+            for document in sorted(page.documents, key=lambda d: d.display_order)
+        ],
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }
 
@@ -405,6 +432,21 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
                 "secretaries": _members_public(council, ROLE_SECRETARY, lang),
             }
             for council in sorted(page.councils, key=lambda c: c.display_order)
+        ],
+        "doc_categories": [
+            {
+                "category_key": category.category_key,
+                **_pick(category.translations, lang, DOC_CATEGORY_TR_FIELDS),
+            }
+            for category in sorted(page.doc_categories, key=lambda c: c.display_order)
+        ],
+        "documents": [
+            {
+                "category_key": document.category_key,
+                "file_url": document.file_url,
+                **_pick(document.translations, lang, DOCUMENT_TR_FIELDS),
+            }
+            for document in sorted(page.documents, key=lambda d: d.display_order)
         ],
     }
 
@@ -709,6 +751,77 @@ async def _replace_councils(db: AsyncSession, page_id: int, councils: list, now:
                 )
 
 
+async def _replace_doc_categories(db: AsyncSession, page_id: int, categories: list, now: datetime):
+    """Rewrites a regulatory-documents page's categories wholesale.
+
+    ``category_key`` is preserved from the payload, so a document's reference to
+    a category survives the save. Categories with no key are skipped.
+    """
+    await db.execute(
+        sqlalchemy_delete(AboutDocCategory).where(AboutDocCategory.page_id == page_id)
+    )
+    for index, entry in enumerate(categories):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        key = (payload.get("category_key") or "").strip()
+        if not key:
+            continue
+        category = AboutDocCategory(
+            page_id=page_id, category_key=key, display_order=index, created_at=now, updated_at=now
+        )
+        db.add(category)
+        await db.flush()
+        await _upsert_translations(
+            db, AboutDocCategoryTr, "category_id", category.id, payload, DOC_CATEGORY_TR_FIELDS, now
+        )
+
+
+async def _replace_documents(db: AsyncSession, page_id: int, documents: list, now: datetime):
+    """Rewrites the document cards wholesale.
+
+    Cards carry no stable key — position is identity — so the payload is the
+    complete, ordered truth. Any stored file dropped from the list is removed
+    from disk so the static directory does not fill with orphans; a pasted URL
+    is left alone. ``category_key`` ties a card to one of the page's categories.
+    """
+    rows = []
+    kept: set[str] = set()
+    for index, entry in enumerate(documents):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        url = (payload.get("file_url") or "").strip()
+        kept.add(url)
+        rows.append((index, payload, url))
+
+    previous = (
+        await db.execute(select(AboutDocument).where(AboutDocument.page_id == page_id))
+    ).scalars().all()
+    orphans = [
+        doc.file_url
+        for doc in previous
+        if doc.file_url
+        and doc.file_url not in kept
+        and not doc.file_url.startswith(("http://", "https://"))
+    ]
+
+    await db.execute(sqlalchemy_delete(AboutDocument).where(AboutDocument.page_id == page_id))
+    for index, payload, url in rows:
+        document = AboutDocument(
+            page_id=page_id,
+            category_key=(payload.get("category_key") or "").strip() or None,
+            file_url=url or None,
+            display_order=index,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(document)
+        await db.flush()
+        await _upsert_translations(
+            db, AboutDocumentTr, "document_id", document.id, payload, DOCUMENT_TR_FIELDS, now
+        )
+
+    for path in orphans:
+        safe_delete_file(path)
+
+
 async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession):
     try:
         page = (
@@ -755,6 +868,10 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
             await _replace_persons(db, page.id, data["persons"], now)
         if data.get("councils") is not None:
             await _replace_councils(db, page.id, data["councils"], now)
+        if data.get("doc_categories") is not None:
+            await _replace_doc_categories(db, page.id, data["doc_categories"], now)
+        if data.get("documents") is not None:
+            await _replace_documents(db, page.id, data["documents"], now)
         if data.get("images") is not None:
             await _replace_images(db, page.id, data["images"], now)
 
@@ -848,3 +965,35 @@ async def upload_image(page_key: str, file: UploadFile, db: AsyncSession):
     except Exception:
         logger.exception("Failed to upload image for %s", page_key)
         return _error(500, "Failed to upload image.")
+
+
+async def upload_file(page_key: str, file: UploadFile, db: AsyncSession):
+    """Stores one document (any supported format) and returns its path.
+
+    The regulatory-documents pages list many downloadable files, so — like
+    ``upload_image`` — this only stores the file and hands back the URL; the
+    whole-page save drops the path into a document card's ``file_url``. The
+    format allowlist (``ALLOWED_DOC_MIMES``) covers PDF, Office files, archives
+    and plain text, and deliberately excludes HTML/SVG, which would be an XSS
+    vector served from this domain.
+    """
+    try:
+        page = (
+            await db.execute(select(AboutPage).where(AboutPage.page_key == page_key))
+        ).scalar_one_or_none()
+        if page is None:
+            return _error(404, "About page not found.")
+
+        path = await save_upload(
+            file, "about/documents", ALLOWED_DOC_MIMES, allow_extension_fallback=True
+        )
+        return JSONResponse(
+            content={"status_code": 200, "message": "File uploaded.", "path": path}
+        )
+    except HTTPException as exc:
+        # A bad format or oversize file — report it as-is so the dashboard can
+        # tell the editor why, rather than a generic 500.
+        return _error(exc.status_code, str(exc.detail))
+    except Exception:
+        logger.exception("Failed to upload file for %s", page_key)
+        return _error(500, "Failed to upload file.")

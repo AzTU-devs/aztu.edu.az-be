@@ -211,6 +211,7 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("PUT", "/api/about/admin/pages/{page_key}"): RouteRule("about.update", target_type="about_page", target_param="page_key"),
     ("PUT", "/api/about/admin/pages/{page_key}/document"): RouteRule("about.upload", target_type="about_page", target_param="page_key"),
     ("PUT", "/api/about/admin/pages/{page_key}/image"): RouteRule("about.upload", target_type="about_page", target_param="page_key"),
+    ("PUT", "/api/about/admin/pages/{page_key}/file"): RouteRule("about.upload", target_type="about_page", target_param="page_key"),
     ("PUT", "/api/about/admin/pages/{page_key}/publish"): RouteRule("about.activate", target_type="about_page", target_param="page_key"),
 
     # ── research pages (the Tədqiqat section's editorial screens) ───────────

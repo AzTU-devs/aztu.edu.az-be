@@ -110,6 +110,20 @@ class AboutPage(Base):
         passive_deletes=True,
         order_by="AboutCouncil.display_order",
     )
+    doc_categories = relationship(
+        "AboutDocCategory",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutDocCategory.display_order",
+    )
+    documents = relationship(
+        "AboutDocument",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutDocument.display_order",
+    )
     images = relationship(
         "AboutImage",
         back_populates="page",
@@ -572,3 +586,105 @@ class AboutCouncilMemberTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     member = relationship("AboutCouncilMember", back_populates="translations")
+
+
+class AboutDocCategory(Base):
+    """A document category on a regulatory-documents page.
+
+    Categories are defined once per page and a document points at one by its
+    stable ``category_key`` (assigned in the dashboard). A page with no
+    categories — the sustainability page — simply has none.
+    """
+
+    __tablename__ = "about_doc_categories"
+    __table_args__ = (
+        UniqueConstraint("page_id", "category_key", name="uq_about_doc_categories_page_key"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    # Stable, page-local identifier a document references (e.g. "c-ab12cd").
+    category_key = Column(String(100), nullable=False)
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="doc_categories")
+    translations = relationship(
+        "AboutDocCategoryTr",
+        back_populates="category",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AboutDocCategoryTr(Base):
+    __tablename__ = "about_doc_category_tr"
+    __table_args__ = (
+        UniqueConstraint("category_id", "lang_code", name="uq_about_doc_category_tr_cat_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(
+        Integer, ForeignKey("about_doc_categories.id", ondelete="CASCADE"), nullable=False
+    )
+    lang_code = Column(String(10), nullable=False)
+
+    name = Column(String(500))
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    category = relationship("AboutDocCategory", back_populates="translations")
+
+
+class AboutDocument(Base):
+    """One downloadable document card on a regulatory-documents page.
+
+    The file itself is either an uploaded path or a pasted URL (any format),
+    held in ``file_url``. ``category_key`` is optional — it ties the card to one
+    of the page's categories where the page has them.
+    """
+
+    __tablename__ = "about_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    # References an AboutDocCategory.category_key on the same page, or null.
+    category_key = Column(String(100))
+    # An uploaded file's path or a pasted URL — the page treats them alike.
+    file_url = Column(String(2048))
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="documents")
+    translations = relationship(
+        "AboutDocumentTr",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AboutDocumentTr(Base):
+    __tablename__ = "about_document_tr"
+    __table_args__ = (
+        UniqueConstraint("document_id", "lang_code", name="uq_about_document_tr_doc_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(
+        Integer, ForeignKey("about_documents.id", ondelete="CASCADE"), nullable=False
+    )
+    lang_code = Column(String(10), nullable=False)
+
+    # The document's display name ("Etik Davranış Qaydaları").
+    name = Column(String(500))
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    document = relationship("AboutDocument", back_populates="translations")
