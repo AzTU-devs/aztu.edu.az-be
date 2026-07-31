@@ -15,8 +15,14 @@ class HeroCertificate(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     certificate_id = Column(Integer, nullable=False, unique=True)
-    rank_label = Column(Text, nullable=False)
-    family = Column(String(32), nullable=False)
+    # Who attested the certificate: 'qs' (ranking body) | 'aqas' (programme
+    # accreditation agency). server_default keeps rows written before the
+    # issuer migration — and any client that omits the field — on 'qs'.
+    issuer = Column(String(16), nullable=False, server_default="qs", default="qs")
+    # QS-only. AQAS certificates carry no rank position, hence nullable.
+    rank_label = Column(Text, nullable=True)
+    # QS-only ('world' | 'europe' | 'subject' | 'other'), hence nullable.
+    family = Column(String(32), nullable=True)
     image = Column(Text, nullable=True)
     document = Column(Text, nullable=True)
     external_url = Column(Text, nullable=True)

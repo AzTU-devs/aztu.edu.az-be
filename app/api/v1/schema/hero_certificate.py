@@ -29,6 +29,21 @@ def _parse_issued_date(value: Optional[str]) -> Optional[date]:
         )
 
 
+def _parse_issuer(value: Optional[str]) -> str:
+    """Normalise the issuer form field.
+
+    Blank or absent -> "qs". An older admin build (and the deployed one, until
+    it ships) never sends this field, and every certificate that predates AQAS
+    is a QS one — so the missing case must land on exactly the old behaviour.
+    Whitelisting happens in the service so it can answer with the module's 422
+    JSONResponse shape; here we only trim + lowercase.
+    """
+    value = _blank_to_none(value)
+    if value is None:
+        return "qs"
+    return value.strip().lower()
+
+
 def _parse_flag(value: Optional[str]) -> bool:
     """Multipart booleans arrive as strings ("true" / "false" / "" / missing)."""
     value = _blank_to_none(value)
@@ -52,8 +67,9 @@ class HeroCertificateTranslationForm:
 class HeroCertificateCreate:
     def __init__(
         self,
-        rank_label: str,
-        family: str,
+        issuer: str,
+        rank_label: Optional[str],
+        family: Optional[str],
         issued_date: Optional[date],
         external_url: Optional[str],
         image: Optional[UploadFile],
@@ -61,6 +77,7 @@ class HeroCertificateCreate:
         az: HeroCertificateTranslationForm,
         en: HeroCertificateTranslationForm
     ):
+        self.issuer = issuer
         self.rank_label = rank_label
         self.family = family
         self.issued_date = issued_date
@@ -73,8 +90,9 @@ class HeroCertificateCreate:
     @classmethod
     def as_form(
         cls,
-        rank_label: str = Form(...),
-        family: str = Form(...),
+        issuer: Optional[str] = Form(None),
+        rank_label: Optional[str] = Form(None),
+        family: Optional[str] = Form(None),
         issued_date: Optional[str] = Form(None),
         external_url: Optional[str] = Form(None),
         image: Optional[UploadFile] = Form(None),
@@ -97,8 +115,9 @@ class HeroCertificateCreate:
             signer=en_signer
         )
         return cls(
-            rank_label=rank_label,
-            family=family,
+            issuer=_parse_issuer(issuer),
+            rank_label=_blank_to_none(rank_label),
+            family=_blank_to_none(family),
             issued_date=_parse_issued_date(issued_date),
             external_url=_blank_to_none(external_url),
             image=image,
@@ -111,8 +130,9 @@ class HeroCertificateCreate:
 class HeroCertificateUpdate:
     def __init__(
         self,
-        rank_label: str,
-        family: str,
+        issuer: str,
+        rank_label: Optional[str],
+        family: Optional[str],
         issued_date: Optional[date],
         external_url: Optional[str],
         image: Optional[UploadFile],
@@ -122,6 +142,7 @@ class HeroCertificateUpdate:
         az: HeroCertificateTranslationForm,
         en: HeroCertificateTranslationForm
     ):
+        self.issuer = issuer
         self.rank_label = rank_label
         self.family = family
         self.issued_date = issued_date
@@ -136,8 +157,9 @@ class HeroCertificateUpdate:
     @classmethod
     def as_form(
         cls,
-        rank_label: str = Form(...),
-        family: str = Form(...),
+        issuer: Optional[str] = Form(None),
+        rank_label: Optional[str] = Form(None),
+        family: Optional[str] = Form(None),
         issued_date: Optional[str] = Form(None),
         external_url: Optional[str] = Form(None),
         image: Optional[UploadFile] = Form(None),
@@ -162,8 +184,9 @@ class HeroCertificateUpdate:
             signer=en_signer
         )
         return cls(
-            rank_label=rank_label,
-            family=family,
+            issuer=_parse_issuer(issuer),
+            rank_label=_blank_to_none(rank_label),
+            family=_blank_to_none(family),
             issued_date=_parse_issued_date(issued_date),
             external_url=_blank_to_none(external_url),
             image=image,

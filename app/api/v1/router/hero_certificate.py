@@ -46,8 +46,13 @@ async def get_hero_certificate_admin_endpoint(
 
 @router.post("/create", response_model=None)
 async def create_hero_certificate_endpoint(
-    rank_label: str = Form(...),
-    family: str = Form(...),
+    # 'qs' | 'aqas'. Optional on the wire: an older admin build never sends it
+    # and the schema resolves the missing case to 'qs'. rank_label / family are
+    # likewise optional here — they are QS-only, and the service enforces the
+    # matrix so it can answer with the module's 422 JSONResponse shape.
+    issuer: Optional[str] = Form(None),
+    rank_label: Optional[str] = Form(None),
+    family: Optional[str] = Form(None),
     issued_date: Optional[str] = Form(None),
     external_url: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
@@ -62,6 +67,7 @@ async def create_hero_certificate_endpoint(
     _: AdminUser = Depends(require_admin),
 ):
     request = HeroCertificateCreate.as_form(
+        issuer=issuer,
         rank_label=rank_label,
         family=family,
         issued_date=issued_date,
@@ -81,8 +87,10 @@ async def create_hero_certificate_endpoint(
 @router.put("/{certificate_id}/update", response_model=None)
 async def update_hero_certificate_endpoint(
     certificate_id: int,
-    rank_label: str = Form(...),
-    family: str = Form(...),
+    # See create: optional on the wire, matrix enforced in the service.
+    issuer: Optional[str] = Form(None),
+    rank_label: Optional[str] = Form(None),
+    family: Optional[str] = Form(None),
     issued_date: Optional[str] = Form(None),
     external_url: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
@@ -99,6 +107,7 @@ async def update_hero_certificate_endpoint(
     _: AdminUser = Depends(require_admin),
 ):
     request = HeroCertificateUpdate.as_form(
+        issuer=issuer,
         rank_label=rank_label,
         family=family,
         issued_date=issued_date,

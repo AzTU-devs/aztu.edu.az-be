@@ -19,6 +19,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 ALLOWED_FAMILIES = ("world", "europe", "subject", "other")
 
+# 'qs'   — a ranking body: the certificate states a rank position within a family.
+# 'aqas' — a programme-accreditation agency: no rank, no family, the programme
+#          name carried by the translation title is the whole story.
+ALLOWED_ISSUERS = ("qs", "aqas")
+
+DEFAULT_ISSUER = "qs"
+
 UPLOAD_SUBDIRECTORY = "hero_certificates"
 
 _TR_FIELDS = ("title", "kicker", "signer")
@@ -60,10 +67,85 @@ def _invalid_family_response() -> JSONResponse:
     )
 
 
+def _invalid_issuer_response() -> JSONResponse:
+    return JSONResponse(
+        content={
+            "status_code": 422,
+            "message": f"Invalid issuer. Expected one of: {', '.join(ALLOWED_ISSUERS)}."
+        },
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
+    )
+
+
+def _missing_rank_label_response() -> JSONResponse:
+    return JSONResponse(
+        content={
+            "status_code": 422,
+            "message": "rank_label is required for a QS certificate."
+        },
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
+    )
+
+
+def _normalise_issuer(issuer: Optional[str]) -> Optional[str]:
+    """Whitelist the issuer. Blank / missing -> DEFAULT_ISSUER ('qs').
+
+    A client that predates this feature never sends the field, and every
+    certificate that predates it is a QS one — so absence must resolve to 'qs'
+    and take the identical code path it took before. Only a value that is
+    present AND not in the whitelist is an error (None signals that).
+    """
+    if issuer is None:
+        return DEFAULT_ISSUER
+    if not isinstance(issuer, str):
+        return None
+    issuer = issuer.strip().lower()
+    if issuer == "":
+        return DEFAULT_ISSUER
+    return issuer if issuer in ALLOWED_ISSUERS else None
+
+
+def _validate_issuer_fields(request):
+    """Enforce the issuer/rank_label/family matrix.
+
+    Returns (error_response, issuer, rank_label, family). `error_response` is
+    None when the payload is valid; the three normalised values are then what
+    must be written to the row.
+
+      issuer='qs'   -> rank_label REQUIRED, family REQUIRED (and whitelisted).
+      issuer='aqas' -> both are QS-only concepts: ignored and stored as NULL,
+                       whatever the client happened to send.
+    """
+    issuer = _normalise_issuer(getattr(request, "issuer", None))
+    if issuer is None:
+        return _invalid_issuer_response(), None, None, None
+
+    if issuer != "qs":
+        # AQAS: rank_label / family are not just optional, they are meaningless.
+        # Dropped rather than passed through so an editor flipping qs -> aqas
+        # cannot leave a stale rank behind on the row.
+        return None, issuer, None, None
+
+    rank_label = request.rank_label
+    if isinstance(rank_label, str):
+        rank_label = rank_label.strip()
+    if not rank_label:
+        return _missing_rank_label_response(), None, None, None
+
+    family = _normalise_family(request.family)
+    if family is None:
+        return _invalid_family_response(), None, None, None
+
+    return None, issuer, rank_label, family
+
+
 def _serialize(certificate: HeroCertificate) -> dict:
     return {
         "id": certificate.id,
         "certificate_id": certificate.certificate_id,
+        # Rows written before the issuer migration read NULL through the ORM;
+        # normalise to 'qs' so no client ever has to special-case it.
+        "issuer": certificate.issuer or DEFAULT_ISSUER,
         "rank_label": certificate.rank_label,
         "family": certificate.family,
         "image": certificate.image,
@@ -100,14 +182,18 @@ async def create_hero_certificate(
 ):
     saved_files: list[str] = []
     try:
-        family = _normalise_family(request.family)
-        if family is None:
-            return _invalid_family_response()
+        # Issuer matrix first, and before any upload is written to disk, for the
+        # same reason the family check has always been here: a rejected request
+        # must leave no orphan files.
+        error, issuer, rank_label, family = _validate_issuer_fields(request)
+        if error is not None:
+            return error
 
         has_image = _has_upload(request.image)
         has_document = _has_upload(request.document)
 
         # BUSINESS RULE: at least one of image / document / external_url.
+        # Unchanged, and it applies to both issuers.
         # Checked before anything is written to disk so a rejected request
         # leaves no orphan uploads behind.
         if not (has_image or has_document or request.external_url):
@@ -137,7 +223,8 @@ async def create_hero_certificate(
 
         db.add(HeroCertificate(
             certificate_id=certificate_id,
-            rank_label=request.rank_label,
+            issuer=issuer,
+            rank_label=rank_label,
             family=family,
             image=image_path,
             document=document_path,
@@ -352,9 +439,13 @@ async def update_hero_certificate(
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
-        family = _normalise_family(request.family)
-        if family is None:
-            return _invalid_family_response()
+        # The matrix is evaluated against the INCOMING issuer, not the stored
+        # one: flipping qs -> aqas must not be blocked by the QS-only fields
+        # (they are dropped), and flipping aqas -> qs makes rank_label + family
+        # required again, so their absence 422s here. Checked before uploads.
+        error, issuer, rank_label, family = _validate_issuer_fields(request)
+        if error is not None:
+            return error
 
         has_image = _has_upload(request.image)
         has_document = _has_upload(request.document)
@@ -393,7 +484,8 @@ async def update_hero_certificate(
             old_document = certificate.document
             certificate.document = None
 
-        certificate.rank_label = request.rank_label
+        certificate.issuer = issuer
+        certificate.rank_label = rank_label
         certificate.family = family
         certificate.external_url = request.external_url
         certificate.issued_date = request.issued_date
