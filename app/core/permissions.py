@@ -36,6 +36,7 @@ DOMAIN_LABELS: Dict[str, Tuple[str, str]] = {
     "news_categories": ("Xəbər kateqoriyaları", "News categories"),
     "announcements": ("Elanlar", "Announcements"),
     "hero": ("Ana səhifə videosu", "Hero"),
+    "hero_certificates": ("Ana səhifə sertifikatları", "Hero certificates"),
     "projects": ("Layihələr", "Projects"),
     "collaborations": ("Əməkdaşlıqlar", "Collaborations"),
     "employees": ("Əməkdaşlar", "Employees"),
@@ -85,6 +86,13 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     _p("hero.delete", "Hero videosunu silmək", "Delete hero"),
     _p("hero.activate", "Hero videosunu aktivləşdirmək", "Activate hero"),
     _p("hero.deactivate", "Hero videosunu deaktiv etmək", "Deactivate hero"),
+    # ── hero_certificates ───────────────────────────────────────────────────
+    _p("hero_certificates.create", "Sertifikat yaratmaq", "Create certificate"),
+    _p("hero_certificates.update", "Sertifikatı redaktə etmək", "Edit certificate"),
+    _p("hero_certificates.delete", "Sertifikatı silmək", "Delete certificate"),
+    _p("hero_certificates.activate", "Sertifikatı dərc etmək", "Publish certificate"),
+    _p("hero_certificates.deactivate", "Sertifikatı dərcdən çıxarmaq", "Unpublish certificate"),
+    _p("hero_certificates.reorder", "Sertifikatları sıralamaq", "Reorder certificates"),
     # ── projects ────────────────────────────────────────────────────────────
     _p("projects.create", "Layihə yaratmaq", "Create project"),
     _p("projects.delete", "Layihəni silmək", "Delete project"),
@@ -307,7 +315,7 @@ SYSTEM_ROLES: Tuple[SystemRoleDef, ...] = (
         name_en="Content editor",
         description_az="Xəbər, elan, hero, layihə və əməkdaşlıqları idarə edir. Silmək icazəsi yoxdur.",
         permissions=_without(
-            keys_for_domains("news", "news_categories", "announcements", "hero", "projects", "collaborations", "about", "research_pages"),
+            keys_for_domains("news", "news_categories", "announcements", "hero", "hero_certificates", "projects", "collaborations", "about", "research_pages"),
             "delete",
         ),
     ),

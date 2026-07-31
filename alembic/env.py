@@ -26,6 +26,8 @@ from app.models.news_gallery.news_gallery import NewsGallery  # noqa: F401
 from app.models.project.project import Project  # noqa: F401
 from app.models.project.project_tr import ProjectTranslation  # noqa: F401
 from app.models.hero.hero import Hero  # noqa: F401
+from app.models.hero_certificate.hero_certificate import HeroCertificate  # noqa: F401
+from app.models.hero_certificate.hero_certificate_tr import HeroCertificateTranslation  # noqa: F401
 from app.models.employee.employee import Employee  # noqa: F401
 from app.models.employee.employee_tr import EmployeeTr  # noqa: F401
 from app.models.employee.contact import Contact  # noqa: F401

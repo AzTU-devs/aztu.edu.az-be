@@ -27,6 +27,7 @@ logger = get_logger("aztu.api")
 
 from app.api.v1.router.news import router as news_router
 from app.api.v1.router.hero import router as hero_router
+from app.api.v1.router.hero_certificate import router as hero_certificate_router
 from app.api.v1.router.project import router as project_router
 from app.api.v1.router.announcement import router as announcement_router
 from app.api.v1.router.news_category import router as news_category_router
@@ -199,6 +200,7 @@ app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 app.include_router(auth_router,          prefix="/api/auth",          tags=["Auth"])
 app.include_router(news_router,          prefix="/api/news",          tags=["News"])
 app.include_router(hero_router,          prefix="/api/hero",          tags=["Hero"])
+app.include_router(hero_certificate_router, prefix="/api/hero-certificate", tags=["Hero Certificate"])
 app.include_router(project_router,       prefix="/api/project",       tags=["Project"])
 app.include_router(announcement_router,  prefix="/api/announcement",  tags=["Announcement"])
 app.include_router(news_category_router, prefix="/api/news-category", tags=["News Category"])
