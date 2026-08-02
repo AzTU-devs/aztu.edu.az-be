@@ -43,6 +43,7 @@ DOMAIN_LABELS: Dict[str, Tuple[str, str]] = {
     "faculties": ("Fakültələr", "Faculties"),
     "cafedras": ("Kafedralar", "Cafedras"),
     "departments": ("Şöbələr", "Departments"),
+    "office": ("Ofis və Mərkəzlər", "Offices and Centres"),
     "research_institutes": ("Elmi tədqiqat institutları", "Research institutes"),
     "research_projects": ("Tədqiqat layihələri", "Research projects"),
     "about": ("Haqqımızda", "About"),
@@ -191,6 +192,12 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     _p("about.update", "Haqqımızda səhifəsini redaktə etmək", "Edit about page"),
     _p("about.activate", "Haqqımızda səhifəsini dərc etmək", "Publish about page"),
     _p("about.upload", "Haqqımızda səhifəsinə sənəd yükləmək", "Upload about page document"),
+    # ── office (Offices and Centres) ─────────────────────────────────────────
+    _p("office.create", "Ofis/mərkəz yaratmaq", "Create office/centre"),
+    _p("office.update", "Ofis/mərkəzi redaktə etmək", "Edit office/centre"),
+    _p("office.delete", "Ofis/mərkəzi silmək", "Delete office/centre"),
+    _p("office.activate", "Ofis/mərkəzi dərc etmək", "Publish office/centre"),
+    _p("office.upload", "Ofis/mərkəzə şəkil yükləmək", "Upload office/centre image"),
     # ── research_pages ──────────────────────────────────────────────────────
     # The editorial pages of the Tədqiqat section (priorities and, later, its
     # siblings) — deliberately separate from the research institute/project
@@ -325,7 +332,8 @@ SYSTEM_ROLES: Tuple[SystemRoleDef, ...] = (
         name_en="Academic editor",
         description_az="Fakültə, kafedra, şöbə, elmi tədqiqat institutu və əməkdaş məlumatlarını tam idarə edir.",
         permissions=keys_for_domains(
-            "faculties", "cafedras", "departments", "research_institutes", "employees",
+            "faculties", "cafedras", "departments", "office",
+            "research_institutes", "employees",
         ),
     ),
     SystemRoleDef(

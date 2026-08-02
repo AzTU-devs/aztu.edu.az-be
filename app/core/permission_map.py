@@ -222,6 +222,13 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("PUT", "/api/about/admin/pages/{page_key}/file"): RouteRule("about.upload", target_type="about_page", target_param="page_key"),
     ("PUT", "/api/about/admin/pages/{page_key}/publish"): RouteRule("about.activate", target_type="about_page", target_param="page_key"),
 
+    # ── office (Offices and Centres) ────────────────────────────────────────
+    ("POST", "/api/office/admin/offices"): RouteRule("office.create", target_type="office"),
+    ("PUT", "/api/office/admin/offices/{office_id}"): RouteRule("office.update", target_type="office", target_param="office_id"),
+    ("DELETE", "/api/office/admin/offices/{office_id}"): RouteRule("office.delete", target_type="office", target_param="office_id"),
+    ("PUT", "/api/office/admin/offices/{office_id}/publish"): RouteRule("office.activate", target_type="office", target_param="office_id"),
+    ("PUT", "/api/office/admin/offices/{office_id}/image"): RouteRule("office.upload", target_type="office", target_param="office_id"),
+
     # ── research pages (the Tədqiqat section's editorial screens) ───────────
     ("PUT", "/api/research/admin/pages/{page_key}"): RouteRule("research_pages.update", target_type="research_page", target_param="page_key"),
     ("PUT", "/api/research/admin/pages/{page_key}/publish"): RouteRule("research_pages.activate", target_type="research_page", target_param="page_key"),
