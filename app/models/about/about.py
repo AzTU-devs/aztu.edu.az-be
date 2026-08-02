@@ -48,6 +48,12 @@ class AboutPage(Base):
     # ``document_url``.
     image_url = Column(String(2048))
 
+    # Students pages: a grade-scale table, stored inline as a list of
+    # ``{points, grade, description_az, description_en}``. Language-neutral row
+    # because points and the grade letter read the same in every language and
+    # the two short descriptions live inside each object.
+    grade_scale = Column(JSONB)
+
     display_order = Column(Integer, nullable=False, default=0)
     # False keeps the page out of the public API while it is being filled in.
     is_active = Column(Boolean, nullable=False, default=False)

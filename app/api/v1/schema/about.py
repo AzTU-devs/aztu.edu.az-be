@@ -165,6 +165,15 @@ class AboutDocumentPayload(BaseModel):
     en: Optional[AboutDocumentTranslation] = None
 
 
+class AboutGradeRow(BaseModel):
+    """One row of a Students page's grade-scale table."""
+
+    points: OptionalStr = None
+    grade: OptionalStr = None
+    description_az: OptionalStr = None
+    description_en: OptionalStr = None
+
+
 class UpdateAboutPage(BaseModel):
     slug_az: OptionalStr = None
     slug_en: OptionalStr = None
@@ -195,6 +204,8 @@ class UpdateAboutPage(BaseModel):
     # Regulatory-documents page: the categories and the document cards.
     doc_categories: Optional[List[AboutDocCategoryPayload]] = None
     documents: Optional[List[AboutDocumentPayload]] = None
+    # Students pages: the grade-scale table, sent whole.
+    grade_scale: Optional[List[AboutGradeRow]] = None
     # The gallery strip — sent whole and replaces what is stored.
     images: Optional[List[AboutImagePayload]] = None
 

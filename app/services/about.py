@@ -119,6 +119,22 @@ def _milestone_order(milestone: Any) -> tuple:
     return (1, -int(match.group()), milestone.display_order)
 
 
+def _milestone_sort(page: AboutPage):
+    """The timeline sorts newest-first by year; every other page (the academic
+    calendar's semesters) keeps the order the editor arranged."""
+    return _milestone_order if page.template == "timeline" else (lambda m: m.display_order)
+
+
+def _grade_scale_public(page: AboutPage, lang: str) -> list:
+    """The grade-scale rows with each description resolved to one language."""
+    rows = page.grade_scale or []
+    out = []
+    for row in rows:
+        description = row.get(f"description_{lang}") or row.get("description_az") or row.get("description_en")
+        out.append({"points": row.get("points"), "grade": row.get("grade"), "description": description})
+    return out
+
+
 def _plain_text(html: Optional[str]) -> str:
     """Markup stripped and whitespace collapsed — for meta tags."""
     if not html:
@@ -270,6 +286,7 @@ def _serialize_admin(page: AboutPage) -> dict:
         "experience": page.experience,
         "email": page.email,
         "image_url": page.image_url,
+        "grade_scale": page.grade_scale or [],
         "is_active": page.is_active,
         **_tr_map(page.translations, PAGE_TR_FIELDS),
         "blocks": [
@@ -296,7 +313,7 @@ def _serialize_admin(page: AboutPage) -> dict:
                 "year": milestone.year,
                 **_tr_map(milestone.translations, MILESTONE_TR_FIELDS),
             }
-            for milestone in sorted(page.milestones, key=_milestone_order)
+            for milestone in sorted(page.milestones, key=_milestone_sort(page))
         ],
         "pillars": [
             {
@@ -375,6 +392,7 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
         "experience": page.experience,
         "email": page.email,
         "image_url": page.image_url,
+        "grade_scale": _grade_scale_public(page, lang),
         **copy,
         # Derived, not authored: the dashboard has no SEO fields by design.
         "seo": {
@@ -400,7 +418,7 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
                 "year": milestone.year,
                 **_pick(milestone.translations, lang, MILESTONE_TR_FIELDS),
             }
-            for milestone in sorted(page.milestones, key=_milestone_order)
+            for milestone in sorted(page.milestones, key=_milestone_sort(page))
         ],
         "pillars": [
             _pick(pillar.translations, lang, PILLAR_TR_FIELDS)
@@ -848,6 +866,9 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
         for field in PAGE_FIELDS:
             if field in data:
                 setattr(page, field, data[field])
+        # The grade-scale table is stored inline as a list of row dicts.
+        if data.get("grade_scale") is not None:
+            page.grade_scale = data["grade_scale"]
         page.updated_at = now
 
         await _upsert_translations(
