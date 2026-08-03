@@ -70,6 +70,13 @@ class ResearchPage(Base):
         passive_deletes=True,
         order_by="ResearchPatentYear.display_order",
     )
+    seminars = relationship(
+        "ResearchSeminar",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ResearchSeminar.display_order",
+    )
 
 
 class ResearchPageTr(Base):
@@ -240,6 +247,57 @@ class ResearchPatentTr(Base):
     updated_at = Column(DateTime(timezone=True))
 
     patent = relationship("ResearchPatent", back_populates="translations")
+
+
+class ResearchSeminar(Base):
+    """One seminar/training entry on the "Seminarlar və Təlimlər" page.
+
+    Carries no stable key — position is its identity — and links out to the
+    matching news item on this website. The ``url`` is language-neutral; the
+    ``name`` is bilingual rich text.
+    """
+
+    __tablename__ = "research_page_seminars"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(
+        Integer, ForeignKey("research_pages.id", ondelete="CASCADE"), nullable=False
+    )
+    # The news URL this training links to — an absolute or a site-relative path.
+    url = Column(String(2048))
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("ResearchPage", back_populates="seminars")
+    translations = relationship(
+        "ResearchSeminarTr",
+        back_populates="seminar",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class ResearchSeminarTr(Base):
+    __tablename__ = "research_page_seminar_tr"
+    __table_args__ = (
+        UniqueConstraint("seminar_id", "lang_code", name="uq_research_seminar_tr_seminar_lang"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    seminar_id = Column(
+        Integer, ForeignKey("research_page_seminars.id", ondelete="CASCADE"), nullable=False
+    )
+    lang_code = Column(String(10), nullable=False)
+
+    # The training's name — rich text authored in the dashboard.
+    name = Column(Text)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    seminar = relationship("ResearchSeminar", back_populates="translations")
 
 
 class ResearchPageLink(Base):

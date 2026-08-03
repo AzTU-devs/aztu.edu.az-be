@@ -38,6 +38,8 @@ from app.models.research.research import (
     ResearchPatentYear,
     ResearchPriority,
     ResearchPriorityTr,
+    ResearchSeminar,
+    ResearchSeminarTr,
 )
 from app.utils.file_upload import ALLOWED_DOC_MIMES, safe_delete_file, save_upload
 from app.utils.html_sanitizer import sanitize_html
@@ -49,6 +51,7 @@ LANGS = ("az", "en")
 PAGE_TR_FIELDS = ("title", "description", "body_html", "links_title")
 PRIORITY_TR_FIELDS = ("title", "description")
 PATENT_TR_FIELDS = ("name", "authors")
+SEMINAR_TR_FIELDS = ("name",)
 LINK_TR_FIELDS = ("label",)
 
 # Editor-authored HTML. Scrubbed on the way in so the website can render it
@@ -190,6 +193,7 @@ def _page_query():
         selectinload(ResearchPage.patent_years)
         .selectinload(ResearchPatentYear.patents)
         .selectinload(ResearchPatent.translations),
+        selectinload(ResearchPage.seminars).selectinload(ResearchSeminar.translations),
     )
 
 
@@ -233,6 +237,15 @@ def _serialize_admin(page: ResearchPage) -> dict:
             # Same order the website gets, so the editor is looking at the
             # stored truth rather than a second arrangement of it.
             for year_row in sorted(page.patent_years, key=_year_order)
+        ],
+        "seminars": [
+            {
+                "id": seminar.id,
+                "url": seminar.url,
+                "display_order": seminar.display_order,
+                **_tr_map(seminar.translations, SEMINAR_TR_FIELDS),
+            }
+            for seminar in sorted(page.seminars, key=lambda s: s.display_order)
         ],
         "links": [
             {
@@ -283,6 +296,13 @@ def _serialize_public(page: ResearchPage, lang: str) -> dict:
                 ],
             }
             for year_row in sorted(page.patent_years, key=_year_order)
+        ],
+        "seminars": [
+            {
+                "url": seminar.url,
+                **_pick(seminar.translations, lang, SEMINAR_TR_FIELDS),
+            }
+            for seminar in sorted(page.seminars, key=lambda s: s.display_order)
         ],
         "links": [
             {
@@ -465,6 +485,38 @@ async def _replace_patent_years(
     return orphans
 
 
+async def _replace_seminars(db: AsyncSession, page_id: int, seminars: list, now: datetime):
+    """Rewrites the seminars/trainings list wholesale — position is identity.
+
+    The name is rich text, so it is sanitized here. It is not in
+    ``RICH_TEXT_FIELDS`` on purpose: the patents table has a plain ``name`` that
+    must stay unscrubbed, and that frozenset is keyed on the field name alone.
+    """
+    await db.execute(
+        sqlalchemy_delete(ResearchSeminar).where(ResearchSeminar.page_id == page_id)
+    )
+
+    for index, entry in enumerate(seminars):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        for lang in LANGS:
+            tr = payload.get(lang)
+            if tr and isinstance(tr.get("name"), str):
+                tr["name"] = sanitize_html(tr["name"])
+
+        seminar = ResearchSeminar(
+            page_id=page_id,
+            url=payload.get("url"),
+            display_order=index,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(seminar)
+        await db.flush()
+        await _upsert_translations(
+            db, ResearchSeminarTr, "seminar_id", seminar.id, payload, SEMINAR_TR_FIELDS, now
+        )
+
+
 async def _replace_links(db: AsyncSession, page_id: int, links: list, now: datetime):
     """Rewrites the button list. Buttons carry no stable key, so they are
     replaced wholesale — the payload is the complete, ordered truth."""
@@ -515,6 +567,8 @@ async def update_page(page_key: str, request: UpdateResearchPage, db: AsyncSessi
             await _replace_priorities(db, page.id, data["priorities"], now)
         if data.get("patent_years") is not None:
             orphans = await _replace_patent_years(db, page.id, data["patent_years"], now)
+        if data.get("seminars") is not None:
+            await _replace_seminars(db, page.id, data["seminars"], now)
         if data.get("links") is not None:
             await _replace_links(db, page.id, data["links"], now)
 

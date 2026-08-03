@@ -57,6 +57,19 @@ class ResearchPatentYearPayload(BaseModel):
     patents: Optional[List[ResearchPatentPayload]] = None
 
 
+class ResearchSeminarTranslation(BaseModel):
+    # Rich text authored in the dashboard.
+    name: OptionalStr = None
+
+
+class ResearchSeminarPayload(BaseModel):
+    # A news URL — absolute or site-relative — so OptionalStr rather than
+    # OptionalUrl, which would 422 on a path like "/az/xeberler/...".
+    url: OptionalStr = None
+    az: Optional[ResearchSeminarTranslation] = None
+    en: Optional[ResearchSeminarTranslation] = None
+
+
 class ResearchLinkTranslation(BaseModel):
     label: OptionalStr = None
 
@@ -80,6 +93,8 @@ class UpdateResearchPage(BaseModel):
     # Omit a key to leave those rows untouched; send [] to clear them.
     priorities: Optional[List[ResearchPriorityPayload]] = None
     patent_years: Optional[List[ResearchPatentYearPayload]] = None
+    # Seminars & Trainings page.
+    seminars: Optional[List[ResearchSeminarPayload]] = None
     links: Optional[List[ResearchLinkPayload]] = None
 
     class Config:
