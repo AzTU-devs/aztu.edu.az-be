@@ -26,6 +26,11 @@ class ResearchPageTranslation(BaseModel):
     description: OptionalStr = None
     body_html: OptionalStr = None
     links_title: OptionalStr = None
+    # Journal page.
+    journal_name: OptionalStr = None
+    journal_language: OptionalStr = None
+    founder: OptionalStr = None
+    button_label: OptionalStr = None
 
 
 class ResearchPriorityTranslation(BaseModel):
@@ -83,6 +88,16 @@ class ResearchLinkPayload(BaseModel):
 class UpdateResearchPage(BaseModel):
     slug_az: OptionalStr = None
     slug_en: OptionalStr = None
+
+    # Journal page, language-neutral: the cover image, the numbers, the DOI and
+    # the URL the "visit" button points at.
+    image_url: OptionalStr = None
+    issn: OptionalStr = None
+    eissn: OptionalStr = None
+    doi: OptionalStr = None
+    publication_year: OptionalStr = None
+    yearly_count: OptionalStr = None
+    button_url: OptionalStr = None
     # `is_active` is deliberately absent: publishing is its own endpoint under
     # its own permission, so a page cannot go live as a side effect of saving
     # a half-written paragraph.

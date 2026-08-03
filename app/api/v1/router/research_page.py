@@ -12,6 +12,7 @@ from app.services.research_page import (
     publish_page,
     update_page,
     upload_document,
+    upload_image,
 )
 from app.utils.language import get_language
 
@@ -69,6 +70,17 @@ async def upload_document_endpoint(
     rest of the form. Page-scoped rather than row-scoped because patent rows are
     replaced on every save and their ids do not survive one."""
     return await upload_document(page_key=page_key, file=file, db=db)
+
+
+@router.put("/admin/pages/{page_key}/image")
+async def upload_image_endpoint(
+    page_key: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: AdminUser = Depends(require_admin),
+):
+    """Stores a journal cover image and returns its path for the whole-page save."""
+    return await upload_image(page_key=page_key, file=file, db=db)
 
 
 # ── Public ─────────────────────────────────────────────────────────────────────

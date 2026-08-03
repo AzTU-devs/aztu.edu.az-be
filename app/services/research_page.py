@@ -41,14 +41,28 @@ from app.models.research.research import (
     ResearchSeminar,
     ResearchSeminarTr,
 )
-from app.utils.file_upload import ALLOWED_DOC_MIMES, safe_delete_file, save_upload
+from app.utils.file_upload import (
+    ALLOWED_DOC_MIMES,
+    ALLOWED_IMAGE_MIMES,
+    safe_delete_file,
+    save_upload,
+)
 from app.utils.html_sanitizer import sanitize_html
 
 logger = get_logger(__name__)
 
 LANGS = ("az", "en")
 
-PAGE_TR_FIELDS = ("title", "description", "body_html", "links_title")
+PAGE_TR_FIELDS = (
+    "title", "description", "body_html", "links_title",
+    # Journal page.
+    "journal_name", "journal_language", "founder", "button_label",
+)
+# Language-neutral page columns writable from the dashboard (journal page).
+PAGE_FIELDS = (
+    "slug_az", "slug_en",
+    "image_url", "issn", "eissn", "doi", "publication_year", "yearly_count", "button_url",
+)
 PRIORITY_TR_FIELDS = ("title", "description")
 PATENT_TR_FIELDS = ("name", "authors")
 SEMINAR_TR_FIELDS = ("name",)
@@ -210,6 +224,13 @@ def _serialize_admin(page: ResearchPage) -> dict:
         "slug_az": page.slug_az,
         "slug_en": page.slug_en,
         "is_active": page.is_active,
+        "image_url": page.image_url,
+        "issn": page.issn,
+        "eissn": page.eissn,
+        "doi": page.doi,
+        "publication_year": page.publication_year,
+        "yearly_count": page.yearly_count,
+        "button_url": page.button_url,
         **_tr_map(page.translations, PAGE_TR_FIELDS),
         "priorities": [
             {
@@ -266,6 +287,13 @@ def _serialize_public(page: ResearchPage, lang: str) -> dict:
         "page_key": page.page_key,
         "template": page.template,
         "slug": page.slug_az if lang == "az" else page.slug_en,
+        "image_url": page.image_url,
+        "issn": page.issn,
+        "eissn": page.eissn,
+        "doi": page.doi,
+        "publication_year": page.publication_year,
+        "yearly_count": page.yearly_count,
+        "button_url": page.button_url,
         **copy,
         # Derived, not authored: the dashboard has no SEO fields by design.
         "seo": {
@@ -553,7 +581,19 @@ async def update_page(page_key: str, request: UpdateResearchPage, db: AsyncSessi
         now = _now()
         data = request.dict(exclude_unset=True)
 
-        for field in ("slug_az", "slug_en"):
+        # Replacing the cover image with a different stored file orphans the old
+        # one — clean it up, but never touch a pasted URL (not ours to delete).
+        if "image_url" in data:
+            previous_image = page.image_url
+            new_image = data["image_url"]
+            if (
+                previous_image
+                and previous_image != new_image
+                and not previous_image.startswith(("http://", "https://"))
+            ):
+                safe_delete_file(previous_image)
+
+        for field in PAGE_FIELDS:
             if field in data:
                 setattr(page, field, data[field])
         page.updated_at = now
@@ -652,3 +692,30 @@ async def upload_document(page_key: str, file: UploadFile, db: AsyncSession):
     except Exception:
         logger.exception("Failed to upload document for %s", page_key)
         return _error(500, "Failed to upload document.")
+
+
+async def upload_image(page_key: str, file: UploadFile, db: AsyncSession):
+    """Stores a journal cover image and hands its path back to the dashboard.
+
+    Writes to no row: the path travels back through the form and is stored by
+    the same whole-page PUT as everything else, exactly like the certificate
+    upload. Only image types are accepted.
+    """
+    try:
+        page = (
+            await db.execute(
+                select(ResearchPage.id).where(ResearchPage.page_key == page_key)
+            )
+        ).scalar_one_or_none()
+        if page is None:
+            return _error(404, "Research page not found.")
+
+        path = await save_upload(file, "research/images", ALLOWED_IMAGE_MIMES)
+        return JSONResponse(
+            content={"status_code": 200, "message": "Image uploaded.", "path": path}
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to upload image for %s", page_key)
+        return _error(500, "Failed to upload image.")

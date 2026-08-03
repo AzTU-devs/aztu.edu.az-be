@@ -40,6 +40,18 @@ class ResearchPage(Base):
     # False keeps the page out of the public API while it is being filled in.
     is_active = Column(Boolean, nullable=False, default=False)
 
+    # ── Journal (template = "journal") columns ───────────────────────────────
+    # Language-neutral facts about the journal — its cover image, its numbers
+    # and the URL its "visit" button points at.
+    image_url = Column(String(2048))
+    issn = Column(String(50))
+    eissn = Column(String(50))
+    doi = Column(String(2048))
+    publication_year = Column(String(50))
+    # Yearly publication number ("İllik buraxılış sayı").
+    yearly_count = Column(String(50))
+    button_url = Column(String(2048))
+
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 
@@ -101,6 +113,14 @@ class ResearchPageTr(Base):
     body_html = Column(Text)
     # Heading of the "More in this section" block.
     links_title = Column(String(500))
+
+    # ── Journal (template = "journal") translations ──────────────────────────
+    # The journal's own name (distinct from the page title), its language, its
+    # founder, and the label on the "visit journal" button.
+    journal_name = Column(String(500))
+    journal_language = Column(String(255))
+    founder = Column(String(500))
+    button_label = Column(String(500))
 
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
