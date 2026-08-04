@@ -40,6 +40,8 @@ class DirectorEducation(BaseModel):
 
 
 class DirectorTranslation(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     scientific_degree: str | None = None
     scientific_title: str | None = None
     room: OptionalStr = None
@@ -47,9 +49,8 @@ class DirectorTranslation(BaseModel):
 
 
 class DepartmentDirectorPayload(BaseModel):
-    first_name: str = Field(...)
-    last_name: str = Field(...)
-    father_name: str | None = None
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     email: OptionalEmail = None
     phone: OptionalStr = None
     phone_code: OptionalStr = None
@@ -61,6 +62,8 @@ class DepartmentDirectorPayload(BaseModel):
 
 
 class WorkerTranslation(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     duty: str = Field(...)
     scientific_degree: str | None = None
     scientific_name: str | None = None
@@ -69,9 +72,8 @@ class WorkerTranslation(BaseModel):
 
 
 class DepartmentWorkerPayload(BaseModel):
-    first_name: str = Field(...)
-    last_name: str = Field(...)
-    father_name: str | None = None
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     email: OptionalEmail = None
     phone: str | None = None
     phone_code: OptionalStr = None
@@ -81,6 +83,8 @@ class DepartmentWorkerPayload(BaseModel):
 
 
 class WorkerTranslationUpdate(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     duty: str | None = None
     scientific_degree: str | None = None
     scientific_name: str | None = None
@@ -91,7 +95,6 @@ class WorkerTranslationUpdate(BaseModel):
 class UpdateDepartmentWorker(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
-    father_name: str | None = None
     email: OptionalEmail = None
     phone: str | None = None
     phone_code: OptionalStr = None

@@ -565,6 +565,29 @@ async def _serialize_patents(
     return items, years
 
 
+def _mirror_neutral_name(item: Any) -> tuple[Any, Any]:
+    """Resolve the neutral (deprecated) first_name/last_name for a person parent row.
+
+    Names are now bilingual and live on the *_tr translation rows. We keep the
+    neutral parent columns populated for backward-compat / NOT NULL safety by
+    mirroring the AZ translation name (falling back to EN, then to any neutral
+    name still on the payload for backward-compat).
+    """
+    az = getattr(item, "az", None)
+    en = getattr(item, "en", None)
+    first = (
+        (getattr(az, "first_name", None) if az else None)
+        or (getattr(en, "first_name", None) if en else None)
+        or getattr(item, "first_name", None)
+    )
+    last = (
+        (getattr(az, "last_name", None) if az else None)
+        or (getattr(en, "last_name", None) if en else None)
+        or getattr(item, "last_name", None)
+    )
+    return first, last
+
+
 async def _create_people(
     parent_cls: Type[Any],
     tr_cls: Type[Any],
@@ -575,19 +598,20 @@ async def _create_people(
     db: AsyncSession,
 ):
     for item in items:
+        neutral_first, neutral_last = _mirror_neutral_name(item)
         person_kwargs = dict(
             cafedra_code=cafedra_code,
-            first_name=item.first_name,
-            last_name=item.last_name,
-            father_name=item.father_name,
+            first_name=neutral_first,
+            last_name=neutral_last,
             email=getattr(item, "email", None),
             phone=getattr(item, "phone", None),
-            profile_image=getattr(item, "profile_image", None),
             created_at=now,
             updated_at=now,
         )
         if hasattr(parent_cls, "phone_code"):
             person_kwargs["phone_code"] = getattr(item, "phone_code", None)
+        if hasattr(parent_cls, "profile_image"):
+            person_kwargs["profile_image"] = getattr(item, "profile_image", None)
         person = parent_cls(**person_kwargs)
         db.add(person)
         await db.flush()
@@ -602,6 +626,10 @@ async def _create_people(
                     "created_at": now,
                     "updated_at": now,
                 }
+                if hasattr(tr_cls, "first_name"):
+                    fields["first_name"] = getattr(data, "first_name", None)
+                if hasattr(tr_cls, "last_name"):
+                    fields["last_name"] = getattr(data, "last_name", None)
                 if hasattr(tr_cls, "scientific_name"):
                     fields["scientific_name"] = data.scientific_name
                 if hasattr(tr_cls, "scientific_degree"):
@@ -626,11 +654,11 @@ async def _create_single_person(
 
     Filters by hasattr so it is safe for council members, which have no profile_image column.
     """
+    neutral_first, neutral_last = _mirror_neutral_name(item)
     payload = {
         "cafedra_code": cafedra_code,
-        "first_name": item.first_name,
-        "last_name": item.last_name,
-        "father_name": getattr(item, "father_name", None),
+        "first_name": neutral_first,
+        "last_name": neutral_last,
         "email": getattr(item, "email", None),
         "phone": getattr(item, "phone", None),
         "phone_code": getattr(item, "phone_code", None),
@@ -648,6 +676,10 @@ async def _create_single_person(
         if not data:
             continue
         fields = {person_id_field: person.id, "lang_code": lang, "created_at": now, "updated_at": now}
+        if hasattr(tr_cls, "first_name"):
+            fields["first_name"] = getattr(data, "first_name", None)
+        if hasattr(tr_cls, "last_name"):
+            fields["last_name"] = getattr(data, "last_name", None)
         if hasattr(tr_cls, "duty"):
             fields["duty"] = getattr(data, "duty", None)
         if hasattr(tr_cls, "scientific_name"):
@@ -680,9 +712,27 @@ async def _update_person(
     now = datetime.now(timezone.utc)
     data = request.dict(exclude_unset=True)
 
-    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code"]:
+    # Names are bilingual on the tr rows; the neutral parent columns are only
+    # mirrored (below) for backward-compat.
+    for field in ["first_name", "last_name", "email", "phone", "phone_code"]:
         if field in data and hasattr(parent_cls, field):
             setattr(person, field, data[field])
+
+    # Names are bilingual on the tr rows; keep the neutral parent columns mirrored
+    # from the AZ translation (fallback EN) for backward-compat / NOT NULL safety.
+    az_payload = data.get("az") or {}
+    en_payload = data.get("en") or {}
+    mirror_first = az_payload.get("first_name")
+    if mirror_first is None:
+        mirror_first = en_payload.get("first_name")
+    mirror_last = az_payload.get("last_name")
+    if mirror_last is None:
+        mirror_last = en_payload.get("last_name")
+    if mirror_first is not None and hasattr(parent_cls, "first_name"):
+        person.first_name = mirror_first
+    if mirror_last is not None and hasattr(parent_cls, "last_name"):
+        person.last_name = mirror_last
+
     person.updated_at = now
 
     for lang in ["az", "en"]:
@@ -697,7 +747,7 @@ async def _update_person(
         )
         tr = tr_q.scalar_one_or_none()
         if tr:
-            for attr in ["duty", "scientific_name", "scientific_degree", "room", "working_hours"]:
+            for attr in ["first_name", "last_name", "duty", "scientific_name", "scientific_degree", "room", "working_hours"]:
                 if attr in payload and hasattr(tr_cls, attr):
                     setattr(tr, attr, payload[attr])
             tr.updated_at = now
@@ -705,7 +755,7 @@ async def _update_person(
             fields = {person_id_field: person_id, "lang_code": lang, "created_at": now, "updated_at": now}
             if hasattr(tr_cls, "duty"):
                 fields["duty"] = payload.get("duty", "")
-            for attr in ["scientific_name", "scientific_degree", "room", "working_hours"]:
+            for attr in ["first_name", "last_name", "scientific_name", "scientific_degree", "room", "working_hours"]:
                 if hasattr(tr_cls, attr):
                     fields[attr] = payload.get(attr)
             db.add(tr_cls(**fields))
@@ -760,15 +810,23 @@ def _director_has_content(director_data: Any) -> bool:
         return False
     first = (getattr(director_data, "first_name", None) or "").strip()
     last = (getattr(director_data, "last_name", None) or "").strip()
-    return bool(first or last)
+    if first or last:
+        return True
+    # Names are now bilingual — a name supplied only on the az/en translation
+    # still counts as a present director.
+    for lang in ("az", "en"):
+        tr = getattr(director_data, lang, None)
+        if tr and ((getattr(tr, "first_name", None) or "").strip() or (getattr(tr, "last_name", None) or "").strip()):
+            return True
+    return False
 
 
 async def _create_director(cafedra_code: str, director_data: Any, now: datetime, db: AsyncSession):
+    neutral_first, neutral_last = _mirror_neutral_name(director_data)
     director = CafedraDirector(
         cafedra_code=cafedra_code,
-        first_name=director_data.first_name or "",
-        last_name=director_data.last_name or "",
-        father_name=director_data.father_name,
+        first_name=(neutral_first or ""),
+        last_name=(neutral_last or ""),
         email=director_data.email,
         phone=director_data.phone,
         phone_code=getattr(director_data, "phone_code", None),
@@ -785,6 +843,8 @@ async def _create_director(cafedra_code: str, director_data: Any, now: datetime,
             db.add(CafedraDirectorTr(
                 director_id=director.id,
                 lang_code=lang,
+                first_name=getattr(tr_data, "first_name", None),
+                last_name=getattr(tr_data, "last_name", None),
                 scientific_degree=tr_data.scientific_degree,
                 scientific_title=tr_data.scientific_title,
                 bio=tr_data.bio,
@@ -891,12 +951,28 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
         db.add(director)
         await db.flush()
 
-    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code", "profile_image"]:
+    for field in ["first_name", "last_name", "email", "phone", "phone_code", "profile_image"]:
         if field in data:
             value = data[field]
             if field in ("first_name", "last_name"):
                 value = value or ""
             setattr(director, field, value)
+
+    # Names are bilingual on the tr rows; mirror the AZ translation name (fallback
+    # EN) into the deprecated neutral parent columns for backward-compat.
+    az_tr = data.get("az") or {}
+    en_tr = data.get("en") or {}
+    mirror_first = az_tr.get("first_name")
+    if mirror_first is None:
+        mirror_first = en_tr.get("first_name")
+    mirror_last = az_tr.get("last_name")
+    if mirror_last is None:
+        mirror_last = en_tr.get("last_name")
+    if mirror_first is not None:
+        director.first_name = mirror_first or ""
+    if mirror_last is not None:
+        director.last_name = mirror_last or ""
+
     director.updated_at = now
 
     for lang in ["az", "en"]:
@@ -910,7 +986,7 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
             )
             tr = tr_query.scalar_one_or_none()
             if tr:
-                for field in ["scientific_degree", "scientific_title", "bio", "room", "scientific_research_fields"]:
+                for field in ["first_name", "last_name", "scientific_degree", "scientific_title", "bio", "room", "scientific_research_fields"]:
                     if field in tr_data:
                         setattr(tr, field, tr_data[field])
                 tr.updated_at = now
@@ -918,6 +994,8 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
                 db.add(CafedraDirectorTr(
                     director_id=director.id,
                     lang_code=lang,
+                    first_name=tr_data.get("first_name"),
+                    last_name=tr_data.get("last_name"),
                     scientific_degree=tr_data.get("scientific_degree"),
                     scientific_title=tr_data.get("scientific_title"),
                     bio=tr_data.get("bio"),
@@ -1025,9 +1103,8 @@ async def _serialize_director(director: CafedraDirector, lang_code: str, db: Asy
         educations.append({"degree": edu_tr.degree if edu_tr else None, "university": edu_tr.university if edu_tr else None, "start_year": edu.start_year, "end_year": edu.end_year})
 
     return {
-        "first_name": director.first_name,
-        "last_name": director.last_name,
-        "father_name": director.father_name,
+        "first_name": (tr.first_name if tr and tr.first_name else director.first_name),
+        "last_name": (tr.last_name if tr and tr.last_name else director.last_name),
         "scientific_degree": tr.scientific_degree if tr else None,
         "scientific_title": tr.scientific_title if tr else None,
         "bio": tr.bio if tr else None,
@@ -1262,9 +1339,8 @@ async def get_cafedra(
             "deputy_directors": [
                 {
                     "id": person.id,
-                    "first_name": person.first_name,
-                    "last_name": person.last_name,
-                    "father_name": person.father_name,
+                    "first_name": tr.first_name if tr and tr.first_name else person.first_name,
+                    "last_name": tr.last_name if tr and tr.last_name else person.last_name,
                     "scientific_name": tr.scientific_name if tr else None,
                     "scientific_degree": tr.scientific_degree if tr else None,
                     "duty": tr.duty if tr else None,
@@ -1280,9 +1356,8 @@ async def get_cafedra(
             "scientific_council": [
                 {
                     "id": person.id,
-                    "first_name": person.first_name,
-                    "last_name": person.last_name,
-                    "father_name": person.father_name,
+                    "first_name": tr.first_name if tr and tr.first_name else person.first_name,
+                    "last_name": tr.last_name if tr and tr.last_name else person.last_name,
                     "duty": tr.duty if tr else None,
                     "scientific_name": tr.scientific_name if tr else None,
                     "scientific_degree": tr.scientific_degree if tr else None,
@@ -1294,9 +1369,8 @@ async def get_cafedra(
             "workers": [
                 {
                     "id": person.id,
-                    "first_name": person.first_name,
-                    "last_name": person.last_name,
-                    "father_name": person.father_name,
+                    "first_name": tr.first_name if tr and tr.first_name else person.first_name,
+                    "last_name": tr.last_name if tr and tr.last_name else person.last_name,
                     "duty": tr.duty if tr else None,
                     "scientific_name": tr.scientific_name if tr else None,
                     "scientific_degree": tr.scientific_degree if tr else None,

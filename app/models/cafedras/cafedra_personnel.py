@@ -12,9 +12,8 @@ class CafedraWorker(Base):
         ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
         nullable=False,
     )
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    father_name = Column(String(100))
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
     email = Column(String(255))
     phone = Column(String(50))
     phone_code = Column(String(50))
@@ -44,6 +43,8 @@ class CafedraWorkerTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     duty = Column(String(255), nullable=False)
     scientific_name = Column(String(255))
     scientific_degree = Column(String(255))
@@ -64,9 +65,8 @@ class CafedraDeputyDirector(Base):
         ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
         nullable=False,
     )
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    father_name = Column(String(100))
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
     email = Column(String(255))
     phone = Column(String(50))
     phone_code = Column(String(50))
@@ -96,6 +96,8 @@ class CafedraDeputyDirectorTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     scientific_name = Column(String(255))
     scientific_degree = Column(String(255))
     duty = Column(String(255))
@@ -116,9 +118,8 @@ class CafedraCouncilMember(Base):
         ForeignKey("cafedras.cafedra_code", ondelete="CASCADE"),
         nullable=False,
     )
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    father_name = Column(String(100))
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
     email = Column(String(255))
     phone = Column(String(50))
     created_at = Column(DateTime(timezone=True), nullable=False)
@@ -146,6 +147,8 @@ class CafedraCouncilMemberTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     duty = Column(String(255), nullable=False)
     scientific_name = Column(String(255))
     scientific_degree = Column(String(255))

@@ -41,6 +41,22 @@ def _department_code_generator() -> str:
     return str(secrets.randbelow(900000) + 100000)
 
 
+def _tr_attr(tr: Any, name: str):
+    """Read a field from a translation that may be a pydantic object or a dict."""
+    if tr is None:
+        return None
+    if isinstance(tr, dict):
+        return tr.get(name)
+    return getattr(tr, name, None)
+
+
+def _neutral_name_from_translations(az_tr: Any, en_tr: Any, fallback_first=None, fallback_last=None):
+    """Mirror the AZ name into the deprecated neutral columns (fallback EN, then payload)."""
+    first = _tr_attr(az_tr, "first_name") or _tr_attr(en_tr, "first_name") or fallback_first
+    last = _tr_attr(az_tr, "last_name") or _tr_attr(en_tr, "last_name") or fallback_last
+    return first, last
+
+
 # ── Section helpers ────────────────────────────────────────────────────────────
 
 
@@ -103,11 +119,14 @@ async def _serialize_html_section(
 
 
 async def _create_director(department_code: str, data: Any, now: datetime, db: AsyncSession):
+    # Mirror the AZ name into the deprecated neutral columns (fallback EN, then payload).
+    neutral_first, neutral_last = _neutral_name_from_translations(
+        data.az, data.en, getattr(data, "first_name", None), getattr(data, "last_name", None)
+    )
     director = DepartmentDirector(
         department_code=department_code,
-        first_name=data.first_name,
-        last_name=data.last_name,
-        father_name=data.father_name,
+        first_name=neutral_first,
+        last_name=neutral_last,
         email=data.email,
         phone=data.phone,
         phone_code=data.phone_code,
@@ -124,6 +143,8 @@ async def _create_director(department_code: str, data: Any, now: datetime, db: A
         db.add(DepartmentDirectorTr(
             director_id=director.id,
             lang_code=lang_code,
+            first_name=tr_data.first_name,
+            last_name=tr_data.last_name,
             scientific_degree=tr_data.scientific_degree,
             scientific_title=tr_data.scientific_title,
             room=tr_data.room,
@@ -179,9 +200,18 @@ async def _upsert_director(department_code: str, director_data: Any, now: dateti
         await db.flush()
 
     data = director_data.dict(exclude_unset=True)
-    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code", "profile_image"]:
+    for field in ["email", "phone", "phone_code", "profile_image"]:
         if field in data:
             setattr(director, field, data[field])
+
+    # Mirror the AZ name (fallback EN, then any neutral payload) into deprecated neutral columns.
+    neutral_first, neutral_last = _neutral_name_from_translations(
+        data.get("az"), data.get("en"), data.get("first_name"), data.get("last_name")
+    )
+    if neutral_first is not None:
+        director.first_name = neutral_first
+    if neutral_last is not None:
+        director.last_name = neutral_last
     director.updated_at = now
 
     for lang_code, tr_data in [("az", data.get("az")), ("en", data.get("en"))]:
@@ -195,7 +225,7 @@ async def _upsert_director(department_code: str, director_data: Any, now: dateti
         )
         tr = tr_q.scalar_one_or_none()
         if tr:
-            for field in ["scientific_degree", "scientific_title", "room", "bio"]:
+            for field in ["first_name", "last_name", "scientific_degree", "scientific_title", "room", "bio"]:
                 if field in tr_data:
                     setattr(tr, field, tr_data[field])
             tr.updated_at = now
@@ -203,6 +233,8 @@ async def _upsert_director(department_code: str, director_data: Any, now: dateti
             db.add(DepartmentDirectorTr(
                 director_id=director.id,
                 lang_code=lang_code,
+                first_name=tr_data.get("first_name"),
+                last_name=tr_data.get("last_name"),
                 scientific_degree=tr_data.get("scientific_degree"),
                 scientific_title=tr_data.get("scientific_title"),
                 room=tr_data.get("room"),
@@ -275,9 +307,8 @@ async def _serialize_director(director: DepartmentDirector, lang_code: str, db: 
 
     return {
         "id": director.id,
-        "first_name": director.first_name,
-        "last_name": director.last_name,
-        "father_name": director.father_name,
+        "first_name": (tr.first_name if tr and tr.first_name else director.first_name),
+        "last_name": (tr.last_name if tr and tr.last_name else director.last_name),
         "email": director.email,
         "phone": director.phone,
         "phone_code": director.phone_code,
@@ -295,11 +326,14 @@ async def _serialize_director(director: DepartmentDirector, lang_code: str, db: 
 
 
 async def _create_single_worker(department_code: str, item: Any, now: datetime, db: AsyncSession) -> DepartmentWorker:
+    # Mirror the AZ name into the deprecated neutral columns (fallback EN, then payload).
+    neutral_first, neutral_last = _neutral_name_from_translations(
+        item.az, item.en, getattr(item, "first_name", None), getattr(item, "last_name", None)
+    )
     worker = DepartmentWorker(
         department_code=department_code,
-        first_name=item.first_name,
-        last_name=item.last_name,
-        father_name=item.father_name,
+        first_name=neutral_first,
+        last_name=neutral_last,
         email=item.email,
         phone=item.phone,
         phone_code=item.phone_code,
@@ -314,6 +348,8 @@ async def _create_single_worker(department_code: str, item: Any, now: datetime, 
         db.add(DepartmentWorkerTr(
             worker_id=worker.id,
             lang_code=lang_code,
+            first_name=tr_data.first_name,
+            last_name=tr_data.last_name,
             duty=tr_data.duty,
             scientific_degree=tr_data.scientific_degree,
             scientific_name=tr_data.scientific_name,
@@ -343,9 +379,8 @@ async def _serialize_workers(department_code: str, lang_code: str, db: AsyncSess
         tr = tr_q.scalar_one_or_none()
         result.append({
             "id": worker.id,
-            "first_name": worker.first_name,
-            "last_name": worker.last_name,
-            "father_name": worker.father_name,
+            "first_name": (tr.first_name if tr and tr.first_name else worker.first_name),
+            "last_name": (tr.last_name if tr and tr.last_name else worker.last_name),
             "email": worker.email,
             "phone": worker.phone,
             "phone_code": worker.phone_code,
@@ -786,9 +821,18 @@ async def update_worker(worker_id: int, request: UpdateDepartmentWorker, db: Asy
         now = datetime.now(timezone.utc)
         data = request.dict(exclude_unset=True)
 
-        for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code"]:
+        for field in ["email", "phone", "phone_code"]:
             if field in data:
                 setattr(worker, field, data[field])
+
+        # Mirror the AZ name (fallback EN, then any neutral payload) into deprecated neutral columns.
+        neutral_first, neutral_last = _neutral_name_from_translations(
+            data.get("az"), data.get("en"), data.get("first_name"), data.get("last_name")
+        )
+        if neutral_first is not None:
+            worker.first_name = neutral_first
+        if neutral_last is not None:
+            worker.last_name = neutral_last
         worker.updated_at = now
 
         for lang in ["az", "en"]:
@@ -803,7 +847,7 @@ async def update_worker(worker_id: int, request: UpdateDepartmentWorker, db: Asy
             )
             tr = tr_q.scalar_one_or_none()
             if tr:
-                for attr in ["duty", "scientific_degree", "scientific_name", "room", "working_hours"]:
+                for attr in ["first_name", "last_name", "duty", "scientific_degree", "scientific_name", "room", "working_hours"]:
                     if attr in payload:
                         setattr(tr, attr, payload[attr])
                 tr.updated_at = now
@@ -811,6 +855,8 @@ async def update_worker(worker_id: int, request: UpdateDepartmentWorker, db: Asy
                 db.add(DepartmentWorkerTr(
                     worker_id=worker_id,
                     lang_code=lang,
+                    first_name=payload.get("first_name"),
+                    last_name=payload.get("last_name"),
                     duty=payload.get("duty", ""),
                     scientific_degree=payload.get("scientific_degree"),
                     scientific_name=payload.get("scientific_name"),

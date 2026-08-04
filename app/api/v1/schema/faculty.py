@@ -41,6 +41,8 @@ class DirectorEducation(BaseModel):
 
 
 class DirectorTranslation(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     scientific_degree: str | None = None
     scientific_title: str | None = None
     room: OptionalStr = None
@@ -49,9 +51,8 @@ class DirectorTranslation(BaseModel):
 
 
 class FacultyDirectorPayload(BaseModel):
-    first_name: str = Field(...)
-    last_name: str = Field(...)
-    father_name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     az: DirectorTranslation | None = None
     en: DirectorTranslation | None = None
     email: OptionalEmail = None
@@ -74,6 +75,8 @@ class SectionItem(BaseModel):
 
 
 class DeputyDeanTranslation(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     scientific_name: str | None = None
     scientific_degree: str | None = None
     duty: str | None = None
@@ -82,9 +85,8 @@ class DeputyDeanTranslation(BaseModel):
 
 
 class DeputyDean(BaseModel):
-    first_name: str = Field(...)
-    last_name: str = Field(...)
-    father_name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     az: DeputyDeanTranslation | None = None
     en: DeputyDeanTranslation | None = None
     email: OptionalEmail = None
@@ -94,15 +96,16 @@ class DeputyDean(BaseModel):
 
 
 class CouncilMemberTranslation(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     duty: str = Field(...)
     scientific_name: str | None = None
     scientific_degree: str | None = None
 
 
 class ScientificCouncilMember(BaseModel):
-    first_name: str = Field(...)
-    last_name: str = Field(...)
-    father_name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     az: CouncilMemberTranslation
     en: CouncilMemberTranslation
     email: OptionalEmail = None
@@ -110,6 +113,8 @@ class ScientificCouncilMember(BaseModel):
 
 
 class WorkerTranslation(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     duty: str = Field(...)
     scientific_name: str | None = None
     scientific_degree: str | None = None
@@ -118,9 +123,8 @@ class WorkerTranslation(BaseModel):
 
 
 class Worker(BaseModel):
-    first_name: str = Field(...)
-    last_name: str = Field(...)
-    father_name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     az: WorkerTranslation
     en: WorkerTranslation
     email: OptionalEmail = None
@@ -133,6 +137,8 @@ class Worker(BaseModel):
 
 
 class WorkerTranslationUpdate(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     duty: str | None = None
     scientific_name: str | None = None
     scientific_degree: str | None = None
@@ -143,7 +149,6 @@ class WorkerTranslationUpdate(BaseModel):
 class UpdateWorker(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
-    father_name: str | None = None
     az: WorkerTranslationUpdate | None = None
     en: WorkerTranslationUpdate | None = None
     email: OptionalEmail = None
@@ -157,7 +162,6 @@ class UpdateWorker(BaseModel):
 class UpdateDeputyDean(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
-    father_name: str | None = None
     az: DeputyDeanTranslation | None = None
     en: DeputyDeanTranslation | None = None
     email: OptionalEmail = None
@@ -169,6 +173,8 @@ class UpdateDeputyDean(BaseModel):
 
 
 class CouncilMemberTranslationUpdate(BaseModel):
+    first_name: OptionalStr = None
+    last_name: OptionalStr = None
     duty: str | None = None
     scientific_name: str | None = None
     scientific_degree: str | None = None
@@ -177,7 +183,6 @@ class CouncilMemberTranslationUpdate(BaseModel):
 class UpdateCouncilMember(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
-    father_name: str | None = None
     az: CouncilMemberTranslationUpdate | None = None
     en: CouncilMemberTranslationUpdate | None = None
     email: OptionalEmail = None

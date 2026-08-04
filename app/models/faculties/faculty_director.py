@@ -15,9 +15,8 @@ class FacultyDirector(Base):
         ForeignKey("faculties.faculty_code", ondelete="CASCADE"),
         nullable=False,
     )
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    father_name = Column(String(100))
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
     email = Column(String(255))
     phone = Column(String(50))
     phone_code = Column(String(50))
@@ -66,6 +65,8 @@ class FacultyDirectorTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     scientific_degree = Column(String(255))
     scientific_title = Column(String(255))
     room = Column(String(255))

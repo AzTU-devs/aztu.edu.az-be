@@ -15,9 +15,8 @@ class DepartmentDirector(Base):
         ForeignKey("departments.department_code", ondelete="CASCADE"),
         nullable=False,
     )
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    father_name = Column(String(100))
+    first_name = Column(String(100), nullable=True)  # deprecated: name moved to department_director_tr; mirrors az for back-compat
+    last_name = Column(String(100), nullable=True)  # deprecated: name moved to department_director_tr; mirrors az for back-compat
     room_number = Column(String(50))  # deprecated: room moved to department_director_tr.room
     email = Column(String(255))
     phone = Column(String(100))
@@ -60,6 +59,8 @@ class DepartmentDirectorTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     scientific_degree = Column(String(255))
     scientific_title = Column(String(255))
     room = Column(String(255))

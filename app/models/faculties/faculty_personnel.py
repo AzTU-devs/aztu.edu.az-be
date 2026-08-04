@@ -12,9 +12,8 @@ class FacultyDeputyDean(Base):
         ForeignKey("faculties.faculty_code", ondelete="CASCADE"),
         nullable=False,
     )
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    father_name = Column(String(100))
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
     email = Column(String(255))
     phone = Column(String(50))
     phone_code = Column(String(50))
@@ -44,6 +43,8 @@ class FacultyDeputyDeanTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     scientific_name = Column(String(255))
     scientific_degree = Column(String(255))
     duty = Column(String(255))
@@ -64,9 +65,8 @@ class FacultyCouncilMember(Base):
         ForeignKey("faculties.faculty_code", ondelete="CASCADE"),
         nullable=False,
     )
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    father_name = Column(String(100))
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
     email = Column(String(255))
     phone = Column(String(50))
     created_at = Column(DateTime(timezone=True), nullable=False)
@@ -94,6 +94,8 @@ class FacultyCouncilMemberTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     duty = Column(String(255), nullable=False)
     scientific_name = Column(String(255))
     scientific_degree = Column(String(255))
@@ -112,9 +114,8 @@ class FacultyWorker(Base):
         ForeignKey("faculties.faculty_code", ondelete="CASCADE"),
         nullable=False,
     )
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    father_name = Column(String(100))
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
     email = Column(String(255))
     phone = Column(String(50))
     phone_code = Column(String(50))
@@ -144,6 +145,8 @@ class FacultyWorkerTr(Base):
         nullable=False,
     )
     lang_code = Column(String(10), nullable=False)
+    first_name = Column(String(100))
+    last_name = Column(String(100))
     duty = Column(String(255), nullable=False)
     scientific_name = Column(String(255))
     scientific_degree = Column(String(255))

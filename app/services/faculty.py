@@ -181,7 +181,7 @@ async def _create_person_translations(
         if data is None:
             continue
         fields = {person_id_field: person_id, "lang_code": lang_code, "created_at": now, "updated_at": now}
-        for attr in ["scientific_name", "scientific_degree", "duty", "room", "working_hours"]:
+        for attr in ["first_name", "last_name", "scientific_name", "scientific_degree", "duty", "room", "working_hours"]:
             if hasattr(tr_cls, attr):
                 fields[attr] = getattr(data, attr, None)
         db.add(tr_cls(**fields))
@@ -197,11 +197,25 @@ async def _create_people(
     db: AsyncSession,
 ):
     for item in items:
+        az_tr = getattr(item, "az", None)
+        en_tr = getattr(item, "en", None)
+        # Mirror the AZ (fallback EN) translated name into the deprecated
+        # neutral parent columns. All person entities now carry first_name on
+        # their tr; the neutral payload field is a legacy fallback only.
+        neutral_first = (
+            getattr(az_tr, "first_name", None)
+            or getattr(en_tr, "first_name", None)
+            or getattr(item, "first_name", None)
+        )
+        neutral_last = (
+            getattr(az_tr, "last_name", None)
+            or getattr(en_tr, "last_name", None)
+            or getattr(item, "last_name", None)
+        )
         payload = {
             "faculty_code": faculty_code,
-            "first_name": item.first_name,
-            "last_name": item.last_name,
-            "father_name": item.father_name,
+            "first_name": neutral_first,
+            "last_name": neutral_last,
             "email": getattr(item, "email", None),
             "phone": getattr(item, "phone", None),
             "phone_code": getattr(item, "phone_code", None),
@@ -262,7 +276,7 @@ async def _update_person(
     now = datetime.now(timezone.utc)
     data = request.dict(exclude_unset=True)
 
-    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code"]:
+    for field in ["first_name", "last_name", "email", "phone", "phone_code"]:
         if field in data and hasattr(parent_cls, field):
             setattr(person, field, data[field])
     person.updated_at = now
@@ -279,7 +293,7 @@ async def _update_person(
         )
         tr = tr_q.scalar_one_or_none()
         if tr:
-            for attr in ["duty", "scientific_name", "scientific_degree", "room", "working_hours"]:
+            for attr in ["first_name", "last_name", "duty", "scientific_name", "scientific_degree", "room", "working_hours"]:
                 if attr in payload and hasattr(tr_cls, attr):
                     setattr(tr, attr, payload[attr])
             tr.updated_at = now
@@ -287,10 +301,23 @@ async def _update_person(
             fields = {person_id_field: person_id, "lang_code": lang, "created_at": now, "updated_at": now}
             if hasattr(tr_cls, "duty"):
                 fields["duty"] = payload.get("duty", "")
-            for attr in ["scientific_name", "scientific_degree", "room", "working_hours"]:
+            for attr in ["first_name", "last_name", "scientific_name", "scientific_degree", "room", "working_hours"]:
                 if hasattr(tr_cls, attr):
                     fields[attr] = payload.get(attr)
             db.add(tr_cls(**fields))
+
+        # Mirror the AZ (fallback EN) translated name into the deprecated
+        # neutral parent columns. Guarded on the tr class carrying a first_name;
+        # every person entity (deputy dean / worker / council) now qualifies.
+        if hasattr(tr_cls, "first_name"):
+            if payload.get("first_name") is not None and (
+                lang == "az" or person.first_name is None
+            ):
+                person.first_name = payload.get("first_name")
+            if payload.get("last_name") is not None and (
+                lang == "az" or person.last_name is None
+            ):
+                person.last_name = payload.get("last_name")
 
     return person
 
@@ -308,11 +335,22 @@ async def _delete_person(parent_cls: Type[Any], person_id: int, db: AsyncSession
 
 
 async def _create_director(faculty_code: str, director_data: Any, now: datetime, db: AsyncSession):
+    az_tr = getattr(director_data, "az", None)
+    en_tr = getattr(director_data, "en", None)
+    neutral_first = (
+        getattr(az_tr, "first_name", None)
+        or getattr(en_tr, "first_name", None)
+        or getattr(director_data, "first_name", None)
+    )
+    neutral_last = (
+        getattr(az_tr, "last_name", None)
+        or getattr(en_tr, "last_name", None)
+        or getattr(director_data, "last_name", None)
+    )
     director = FacultyDirector(
         faculty_code=faculty_code,
-        first_name=director_data.first_name,
-        last_name=director_data.last_name,
-        father_name=director_data.father_name,
+        first_name=neutral_first,
+        last_name=neutral_last,
         email=director_data.email,
         phone=director_data.phone,
         phone_code=director_data.phone_code,
@@ -329,6 +367,8 @@ async def _create_director(faculty_code: str, director_data: Any, now: datetime,
         db.add(FacultyDirectorTr(
             director_id=director.id,
             lang_code=lang_code,
+            first_name=getattr(tr_data, "first_name", None),
+            last_name=getattr(tr_data, "last_name", None),
             scientific_degree=tr_data.scientific_degree,
             scientific_title=tr_data.scientific_title,
             room=tr_data.room,
@@ -432,7 +472,7 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         await db.flush()
 
     data = director_data.dict(exclude_unset=True)
-    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code", "profile_image"]:
+    for field in ["first_name", "last_name", "email", "phone", "phone_code", "profile_image"]:
         if field in data:
             setattr(director, field, data[field])
     director.updated_at = now
@@ -448,7 +488,7 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         )
         tr = tr_query.scalar_one_or_none()
         if tr:
-            for field in ["scientific_degree", "scientific_title", "room", "bio", "scientific_research_fields"]:
+            for field in ["first_name", "last_name", "scientific_degree", "scientific_title", "room", "bio", "scientific_research_fields"]:
                 if field in tr_data:
                     setattr(tr, field, tr_data[field])
             tr.updated_at = now
@@ -456,6 +496,8 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
             db.add(FacultyDirectorTr(
                 director_id=director.id,
                 lang_code=lang_code,
+                first_name=tr_data.get("first_name"),
+                last_name=tr_data.get("last_name"),
                 scientific_degree=tr_data.get("scientific_degree"),
                 scientific_title=tr_data.get("scientific_title"),
                 room=tr_data.get("room"),
@@ -464,6 +506,15 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
                 created_at=now,
                 updated_at=now,
             ))
+
+        # Mirror the AZ (fallback EN) translated name into the deprecated
+        # neutral parent columns.
+        if lang_code == "az" or director.first_name is None:
+            if tr_data.get("first_name") is not None:
+                director.first_name = tr_data.get("first_name")
+        if lang_code == "az" or director.last_name is None:
+            if tr_data.get("last_name") is not None:
+                director.last_name = tr_data.get("last_name")
 
     if "working_hours" in data:
         await db.execute(
@@ -728,7 +779,6 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
     result = {
         "first_name": director.first_name,
         "last_name": director.last_name,
-        "father_name": director.father_name,
         "email": director.email,
         "phone": director.phone,
         "phone_code": director.phone_code,
@@ -739,6 +789,10 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
     }
 
     if lang_code:
+        tr_first = getattr(tr, "first_name", None) if tr else None
+        tr_last = getattr(tr, "last_name", None) if tr else None
+        result["first_name"] = tr_first if tr_first is not None else director.first_name
+        result["last_name"] = tr_last if tr_last is not None else director.last_name
         result["scientific_degree"] = tr.scientific_degree if tr else None
         result["scientific_title"] = tr.scientific_title if tr else None
         result["room"] = tr.room if tr else None
@@ -748,6 +802,8 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
         for lc in ["az", "en"]:
             lc_tr = tr_bilingual.get(lc)
             result[lc] = {
+                "first_name": getattr(lc_tr, "first_name", None) if lc_tr else None,
+                "last_name": getattr(lc_tr, "last_name", None) if lc_tr else None,
                 "scientific_degree": lc_tr.scientific_degree if lc_tr else None,
                 "scientific_title": lc_tr.scientific_title if lc_tr else None,
                 "room": lc_tr.room if lc_tr else None,
@@ -1007,7 +1063,6 @@ def _serialize_people(people_with_tr: list, lang_code: str | None, has_profile_i
             "id": person.id,
             "first_name": person.first_name,
             "last_name": person.last_name,
-            "father_name": person.father_name,
             "email": person.email,
             "phone": person.phone,
             "phone_code": getattr(person, "phone_code", None),
@@ -1016,6 +1071,10 @@ def _serialize_people(people_with_tr: list, lang_code: str | None, has_profile_i
             item["profile_image"] = person.profile_image
 
         if lang_code:
+            tr_first = getattr(tr_data, "first_name", None) if tr_data else None
+            tr_last = getattr(tr_data, "last_name", None) if tr_data else None
+            item["first_name"] = tr_first if tr_first is not None else person.first_name
+            item["last_name"] = tr_last if tr_last is not None else person.last_name
             item["scientific_name"] = tr_data.scientific_name if tr_data else None
             item["scientific_degree"] = tr_data.scientific_degree if tr_data else None
             item["duty"] = tr_data.duty if tr_data else None
@@ -1025,6 +1084,8 @@ def _serialize_people(people_with_tr: list, lang_code: str | None, has_profile_i
             for lc in ["az", "en"]:
                 lc_tr = tr_data.get(lc) if isinstance(tr_data, dict) else None
                 item[lc] = {
+                    "first_name": getattr(lc_tr, "first_name", None) if lc_tr else None,
+                    "last_name": getattr(lc_tr, "last_name", None) if lc_tr else None,
                     "scientific_name": lc_tr.scientific_name if lc_tr else None,
                     "scientific_degree": lc_tr.scientific_degree if lc_tr else None,
                     "duty": lc_tr.duty if lc_tr else None,
@@ -1709,11 +1770,22 @@ async def create_worker(
             )
 
         now = datetime.now(timezone.utc)
+        az_tr = getattr(request, "az", None)
+        en_tr = getattr(request, "en", None)
+        neutral_first = (
+            getattr(az_tr, "first_name", None)
+            or getattr(en_tr, "first_name", None)
+            or getattr(request, "first_name", None)
+        )
+        neutral_last = (
+            getattr(az_tr, "last_name", None)
+            or getattr(en_tr, "last_name", None)
+            or getattr(request, "last_name", None)
+        )
         worker = FacultyWorker(
             faculty_code=faculty_code,
-            first_name=request.first_name,
-            last_name=request.last_name,
-            father_name=request.father_name,
+            first_name=neutral_first,
+            last_name=neutral_last,
             email=request.email,
             phone=request.phone,
             phone_code=request.phone_code,
@@ -1730,6 +1802,8 @@ async def create_worker(
             db.add(FacultyWorkerTr(
                 worker_id=worker.id,
                 lang_code=lang_code,
+                first_name=getattr(tr_data, "first_name", None),
+                last_name=getattr(tr_data, "last_name", None),
                 duty=tr_data.duty,
                 scientific_name=tr_data.scientific_name,
                 scientific_degree=tr_data.scientific_degree,
