@@ -47,6 +47,7 @@ DOMAIN_LABELS: Dict[str, Tuple[str, str]] = {
     "research_institutes": ("Elmi tədqiqat institutları", "Research institutes"),
     "research_projects": ("Tədqiqat layihələri", "Research projects"),
     "about": ("Haqqımızda", "About"),
+    "home": ("Ana səhifə", "Home"),
     "research_pages": ("Tədqiqat səhifələri", "Research pages"),
     "menu": ("Menyu və altlıq", "Menu and footer"),
     "menu_header": ("Başlıq menyusu", "Header menu"),
@@ -192,6 +193,9 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     _p("about.update", "Haqqımızda səhifəsini redaktə etmək", "Edit about page"),
     _p("about.activate", "Haqqımızda səhifəsini dərc etmək", "Publish about page"),
     _p("about.upload", "Haqqımızda səhifəsinə sənəd yükləmək", "Upload about page document"),
+    # ── home (landing-page metric strips) ────────────────────────────────────
+    _p("home.update", "Ana səhifə göstəricilərini redaktə etmək", "Edit home page metrics"),
+    _p("home.activate", "Ana səhifəni dərc etmək", "Publish home page"),
     # ── office (Offices and Centres) ─────────────────────────────────────────
     _p("office.create", "Ofis/mərkəz yaratmaq", "Create office/centre"),
     _p("office.update", "Ofis/mərkəzi redaktə etmək", "Edit office/centre"),
@@ -322,7 +326,7 @@ SYSTEM_ROLES: Tuple[SystemRoleDef, ...] = (
         name_en="Content editor",
         description_az="Xəbər, elan, hero, layihə və əməkdaşlıqları idarə edir. Silmək icazəsi yoxdur.",
         permissions=_without(
-            keys_for_domains("news", "news_categories", "announcements", "hero", "hero_certificates", "projects", "collaborations", "about", "research_pages"),
+            keys_for_domains("news", "news_categories", "announcements", "hero", "hero_certificates", "projects", "collaborations", "about", "home", "research_pages"),
             "delete",
         ),
     ),

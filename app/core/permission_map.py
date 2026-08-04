@@ -222,6 +222,10 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("PUT", "/api/about/admin/pages/{page_key}/file"): RouteRule("about.upload", target_type="about_page", target_param="page_key"),
     ("PUT", "/api/about/admin/pages/{page_key}/publish"): RouteRule("about.activate", target_type="about_page", target_param="page_key"),
 
+    # ── home (landing-page metric strips) ───────────────────────────────────
+    ("PUT", "/api/home/admin/pages/{page_key}"): RouteRule("home.update", target_type="home_page", target_param="page_key"),
+    ("PUT", "/api/home/admin/pages/{page_key}/publish"): RouteRule("home.activate", target_type="home_page", target_param="page_key"),
+
     # ── office (Offices and Centres) ────────────────────────────────────────
     ("POST", "/api/office/admin/offices"): RouteRule("office.create", target_type="office"),
     ("PUT", "/api/office/admin/offices/{office_id}"): RouteRule("office.update", target_type="office", target_param="office_id"),

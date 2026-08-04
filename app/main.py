@@ -48,6 +48,7 @@ from app.api.v1.router.search import router as search_router
 from app.api.v1.router.rbac import router as rbac_router
 from app.api.v1.router.admin_user import router as admin_user_router
 from app.api.v1.router.about import router as about_router
+from app.api.v1.router.home import router as home_router
 from app.api.v1.router.office import router as office_router
 from app.api.v1.router.research_page import router as research_page_router
 from app.api.v1.router.activity import router as activity_router
@@ -215,6 +216,7 @@ app.include_router(department_router,  prefix="/api/department",  tags=["Departm
 app.include_router(research_institute_router, prefix="/api/research-institute", tags=["Research Institute"])
 app.include_router(research_project_router,   prefix="/api/research-project",   tags=["Research Project"])
 app.include_router(about_router,             prefix="/api/about",             tags=["About"])
+app.include_router(home_router,              prefix="/api/home",              tags=["Home"])
 app.include_router(office_router,            prefix="/api/office",            tags=["Office"])
 app.include_router(research_page_router,     prefix="/api/research",          tags=["Research Pages"])
 app.include_router(article_router,           prefix="/api/article",           tags=["Article"])
