@@ -80,7 +80,7 @@ PERSON_TR_FIELDS = ("name", "surname", "degree", "position", "bio")
 COUNCIL_TR_FIELDS = ("name",)
 COUNCIL_MEMBER_TR_FIELDS = ("name", "surname", "position")
 DOC_CATEGORY_TR_FIELDS = ("name",)
-DOCUMENT_TR_FIELDS = ("name",)
+DOCUMENT_TR_FIELDS = ("name", "file_url")
 
 # Language-neutral page columns writable from the dashboard (rector page).
 PAGE_FIELDS = ("slug_az", "slug_en", "document_url", "experience", "email", "image_url")
@@ -372,7 +372,6 @@ def _serialize_admin(page: AboutPage) -> dict:
             {
                 "id": document.id,
                 "category_key": document.category_key,
-                "file_url": document.file_url,
                 "display_order": document.display_order,
                 **_tr_map(document.translations, DOCUMENT_TR_FIELDS),
             }
@@ -461,7 +460,6 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
         "documents": [
             {
                 "category_key": document.category_key,
-                "file_url": document.file_url,
                 **_pick(document.translations, lang, DOCUMENT_TR_FIELDS),
             }
             for document in sorted(page.documents, key=lambda d: d.display_order)
@@ -805,27 +803,49 @@ async def _replace_documents(db: AsyncSession, page_id: int, documents: list, no
     kept: set[str] = set()
     for index, entry in enumerate(documents):
         payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
-        url = (payload.get("file_url") or "").strip()
-        kept.add(url)
-        rows.append((index, payload, url))
+        az = payload.get("az") or {}
+        en = payload.get("en") or {}
+        az_url = (az.get("file_url") or "").strip()
+        en_url = (en.get("file_url") or "").strip()
+        # Legacy top-level file_url is only a fallback for the neutral mirror.
+        legacy_url = (payload.get("file_url") or "").strip()
+        # Every per-language file still referenced by the new payload is kept.
+        kept.update(u for u in (az_url, en_url) if u)
+        # Backward-compat neutral mirror: AZ file, else EN, else any legacy value.
+        mirror_url = az_url or en_url or legacy_url
+        rows.append((index, payload, mirror_url))
 
     previous = (
-        await db.execute(select(AboutDocument).where(AboutDocument.page_id == page_id))
+        await db.execute(
+            select(AboutDocument)
+            .where(AboutDocument.page_id == page_id)
+            .options(selectinload(AboutDocument.translations))
+        )
     ).scalars().all()
+    # Collect every stored path the old rows referenced — each language's tr
+    # file_url plus the neutral column — so neither AZ nor EN is wrongly deleted
+    # when only one of them changes. Delete a path only if the new payload no
+    # longer references it in any language.
+    previous_paths: set[str] = set()
+    for doc in previous:
+        if doc.file_url:
+            previous_paths.add(doc.file_url)
+        for tr in doc.translations:
+            if tr.file_url:
+                previous_paths.add(tr.file_url)
     orphans = [
-        doc.file_url
-        for doc in previous
-        if doc.file_url
-        and doc.file_url not in kept
-        and not doc.file_url.startswith(("http://", "https://"))
+        path
+        for path in previous_paths
+        if path not in kept
+        and not path.startswith(("http://", "https://"))
     ]
 
     await db.execute(sqlalchemy_delete(AboutDocument).where(AboutDocument.page_id == page_id))
-    for index, payload, url in rows:
+    for index, payload, mirror_url in rows:
         document = AboutDocument(
             page_id=page_id,
             category_key=(payload.get("category_key") or "").strip() or None,
-            file_url=url or None,
+            file_url=mirror_url or None,
             display_order=index,
             created_at=now,
             updated_at=now,

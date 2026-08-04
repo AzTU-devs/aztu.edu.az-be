@@ -154,12 +154,15 @@ class AboutDocCategoryPayload(BaseModel):
 
 class AboutDocumentTranslation(BaseModel):
     name: OptionalStr = None
+    # This language's file — an uploaded file's path or a pasted URL (any format).
+    file_url: OptionalStr = None
 
 
 class AboutDocumentPayload(BaseModel):
     # Which category this document belongs to (a category_key), or blank.
     category_key: OptionalStr = None
-    # An uploaded file's path or a pasted URL — any format.
+    # DEPRECATED neutral field — file_url now lives inside az/en. Kept optional
+    # for backward-compat; no longer the source of truth.
     file_url: OptionalStr = None
     az: Optional[AboutDocumentTranslation] = None
     en: Optional[AboutDocumentTranslation] = None

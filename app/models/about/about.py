@@ -689,6 +689,8 @@ class AboutDocumentTr(Base):
 
     # The document's display name ("Etik Davranış Qaydaları").
     name = Column(String(500))
+    # This language's file — an uploaded file's path or a pasted URL (any format).
+    file_url = Column(String(2048))
 
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
