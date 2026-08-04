@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 
-from app.api.v1.schema.common import OptionalEmail
+from app.api.v1.schema.common import OptionalEmail, OptionalStr
 
 
 class DepartmentTranslation(BaseModel):
@@ -42,6 +42,7 @@ class DirectorEducation(BaseModel):
 class DirectorTranslation(BaseModel):
     scientific_degree: str | None = None
     scientific_title: str | None = None
+    room: OptionalStr = None
     bio: str | None = None
 
 
@@ -49,7 +50,9 @@ class DepartmentDirectorPayload(BaseModel):
     first_name: str = Field(...)
     last_name: str = Field(...)
     father_name: str | None = None
-    room_number: str | None = None
+    email: OptionalEmail = None
+    phone: OptionalStr = None
+    phone_code: OptionalStr = None
     profile_image: str | None = None
     az: DirectorTranslation | None = None
     en: DirectorTranslation | None = None
@@ -61,6 +64,8 @@ class WorkerTranslation(BaseModel):
     duty: str = Field(...)
     scientific_degree: str | None = None
     scientific_name: str | None = None
+    room: OptionalStr = None
+    working_hours: OptionalStr = None
 
 
 class DepartmentWorkerPayload(BaseModel):
@@ -69,6 +74,7 @@ class DepartmentWorkerPayload(BaseModel):
     father_name: str | None = None
     email: OptionalEmail = None
     phone: str | None = None
+    phone_code: OptionalStr = None
     profile_image: str | None = None
     az: WorkerTranslation
     en: WorkerTranslation
@@ -78,6 +84,8 @@ class WorkerTranslationUpdate(BaseModel):
     duty: str | None = None
     scientific_degree: str | None = None
     scientific_name: str | None = None
+    room: OptionalStr = None
+    working_hours: OptionalStr = None
 
 
 class UpdateDepartmentWorker(BaseModel):
@@ -86,6 +94,7 @@ class UpdateDepartmentWorker(BaseModel):
     father_name: str | None = None
     email: OptionalEmail = None
     phone: str | None = None
+    phone_code: OptionalStr = None
     az: WorkerTranslationUpdate | None = None
     en: WorkerTranslationUpdate | None = None
 

@@ -17,6 +17,7 @@ class DepartmentWorker(Base):
     father_name = Column(String(100))
     email = Column(String(255))
     phone = Column(String(50))
+    phone_code = Column(String(50))
     profile_image = Column(String(1024))
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
@@ -46,6 +47,8 @@ class DepartmentWorkerTr(Base):
     duty = Column(String(255), nullable=False)
     scientific_degree = Column(String(255))
     scientific_name = Column(String(255))
+    room = Column(String(255))
+    working_hours = Column(String(500))
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
 

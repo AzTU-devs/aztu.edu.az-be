@@ -181,7 +181,7 @@ async def _create_person_translations(
         if data is None:
             continue
         fields = {person_id_field: person_id, "lang_code": lang_code, "created_at": now, "updated_at": now}
-        for attr in ["scientific_name", "scientific_degree", "duty"]:
+        for attr in ["scientific_name", "scientific_degree", "duty", "room", "working_hours"]:
             if hasattr(tr_cls, attr):
                 fields[attr] = getattr(data, attr, None)
         db.add(tr_cls(**fields))
@@ -204,6 +204,7 @@ async def _create_people(
             "father_name": item.father_name,
             "email": getattr(item, "email", None),
             "phone": getattr(item, "phone", None),
+            "phone_code": getattr(item, "phone_code", None),
             "profile_image": getattr(item, "profile_image", None),
             "created_at": now,
             "updated_at": now,
@@ -261,7 +262,7 @@ async def _update_person(
     now = datetime.now(timezone.utc)
     data = request.dict(exclude_unset=True)
 
-    for field in ["first_name", "last_name", "father_name", "email", "phone"]:
+    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code"]:
         if field in data and hasattr(parent_cls, field):
             setattr(person, field, data[field])
     person.updated_at = now
@@ -278,7 +279,7 @@ async def _update_person(
         )
         tr = tr_q.scalar_one_or_none()
         if tr:
-            for attr in ["duty", "scientific_name", "scientific_degree"]:
+            for attr in ["duty", "scientific_name", "scientific_degree", "room", "working_hours"]:
                 if attr in payload and hasattr(tr_cls, attr):
                     setattr(tr, attr, payload[attr])
             tr.updated_at = now
@@ -286,7 +287,7 @@ async def _update_person(
             fields = {person_id_field: person_id, "lang_code": lang, "created_at": now, "updated_at": now}
             if hasattr(tr_cls, "duty"):
                 fields["duty"] = payload.get("duty", "")
-            for attr in ["scientific_name", "scientific_degree"]:
+            for attr in ["scientific_name", "scientific_degree", "room", "working_hours"]:
                 if hasattr(tr_cls, attr):
                     fields[attr] = payload.get(attr)
             db.add(tr_cls(**fields))
@@ -314,7 +315,7 @@ async def _create_director(faculty_code: str, director_data: Any, now: datetime,
         father_name=director_data.father_name,
         email=director_data.email,
         phone=director_data.phone,
-        room_number=director_data.room_number,
+        phone_code=director_data.phone_code,
         profile_image=director_data.profile_image,
         created_at=now,
         updated_at=now,
@@ -330,6 +331,7 @@ async def _create_director(faculty_code: str, director_data: Any, now: datetime,
             lang_code=lang_code,
             scientific_degree=tr_data.scientific_degree,
             scientific_title=tr_data.scientific_title,
+            room=tr_data.room,
             bio=tr_data.bio,
             created_at=now,
             updated_at=now,
@@ -430,7 +432,7 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         await db.flush()
 
     data = director_data.dict(exclude_unset=True)
-    for field in ["first_name", "last_name", "father_name", "email", "phone", "room_number", "profile_image"]:
+    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code", "profile_image"]:
         if field in data:
             setattr(director, field, data[field])
     director.updated_at = now
@@ -446,7 +448,7 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
         )
         tr = tr_query.scalar_one_or_none()
         if tr:
-            for field in ["scientific_degree", "scientific_title", "bio", "scientific_research_fields"]:
+            for field in ["scientific_degree", "scientific_title", "room", "bio", "scientific_research_fields"]:
                 if field in tr_data:
                     setattr(tr, field, tr_data[field])
             tr.updated_at = now
@@ -456,6 +458,7 @@ async def _upsert_director(faculty_code: str, director_data: Any, now: datetime,
                 lang_code=lang_code,
                 scientific_degree=tr_data.get("scientific_degree"),
                 scientific_title=tr_data.get("scientific_title"),
+                room=tr_data.get("room"),
                 bio=tr_data.get("bio"),
                 scientific_research_fields=tr_data.get("scientific_research_fields") or [],
                 created_at=now,
@@ -728,7 +731,7 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
         "father_name": director.father_name,
         "email": director.email,
         "phone": director.phone,
-        "room_number": director.room_number,
+        "phone_code": director.phone_code,
         "profile_image": director.profile_image,
         "working_hours": working_hours,
         "scientific_events": scientific_events,
@@ -738,6 +741,7 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
     if lang_code:
         result["scientific_degree"] = tr.scientific_degree if tr else None
         result["scientific_title"] = tr.scientific_title if tr else None
+        result["room"] = tr.room if tr else None
         result["bio"] = tr.bio if tr else None
         result["scientific_research_fields"] = tr.scientific_research_fields if tr else []
     else:
@@ -746,6 +750,7 @@ async def _serialize_director(director: FacultyDirector, lang_code: str | None, 
             result[lc] = {
                 "scientific_degree": lc_tr.scientific_degree if lc_tr else None,
                 "scientific_title": lc_tr.scientific_title if lc_tr else None,
+                "room": lc_tr.room if lc_tr else None,
                 "bio": lc_tr.bio if lc_tr else None,
                 "scientific_research_fields": lc_tr.scientific_research_fields if lc_tr else [],
             }
@@ -1005,6 +1010,7 @@ def _serialize_people(people_with_tr: list, lang_code: str | None, has_profile_i
             "father_name": person.father_name,
             "email": person.email,
             "phone": person.phone,
+            "phone_code": getattr(person, "phone_code", None),
         }
         if has_profile_image:
             item["profile_image"] = person.profile_image
@@ -1013,6 +1019,8 @@ def _serialize_people(people_with_tr: list, lang_code: str | None, has_profile_i
             item["scientific_name"] = tr_data.scientific_name if tr_data else None
             item["scientific_degree"] = tr_data.scientific_degree if tr_data else None
             item["duty"] = tr_data.duty if tr_data else None
+            item["room"] = getattr(tr_data, "room", None) if tr_data else None
+            item["working_hours"] = getattr(tr_data, "working_hours", None) if tr_data else None
         else:
             for lc in ["az", "en"]:
                 lc_tr = tr_data.get(lc) if isinstance(tr_data, dict) else None
@@ -1020,6 +1028,8 @@ def _serialize_people(people_with_tr: list, lang_code: str | None, has_profile_i
                     "scientific_name": lc_tr.scientific_name if lc_tr else None,
                     "scientific_degree": lc_tr.scientific_degree if lc_tr else None,
                     "duty": lc_tr.duty if lc_tr else None,
+                    "room": getattr(lc_tr, "room", None) if lc_tr else None,
+                    "working_hours": getattr(lc_tr, "working_hours", None) if lc_tr else None,
                 }
         result.append(item)
     return result
@@ -1706,6 +1716,7 @@ async def create_worker(
             father_name=request.father_name,
             email=request.email,
             phone=request.phone,
+            phone_code=request.phone_code,
             profile_image=request.profile_image,
             created_at=now,
             updated_at=now,
@@ -1722,6 +1733,8 @@ async def create_worker(
                 duty=tr_data.duty,
                 scientific_name=tr_data.scientific_name,
                 scientific_degree=tr_data.scientific_degree,
+                room=tr_data.room,
+                working_hours=tr_data.working_hours,
                 created_at=now,
                 updated_at=now,
             ))

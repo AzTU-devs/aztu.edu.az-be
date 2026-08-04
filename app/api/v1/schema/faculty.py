@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 
-from app.api.v1.schema.common import OptionalEmail
+from app.api.v1.schema.common import OptionalEmail, OptionalStr
 
 
 class LanguageBlock(BaseModel):
@@ -43,6 +43,7 @@ class DirectorEducation(BaseModel):
 class DirectorTranslation(BaseModel):
     scientific_degree: str | None = None
     scientific_title: str | None = None
+    room: OptionalStr = None
     bio: str | None = None
     scientific_research_fields: list[str] | None = None
 
@@ -55,7 +56,7 @@ class FacultyDirectorPayload(BaseModel):
     en: DirectorTranslation | None = None
     email: OptionalEmail = None
     phone: str | None = None
-    room_number: str | None = None
+    phone_code: OptionalStr = None
     profile_image: str | None = None
     working_hours: list[DirectorWorkingHour] | None = None
     scientific_events: list[DirectorScientificEvent] | None = None
@@ -76,6 +77,8 @@ class DeputyDeanTranslation(BaseModel):
     scientific_name: str | None = None
     scientific_degree: str | None = None
     duty: str | None = None
+    room: OptionalStr = None
+    working_hours: OptionalStr = None
 
 
 class DeputyDean(BaseModel):
@@ -86,6 +89,7 @@ class DeputyDean(BaseModel):
     en: DeputyDeanTranslation | None = None
     email: OptionalEmail = None
     phone: str | None = None
+    phone_code: OptionalStr = None
     profile_image: str | None = None
 
 
@@ -109,6 +113,8 @@ class WorkerTranslation(BaseModel):
     duty: str = Field(...)
     scientific_name: str | None = None
     scientific_degree: str | None = None
+    room: OptionalStr = None
+    working_hours: OptionalStr = None
 
 
 class Worker(BaseModel):
@@ -119,6 +125,7 @@ class Worker(BaseModel):
     en: WorkerTranslation
     email: OptionalEmail = None
     phone: str | None = None
+    phone_code: OptionalStr = None
     profile_image: str | None = None
 
 
@@ -129,6 +136,8 @@ class WorkerTranslationUpdate(BaseModel):
     duty: str | None = None
     scientific_name: str | None = None
     scientific_degree: str | None = None
+    room: OptionalStr = None
+    working_hours: OptionalStr = None
 
 
 class UpdateWorker(BaseModel):
@@ -139,6 +148,7 @@ class UpdateWorker(BaseModel):
     en: WorkerTranslationUpdate | None = None
     email: OptionalEmail = None
     phone: str | None = None
+    phone_code: OptionalStr = None
 
     class Config:
         extra = "ignore"
@@ -152,6 +162,7 @@ class UpdateDeputyDean(BaseModel):
     en: DeputyDeanTranslation | None = None
     email: OptionalEmail = None
     phone: str | None = None
+    phone_code: OptionalStr = None
 
     class Config:
         extra = "ignore"

@@ -575,7 +575,7 @@ async def _create_people(
     db: AsyncSession,
 ):
     for item in items:
-        person = parent_cls(
+        person_kwargs = dict(
             cafedra_code=cafedra_code,
             first_name=item.first_name,
             last_name=item.last_name,
@@ -586,6 +586,9 @@ async def _create_people(
             created_at=now,
             updated_at=now,
         )
+        if hasattr(parent_cls, "phone_code"):
+            person_kwargs["phone_code"] = getattr(item, "phone_code", None)
+        person = parent_cls(**person_kwargs)
         db.add(person)
         await db.flush()
 
@@ -603,6 +606,10 @@ async def _create_people(
                     fields["scientific_name"] = data.scientific_name
                 if hasattr(tr_cls, "scientific_degree"):
                     fields["scientific_degree"] = data.scientific_degree
+                if hasattr(tr_cls, "room"):
+                    fields["room"] = getattr(data, "room", None)
+                if hasattr(tr_cls, "working_hours"):
+                    fields["working_hours"] = getattr(data, "working_hours", None)
                 db.add(tr_cls(**fields))
 
 
@@ -626,6 +633,7 @@ async def _create_single_person(
         "father_name": getattr(item, "father_name", None),
         "email": getattr(item, "email", None),
         "phone": getattr(item, "phone", None),
+        "phone_code": getattr(item, "phone_code", None),
         "profile_image": getattr(item, "profile_image", None),
         "created_at": now,
         "updated_at": now,
@@ -646,6 +654,10 @@ async def _create_single_person(
             fields["scientific_name"] = getattr(data, "scientific_name", None)
         if hasattr(tr_cls, "scientific_degree"):
             fields["scientific_degree"] = getattr(data, "scientific_degree", None)
+        if hasattr(tr_cls, "room"):
+            fields["room"] = getattr(data, "room", None)
+        if hasattr(tr_cls, "working_hours"):
+            fields["working_hours"] = getattr(data, "working_hours", None)
         db.add(tr_cls(**fields))
 
     return person
@@ -668,7 +680,7 @@ async def _update_person(
     now = datetime.now(timezone.utc)
     data = request.dict(exclude_unset=True)
 
-    for field in ["first_name", "last_name", "father_name", "email", "phone"]:
+    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code"]:
         if field in data and hasattr(parent_cls, field):
             setattr(person, field, data[field])
     person.updated_at = now
@@ -685,7 +697,7 @@ async def _update_person(
         )
         tr = tr_q.scalar_one_or_none()
         if tr:
-            for attr in ["duty", "scientific_name", "scientific_degree"]:
+            for attr in ["duty", "scientific_name", "scientific_degree", "room", "working_hours"]:
                 if attr in payload and hasattr(tr_cls, attr):
                     setattr(tr, attr, payload[attr])
             tr.updated_at = now
@@ -693,7 +705,7 @@ async def _update_person(
             fields = {person_id_field: person_id, "lang_code": lang, "created_at": now, "updated_at": now}
             if hasattr(tr_cls, "duty"):
                 fields["duty"] = payload.get("duty", "")
-            for attr in ["scientific_name", "scientific_degree"]:
+            for attr in ["scientific_name", "scientific_degree", "room", "working_hours"]:
                 if hasattr(tr_cls, attr):
                     fields[attr] = payload.get(attr)
             db.add(tr_cls(**fields))
@@ -759,7 +771,7 @@ async def _create_director(cafedra_code: str, director_data: Any, now: datetime,
         father_name=director_data.father_name,
         email=director_data.email,
         phone=director_data.phone,
-        room_number=director_data.room_number,
+        phone_code=getattr(director_data, "phone_code", None),
         profile_image=director_data.profile_image,
         created_at=now,
         updated_at=now,
@@ -776,6 +788,7 @@ async def _create_director(cafedra_code: str, director_data: Any, now: datetime,
                 scientific_degree=tr_data.scientific_degree,
                 scientific_title=tr_data.scientific_title,
                 bio=tr_data.bio,
+                room=getattr(tr_data, "room", None),
                 scientific_research_fields=tr_data.scientific_research_fields or [],
                 created_at=now,
                 updated_at=now,
@@ -878,7 +891,7 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
         db.add(director)
         await db.flush()
 
-    for field in ["first_name", "last_name", "father_name", "email", "phone", "room_number", "profile_image"]:
+    for field in ["first_name", "last_name", "father_name", "email", "phone", "phone_code", "profile_image"]:
         if field in data:
             value = data[field]
             if field in ("first_name", "last_name"):
@@ -897,7 +910,7 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
             )
             tr = tr_query.scalar_one_or_none()
             if tr:
-                for field in ["scientific_degree", "scientific_title", "bio", "scientific_research_fields"]:
+                for field in ["scientific_degree", "scientific_title", "bio", "room", "scientific_research_fields"]:
                     if field in tr_data:
                         setattr(tr, field, tr_data[field])
                 tr.updated_at = now
@@ -908,6 +921,7 @@ async def _upsert_director(cafedra_code: str, director_data: Any, now: datetime,
                     scientific_degree=tr_data.get("scientific_degree"),
                     scientific_title=tr_data.get("scientific_title"),
                     bio=tr_data.get("bio"),
+                    room=tr_data.get("room"),
                     scientific_research_fields=tr_data.get("scientific_research_fields") or [],
                     created_at=now,
                     updated_at=now,
@@ -1020,7 +1034,8 @@ async def _serialize_director(director: CafedraDirector, lang_code: str, db: Asy
         "scientific_research_fields": tr.scientific_research_fields if tr else [],
         "email": director.email,
         "phone": director.phone,
-        "room_number": director.room_number,
+        "phone_code": director.phone_code,
+        "room": tr.room if tr else None,
         "profile_image": director.profile_image,
         "working_hours": working_hours,
         "scientific_events": scientific_events,
@@ -1253,8 +1268,11 @@ async def get_cafedra(
                     "scientific_name": tr.scientific_name if tr else None,
                     "scientific_degree": tr.scientific_degree if tr else None,
                     "duty": tr.duty if tr else None,
+                    "room": tr.room if tr else None,
+                    "working_hours": tr.working_hours if tr else None,
                     "email": person.email,
                     "phone": person.phone,
+                    "phone_code": person.phone_code,
                     "profile_image": person.profile_image,
                 }
                 for person, tr in deputy_directors_with_tr
@@ -1282,8 +1300,11 @@ async def get_cafedra(
                     "duty": tr.duty if tr else None,
                     "scientific_name": tr.scientific_name if tr else None,
                     "scientific_degree": tr.scientific_degree if tr else None,
+                    "room": tr.room if tr else None,
+                    "working_hours": tr.working_hours if tr else None,
                     "email": person.email,
                     "phone": person.phone,
+                    "phone_code": person.phone_code,
                     "profile_image": person.profile_image,
                 }
                 for person, tr in workers_with_tr
