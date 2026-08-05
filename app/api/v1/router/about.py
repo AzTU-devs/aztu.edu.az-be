@@ -9,6 +9,7 @@ from app.services.about import (
     get_page_admin,
     get_page_public,
     get_pages_admin,
+    increment_document_view,
     publish_page,
     update_page,
     upload_document,
@@ -100,3 +101,13 @@ async def read_page_public(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_page_public(page_key=page_key, lang=lang, db=db)
+
+
+@router.post("/public/documents/{document_id}/view")
+async def increment_document_view_endpoint(
+    document_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public, no auth: the website POSTs here when a visitor opens a document
+    card, so the atomic counter reflects real downloads."""
+    return await increment_document_view(document_id=document_id, db=db)

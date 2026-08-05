@@ -18,7 +18,7 @@ from typing import Any, Iterable, Optional
 
 from fastapi import HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import delete as sqlalchemy_delete, select
+from sqlalchemy import delete as sqlalchemy_delete, select, update as sqlalchemy_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -33,6 +33,8 @@ from app.models.about.about import (
     AboutCouncilTr,
     AboutDocCategory,
     AboutDocCategoryTr,
+    AboutDocOrganization,
+    AboutDocOrganizationTr,
     AboutDocument,
     AboutDocumentTr,
     AboutImage,
@@ -80,6 +82,7 @@ PERSON_TR_FIELDS = ("name", "surname", "degree", "position", "bio")
 COUNCIL_TR_FIELDS = ("name",)
 COUNCIL_MEMBER_TR_FIELDS = ("name", "surname", "position")
 DOC_CATEGORY_TR_FIELDS = ("name",)
+ORG_TR_FIELDS = ("name",)
 DOCUMENT_TR_FIELDS = ("name", "file_url")
 
 # Language-neutral page columns writable from the dashboard (rector page).
@@ -266,6 +269,7 @@ def _page_query():
         .selectinload(AboutCouncil.members)
         .selectinload(AboutCouncilMember.translations),
         selectinload(AboutPage.doc_categories).selectinload(AboutDocCategory.translations),
+        selectinload(AboutPage.doc_organizations).selectinload(AboutDocOrganization.translations),
         selectinload(AboutPage.documents).selectinload(AboutDocument.translations),
     )
 
@@ -368,10 +372,22 @@ def _serialize_admin(page: AboutPage) -> dict:
             }
             for category in sorted(page.doc_categories, key=lambda c: c.display_order)
         ],
+        "doc_organizations": [
+            {
+                "id": org.id,
+                "display_order": org.display_order,
+                "organization_key": org.organization_key,
+                "logo_url": org.logo_url,
+                **_tr_map(org.translations, ORG_TR_FIELDS),
+            }
+            for org in sorted(page.doc_organizations, key=lambda o: o.display_order)
+        ],
         "documents": [
             {
                 "id": document.id,
                 "category_key": document.category_key,
+                "organization_key": document.organization_key,
+                "view_count": document.view_count,
                 "display_order": document.display_order,
                 **_tr_map(document.translations, DOCUMENT_TR_FIELDS),
             }
@@ -457,9 +473,21 @@ def _serialize_public(page: AboutPage, lang: str) -> dict:
             }
             for category in sorted(page.doc_categories, key=lambda c: c.display_order)
         ],
+        "doc_organizations": [
+            {
+                "organization_key": org.organization_key,
+                "logo_url": org.logo_url,
+                **_pick(org.translations, lang, ORG_TR_FIELDS),
+            }
+            for org in sorted(page.doc_organizations, key=lambda o: o.display_order)
+        ],
         "documents": [
             {
+                # The web needs the id to POST a view increment.
+                "id": document.id,
                 "category_key": document.category_key,
+                "organization_key": document.organization_key,
+                "view_count": document.view_count,
                 **_pick(document.translations, lang, DOCUMENT_TR_FIELDS),
             }
             for document in sorted(page.documents, key=lambda d: d.display_order)
@@ -516,6 +544,35 @@ async def get_page_public(page_key: str, lang: str, db: AsyncSession):
     except Exception:
         logger.exception("Failed to load public about page %s", page_key)
         return _error(500, "Failed to load about page.")
+
+
+async def increment_document_view(document_id: int, db: AsyncSession):
+    """Atomically bumps a document's view_count and returns the new value.
+
+    A single ``UPDATE ... RETURNING`` — no read-modify-write — so concurrent
+    views from different visitors never lose a count. Public and unauthenticated:
+    it fires on every download-card open on the website.
+    """
+    try:
+        new_count = (
+            await db.execute(
+                sqlalchemy_update(AboutDocument)
+                .where(AboutDocument.id == document_id)
+                .values(view_count=AboutDocument.view_count + 1)
+                .returning(AboutDocument.view_count)
+            )
+        ).scalar_one_or_none()
+
+        if new_count is None:
+            await db.rollback()
+            return JSONResponse(content={"status_code": 404}, status_code=404)
+
+        await db.commit()
+        return JSONResponse(content={"status_code": 200, "view_count": new_count})
+    except Exception:
+        await db.rollback()
+        logger.exception("Failed to increment view count for document %s", document_id)
+        return _error(500, "Failed to increment document view count.")
 
 
 # ── Writes ─────────────────────────────────────────────────────────────────────
@@ -791,16 +848,90 @@ async def _replace_doc_categories(db: AsyncSession, page_id: int, categories: li
         )
 
 
-async def _replace_documents(db: AsyncSession, page_id: int, documents: list, now: datetime):
-    """Rewrites the document cards wholesale.
+async def _replace_organizations(db: AsyncSession, page_id: int, organizations: list, now: datetime):
+    """Rewrites a regulatory-documents page's issuing organizations wholesale.
 
-    Cards carry no stable key — position is identity — so the payload is the
-    complete, ordered truth. Any stored file dropped from the list is removed
-    from disk so the static directory does not fill with orphans; a pasted URL
-    is left alone. ``category_key`` ties a card to one of the page's categories.
+    Mirrors ``_replace_doc_categories`` — ``organization_key`` is preserved from
+    the payload so a document's reference survives the save, and organizations
+    with no key are skipped — but each row also carries a language-neutral
+    ``logo_url``. Any stored logo dropped from the set is removed from disk so the
+    static directory does not fill with orphans; a pasted URL is left alone.
     """
-    rows = []
     kept: set[str] = set()
+    rows = []
+    for index, entry in enumerate(organizations):
+        payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
+        key = (payload.get("organization_key") or "").strip()
+        if not key:
+            continue
+        logo = (payload.get("logo_url") or "").strip()
+        if logo:
+            kept.add(logo)
+        rows.append((index, key, logo, payload))
+
+    previous = (
+        await db.execute(
+            select(AboutDocOrganization).where(AboutDocOrganization.page_id == page_id)
+        )
+    ).scalars().all()
+    orphans = [
+        org.logo_url
+        for org in previous
+        if org.logo_url
+        and org.logo_url not in kept
+        and not org.logo_url.startswith(("http://", "https://"))
+    ]
+
+    await db.execute(
+        sqlalchemy_delete(AboutDocOrganization).where(AboutDocOrganization.page_id == page_id)
+    )
+    for index, key, logo, payload in rows:
+        org = AboutDocOrganization(
+            page_id=page_id,
+            organization_key=key,
+            logo_url=logo or None,
+            display_order=index,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(org)
+        await db.flush()
+        await _upsert_translations(
+            db, AboutDocOrganizationTr, "organization_id", org.id, payload, ORG_TR_FIELDS, now
+        )
+
+    for path in orphans:
+        safe_delete_file(path)
+
+
+async def _replace_documents(db: AsyncSession, page_id: int, documents: list, now: datetime):
+    """Reconciles the document cards by id, preserving each card's view_count.
+
+    The payload is the complete, ordered truth, but a card is no longer deleted
+    and recreated on every save: an entry carrying an ``id`` that matches a stored
+    card is UPDATED in place (its category, organization, order and per-language
+    name/file are rewritten) so its accumulated ``view_count`` — a metric this
+    save never touches — survives. An entry with no id (or an unknown one) is
+    INSERTED fresh with ``view_count`` defaulting to 0. Cards whose id is absent
+    from the payload are DELETED, and any stored file they alone referenced is
+    removed from disk so the static directory does not fill with orphans; a pasted
+    URL, and a file still referenced by a kept or new card, are left alone.
+    """
+    previous = (
+        await db.execute(
+            select(AboutDocument)
+            .where(AboutDocument.page_id == page_id)
+            .options(selectinload(AboutDocument.translations))
+        )
+    ).scalars().all()
+    existing_by_id = {doc.id: doc for doc in previous}
+
+    # Every per-language file the new payload still references, across all cards
+    # (updated and inserted). A removed card's file is deleted only if it is not
+    # in here.
+    kept: set[str] = set()
+    seen_ids: set[int] = set()
+
     for index, entry in enumerate(documents):
         payload = entry if isinstance(entry, dict) else entry.dict(exclude_unset=True)
         az = payload.get("az") or {}
@@ -809,51 +940,68 @@ async def _replace_documents(db: AsyncSession, page_id: int, documents: list, no
         en_url = (en.get("file_url") or "").strip()
         # Legacy top-level file_url is only a fallback for the neutral mirror.
         legacy_url = (payload.get("file_url") or "").strip()
-        # Every per-language file still referenced by the new payload is kept.
         kept.update(u for u in (az_url, en_url) if u)
         # Backward-compat neutral mirror: AZ file, else EN, else any legacy value.
         mirror_url = az_url or en_url or legacy_url
-        rows.append((index, payload, mirror_url))
 
-    previous = (
-        await db.execute(
-            select(AboutDocument)
-            .where(AboutDocument.page_id == page_id)
-            .options(selectinload(AboutDocument.translations))
+        category_key = (payload.get("category_key") or "").strip() or None
+        organization_key = (payload.get("organization_key") or "").strip() or None
+
+        doc_id = payload.get("id")
+        document = existing_by_id.get(doc_id) if doc_id is not None else None
+
+        if document is None:
+            # New card — view_count defaults to 0. An id that matches nothing on
+            # this page is treated as a fresh insert, never an update of another
+            # page's row.
+            document = AboutDocument(
+                page_id=page_id,
+                category_key=category_key,
+                organization_key=organization_key,
+                file_url=mirror_url or None,
+                display_order=index,
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(document)
+            await db.flush()
+        else:
+            # Existing card — rewrite everything the save owns, but NEVER
+            # view_count, which the public view endpoint alone maintains.
+            seen_ids.add(document.id)
+            document.category_key = category_key
+            document.organization_key = organization_key
+            document.file_url = mirror_url or None
+            document.display_order = index
+            document.updated_at = now
+
+        await _upsert_translations(
+            db, AboutDocumentTr, "document_id", document.id, payload, DOCUMENT_TR_FIELDS, now
         )
-    ).scalars().all()
-    # Collect every stored path the old rows referenced — each language's tr
-    # file_url plus the neutral column — so neither AZ nor EN is wrongly deleted
-    # when only one of them changes. Delete a path only if the new payload no
-    # longer references it in any language.
-    previous_paths: set[str] = set()
-    for doc in previous:
+
+    # Cards whose id is gone from the payload are removed; sweep the files they
+    # alone referenced (each language's tr file_url plus the neutral column),
+    # skipping any file a kept/new card still points at and any pasted URL.
+    removed = [doc for doc in previous if doc.id not in seen_ids]
+    removed_paths: set[str] = set()
+    for doc in removed:
         if doc.file_url:
-            previous_paths.add(doc.file_url)
+            removed_paths.add(doc.file_url)
         for tr in doc.translations:
             if tr.file_url:
-                previous_paths.add(tr.file_url)
+                removed_paths.add(tr.file_url)
     orphans = [
         path
-        for path in previous_paths
+        for path in removed_paths
         if path not in kept
         and not path.startswith(("http://", "https://"))
     ]
 
-    await db.execute(sqlalchemy_delete(AboutDocument).where(AboutDocument.page_id == page_id))
-    for index, payload, mirror_url in rows:
-        document = AboutDocument(
-            page_id=page_id,
-            category_key=(payload.get("category_key") or "").strip() or None,
-            file_url=mirror_url or None,
-            display_order=index,
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(document)
-        await db.flush()
-        await _upsert_translations(
-            db, AboutDocumentTr, "document_id", document.id, payload, DOCUMENT_TR_FIELDS, now
+    if removed:
+        await db.execute(
+            sqlalchemy_delete(AboutDocument).where(
+                AboutDocument.id.in_([doc.id for doc in removed])
+            )
         )
 
     for path in orphans:
@@ -911,6 +1059,8 @@ async def update_page(page_key: str, request: UpdateAboutPage, db: AsyncSession)
             await _replace_councils(db, page.id, data["councils"], now)
         if data.get("doc_categories") is not None:
             await _replace_doc_categories(db, page.id, data["doc_categories"], now)
+        if data.get("doc_organizations") is not None:
+            await _replace_organizations(db, page.id, data["doc_organizations"], now)
         if data.get("documents") is not None:
             await _replace_documents(db, page.id, data["documents"], now)
         if data.get("images") is not None:

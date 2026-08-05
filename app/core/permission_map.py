@@ -221,6 +221,9 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("PUT", "/api/about/admin/pages/{page_key}/image"): RouteRule("about.upload", target_type="about_page", target_param="page_key"),
     ("PUT", "/api/about/admin/pages/{page_key}/file"): RouteRule("about.upload", target_type="about_page", target_param="page_key"),
     ("PUT", "/api/about/admin/pages/{page_key}/publish"): RouteRule("about.activate", target_type="about_page", target_param="page_key"),
+    # Public download-view counter: no token (the website has none) and no audit
+    # row, which would otherwise drown the activity log — mirrors visits/track.
+    ("POST", "/api/about/public/documents/{document_id}/view"): RouteRule(None, public=True, no_audit=True),
 
     # ── home (landing-page metric strips) ───────────────────────────────────
     ("PUT", "/api/home/admin/pages/{page_key}"): RouteRule("home.update", target_type="home_page", target_param="page_key"),

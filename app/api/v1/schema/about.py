@@ -152,6 +152,19 @@ class AboutDocCategoryPayload(BaseModel):
     en: Optional[AboutDocCategoryTranslation] = None
 
 
+class AboutDocOrganizationTranslation(BaseModel):
+    name: OptionalStr = None
+
+
+class AboutDocOrganizationPayload(BaseModel):
+    # Stable, page-local key a document references. Assigned in the dashboard.
+    organization_key: OptionalStr = None
+    # The organization's logo — a pasted URL or the path returned by an upload.
+    logo_url: OptionalStr = None
+    az: Optional[AboutDocOrganizationTranslation] = None
+    en: Optional[AboutDocOrganizationTranslation] = None
+
+
 class AboutDocumentTranslation(BaseModel):
     name: OptionalStr = None
     # This language's file — an uploaded file's path or a pasted URL (any format).
@@ -159,8 +172,14 @@ class AboutDocumentTranslation(BaseModel):
 
 
 class AboutDocumentPayload(BaseModel):
+    # Present for a document that already exists — the whole-page save reconciles
+    # by this id so an existing card keeps its accumulated view_count. Absent for
+    # a newly added card (it is inserted with view_count 0).
+    id: Optional[int] = None
     # Which category this document belongs to (a category_key), or blank.
     category_key: OptionalStr = None
+    # Which organization issued this document (an organization_key), or blank.
+    organization_key: OptionalStr = None
     # DEPRECATED neutral field — file_url now lives inside az/en. Kept optional
     # for backward-compat; no longer the source of truth.
     file_url: OptionalStr = None
@@ -204,8 +223,10 @@ class UpdateAboutPage(BaseModel):
     persons: Optional[List[AboutPersonPayload]] = None
     # The scientific-board councils — each with its members and secretariat.
     councils: Optional[List[AboutCouncilPayload]] = None
-    # Regulatory-documents page: the categories and the document cards.
+    # Regulatory-documents page: the categories, the issuing organizations and
+    # the document cards.
     doc_categories: Optional[List[AboutDocCategoryPayload]] = None
+    doc_organizations: Optional[List[AboutDocOrganizationPayload]] = None
     documents: Optional[List[AboutDocumentPayload]] = None
     # Students pages: the grade-scale table, sent whole.
     grade_scale: Optional[List[AboutGradeRow]] = None

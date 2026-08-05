@@ -123,6 +123,13 @@ class AboutPage(Base):
         passive_deletes=True,
         order_by="AboutDocCategory.display_order",
     )
+    doc_organizations = relationship(
+        "AboutDocOrganization",
+        back_populates="page",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AboutDocOrganization.display_order",
+    )
     documents = relationship(
         "AboutDocument",
         back_populates="page",
@@ -645,6 +652,64 @@ class AboutDocCategoryTr(Base):
     category = relationship("AboutDocCategory", back_populates="translations")
 
 
+class AboutDocOrganization(Base):
+    """A document-issuing organization on a regulatory-documents page.
+
+    Mirrors ``AboutDocCategory`` — a page-local set defined once and referenced
+    by a document through its stable ``organization_key`` — but carries a
+    language-neutral ``logo_url`` (an uploaded file's path or a pasted URL). The
+    name a translator would touch lives on the ``*_tr`` sibling.
+    """
+
+    __tablename__ = "about_doc_organizations"
+    __table_args__ = (
+        UniqueConstraint(
+            "page_id", "organization_key", name="uq_about_doc_organizations_page_key"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
+    # Stable, page-local identifier a document references (e.g. "o-ab12cd").
+    organization_key = Column(String(100), nullable=False)
+    # The organization's logo — an uploaded file's path or a pasted URL.
+    logo_url = Column(String(2048))
+    display_order = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    page = relationship("AboutPage", back_populates="doc_organizations")
+    translations = relationship(
+        "AboutDocOrganizationTr",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class AboutDocOrganizationTr(Base):
+    __tablename__ = "about_doc_organization_tr"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "lang_code", name="uq_about_doc_organization_tr_org_lang"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer, ForeignKey("about_doc_organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    lang_code = Column(String(10), nullable=False)
+
+    name = Column(String(500))
+
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True))
+
+    organization = relationship("AboutDocOrganization", back_populates="translations")
+
+
 class AboutDocument(Base):
     """One downloadable document card on a regulatory-documents page.
 
@@ -659,8 +724,14 @@ class AboutDocument(Base):
     page_id = Column(Integer, ForeignKey("about_pages.id", ondelete="CASCADE"), nullable=False)
     # References an AboutDocCategory.category_key on the same page, or null.
     category_key = Column(String(100))
+    # References an AboutDocOrganization.organization_key on the same page, or null.
+    organization_key = Column(String(100))
     # An uploaded file's path or a pasted URL — the page treats them alike.
     file_url = Column(String(2048))
+    # How many times the public download card has been opened. A metric, never
+    # client-set: incremented atomically by the public view endpoint and left
+    # untouched by the whole-page save.
+    view_count = Column(Integer, nullable=False, server_default="0", default=0)
     display_order = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime(timezone=True), nullable=False)
