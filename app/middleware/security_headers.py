@@ -28,7 +28,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             return response
 
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers.setdefault(
@@ -43,7 +42,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # need a relaxed policy.
         path = request.url.path
         is_docs = path.startswith("/docs-") or path.startswith("/redoc-")
-        if is_docs:
+        is_static = path.startswith("/static/")
+
+        if is_static:
+            # Uploaded documents (PDFs) and images are embedded — e.g. the
+            # regulatory-documents inline preview <iframe> — by the public web
+            # front-ends, which run on their own origins. X-Frame-Options can
+            # only say DENY/SAMEORIGIN, so we omit it here and use the CSP
+            # frame-ancestors directive to allow exactly the configured
+            # front-end origins (plus self) to frame these assets. Everything
+            # else stays framing-denied.
+            frame_ancestors = " ".join(["'self'", *settings.ALLOWED_ORIGINS])
+            response.headers["Content-Security-Policy"] = (
+                f"frame-ancestors {frame_ancestors}"
+            )
+        elif is_docs:
+            response.headers["X-Frame-Options"] = "DENY"
             response.headers["Content-Security-Policy"] = (
                 "default-src 'none'; "
                 "img-src 'self' data: https://fastapi.tiangolo.com https://cdn.redoc.ly; "
@@ -54,6 +68,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"
             )
         else:
+            response.headers["X-Frame-Options"] = "DENY"
             response.headers.setdefault(
                 "Content-Security-Policy",
                 "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
