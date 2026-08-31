@@ -18,7 +18,7 @@ from app.api.v1.schema.menu import (
     CreateQuickSectionItem, UpdateQuickSectionItem,
 )
 from app.services.menu import (
-    get_footer_menu, get_quick_menu,
+    get_footer_menu, get_quick_menu, get_quick_menu_admin,
     create_footer_column, update_footer_column, delete_footer_column,
     create_footer_link, update_footer_link, delete_footer_link,
     create_partner_logo, update_partner_logo, delete_partner_logo,
@@ -54,6 +54,13 @@ async def get_quick_menu_endpoint(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_quick_menu(lang_code=lang_code, db=db)
+
+
+@admin_router.get("/quick/admin")
+async def get_quick_menu_admin_endpoint(
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_quick_menu_admin(db=db)
 
 
 # ─────────────────────────────────────────────────────────────

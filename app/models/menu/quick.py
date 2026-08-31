@@ -18,6 +18,10 @@ class MenuQuickLeftItemTranslation(Base):
     item_id = Column(Integer, ForeignKey("menu_quick_left_items.id", ondelete="CASCADE"), nullable=False)
     lang_code = Column(String(5), nullable=False)
     label = Column(String(200), nullable=False)
+    # The az and en sites have different paths for the same page, so the link is
+    # per language. Nullable: rows created before this column, and any genuinely
+    # shared link (an external portal), fall back to MenuQuickLeftItem.url.
+    url = Column(Text, nullable=True)
 
 
 class MenuQuickSection(Base):
@@ -55,3 +59,6 @@ class MenuQuickSectionItemTranslation(Base):
     item_id = Column(Integer, ForeignKey("menu_quick_section_items.id", ondelete="CASCADE"), nullable=False)
     lang_code = Column(String(5), nullable=False)
     label = Column(String(200), nullable=False)
+    # Per language, falling back to MenuQuickSectionItem.url — see the left-item
+    # translation above.
+    url = Column(Text, nullable=True)

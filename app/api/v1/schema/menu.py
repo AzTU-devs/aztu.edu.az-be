@@ -143,15 +143,19 @@ class UpdateContact(BaseModel):
 # ── Quick Left Item ───────────────────────────────────────────
 
 class CreateQuickLeftItem(BaseModel):
+    # Fallback used when the link is genuinely the same in both languages.
     url: str
     display_order: int
     label: TranslationInput
+    # Per-language link. Either side may be omitted, in which case `url` is used.
+    url_tr: Optional[OptionalTranslationInput] = None
 
 
 class UpdateQuickLeftItem(BaseModel):
     url: Optional[str] = None
     display_order: Optional[int] = None
     label: Optional[OptionalTranslationInput] = None
+    url_tr: Optional[OptionalTranslationInput] = None
 
 
 # ── Quick Section ─────────────────────────────────────────────
@@ -174,9 +178,11 @@ class CreateQuickSectionItem(BaseModel):
     url: str
     display_order: int
     label: TranslationInput
+    url_tr: Optional[OptionalTranslationInput] = None
 
 
 class UpdateQuickSectionItem(BaseModel):
     url: Optional[str] = None
     display_order: Optional[int] = None
     label: Optional[OptionalTranslationInput] = None
+    url_tr: Optional[OptionalTranslationInput] = None

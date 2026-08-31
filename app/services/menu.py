@@ -201,7 +201,7 @@ async def get_quick_menu(lang_code: str, db: AsyncSession):
             item_tr = item_tr_result.scalar_one_or_none()
             if not item_tr:
                 continue
-            left_items_arr.append({"label": item_tr.label, "url": item.url})
+            left_items_arr.append({"label": item_tr.label, "url": item_tr.url or item.url})
 
         contact_result = await db.execute(
             select(MenuContact).where(
@@ -271,7 +271,7 @@ async def get_quick_menu(lang_code: str, db: AsyncSession):
                 item_tr = item_tr_result.scalar_one_or_none()
                 if not item_tr:
                     continue
-                items_arr.append({"label": item_tr.label, "url": item.url})
+                items_arr.append({"label": item_tr.label, "url": item_tr.url or item.url})
 
             sections_arr.append({
                 "key": section.section_key,
@@ -947,6 +947,95 @@ async def delete_contact(contact_id: int, db: AsyncSession):
 # CRUD  —  Quick Left Item
 # ─────────────────────────────────────────────────────────────
 
+async def get_quick_menu_admin(db: AsyncSession):
+    """The whole quick menu as the dashboard editor needs it.
+
+    Three things the public reader withholds and the editor cannot work without:
+    inactive rows (otherwise deactivating one hides it forever), both
+    translations at once, and the row ids it has to save against.
+    """
+    try:
+        left_items = (await db.execute(
+            select(MenuQuickLeftItem).order_by(
+                MenuQuickLeftItem.display_order.asc(), MenuQuickLeftItem.id.asc()
+            )
+        )).scalars().all()
+        left_tr = (await db.execute(select(MenuQuickLeftItemTranslation))).scalars().all()
+        left_by_item = {}
+        for tr in left_tr:
+            left_by_item.setdefault(tr.item_id, {})[tr.lang_code] = tr
+
+        sections = (await db.execute(
+            select(MenuQuickSection).order_by(
+                MenuQuickSection.display_order.asc(), MenuQuickSection.id.asc()
+            )
+        )).scalars().all()
+        section_tr = (await db.execute(select(MenuQuickSectionTranslation))).scalars().all()
+        section_by_id = {}
+        for tr in section_tr:
+            section_by_id.setdefault(tr.section_id, {})[tr.lang_code] = tr
+
+        section_items = (await db.execute(
+            select(MenuQuickSectionItem).order_by(
+                MenuQuickSectionItem.display_order.asc(), MenuQuickSectionItem.id.asc()
+            )
+        )).scalars().all()
+        item_tr = (await db.execute(select(MenuQuickSectionItemTranslation))).scalars().all()
+        item_by_id = {}
+        for tr in item_tr:
+            item_by_id.setdefault(tr.item_id, {})[tr.lang_code] = tr
+
+        def _pack(row, translations, shared_url):
+            tr = translations.get(row.id, {})
+            az, en = tr.get("az"), tr.get("en")
+            return {
+                "id": row.id,
+                "display_order": row.display_order,
+                "is_active": row.is_active,
+                "url": shared_url,
+                "label": {"az": az.label if az else None, "en": en.label if en else None},
+                # Falls back to the shared url so the editor shows the link that
+                # is actually being served rather than an empty box.
+                "url_tr": {
+                    "az": (az.url if az and az.url else shared_url),
+                    "en": (en.url if en and en.url else shared_url),
+                },
+            }
+
+        left_arr = [_pack(row, left_by_item, row.url) for row in left_items]
+
+        sections_arr = []
+        for section in sections:
+            tr = section_by_id.get(section.id, {})
+            az, en = tr.get("az"), tr.get("en")
+            sections_arr.append({
+                "id": section.id,
+                "section_key": section.section_key,
+                "display_order": section.display_order,
+                "is_active": section.is_active,
+                "title": {"az": az.title if az else None, "en": en.title if en else None},
+                "items": [
+                    _pack(item, item_by_id, item.url)
+                    for item in section_items
+                    if item.section_id == section.id
+                ],
+            })
+
+        return JSONResponse(
+            content={
+                "status_code": 200,
+                "data": {"left_items": left_arr, "sections": sections_arr},
+            },
+            status_code=status.HTTP_200_OK,
+        )
+    except Exception:
+        logger.exception("500 Internal Server Error")
+        return JSONResponse(
+            content={"status_code": 500, "error": "Internal server error"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
 async def create_quick_left_item(request: CreateQuickLeftItem, db: AsyncSession):
     try:
         item = MenuQuickLeftItem(url=request.url, display_order=request.display_order)
@@ -958,6 +1047,7 @@ async def create_quick_left_item(request: CreateQuickLeftItem, db: AsyncSession)
                 item_id=item.id,
                 lang_code=lang,
                 label=getattr(request.label, lang),
+                url=getattr(request.url_tr, lang, None) if request.url_tr else None,
             ))
 
         await db.commit()
@@ -1008,6 +1098,22 @@ async def update_quick_left_item(item_id: int, request: UpdateQuickLeftItem, db:
                     tr.label = val
                 else:
                     db.add(MenuQuickLeftItemTranslation(item_id=item_id, lang_code=lang, label=val))
+
+        # Links are updated independently of labels: an editor may change only
+        # the az path without retyping either label.
+        if request.url_tr:
+            for lang in LANGS:
+                val = getattr(request.url_tr, lang, None)
+                if val is None:
+                    continue
+                tr = (await db.execute(
+                    select(MenuQuickLeftItemTranslation).where(
+                        MenuQuickLeftItemTranslation.item_id == item_id,
+                        MenuQuickLeftItemTranslation.lang_code == lang,
+                    )
+                )).scalar_one_or_none()
+                if tr:
+                    tr.url = val
 
         await db.commit()
         return JSONResponse(
@@ -1193,6 +1299,7 @@ async def create_quick_section_item(request: CreateQuickSectionItem, db: AsyncSe
                 item_id=item.id,
                 lang_code=lang,
                 label=getattr(request.label, lang),
+                url=getattr(request.url_tr, lang, None) if request.url_tr else None,
             ))
 
         await db.commit()
@@ -1243,6 +1350,20 @@ async def update_quick_section_item(item_id: int, request: UpdateQuickSectionIte
                     tr.label = val
                 else:
                     db.add(MenuQuickSectionItemTranslation(item_id=item_id, lang_code=lang, label=val))
+
+        if request.url_tr:
+            for lang in LANGS:
+                val = getattr(request.url_tr, lang, None)
+                if val is None:
+                    continue
+                tr = (await db.execute(
+                    select(MenuQuickSectionItemTranslation).where(
+                        MenuQuickSectionItemTranslation.item_id == item_id,
+                        MenuQuickSectionItemTranslation.lang_code == lang,
+                    )
+                )).scalar_one_or_none()
+                if tr:
+                    tr.url = val
 
         await db.commit()
         return JSONResponse(
