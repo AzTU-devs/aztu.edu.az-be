@@ -37,6 +37,7 @@ DOMAIN_LABELS: Dict[str, Tuple[str, str]] = {
     "announcements": ("Elanlar", "Announcements"),
     "hero": ("Ana səhifə videosu", "Hero"),
     "hero_certificates": ("Ana səhifə sertifikatları", "Hero certificates"),
+    "honorary_doctors": ("Fəxri doktorlar", "Honorary doctors"),
     "projects": ("Layihələr", "Projects"),
     "collaborations": ("Əməkdaşlıqlar", "Collaborations"),
     "employees": ("Əməkdaşlar", "Employees"),
@@ -95,6 +96,14 @@ PERMISSION_CATALOGUE: Tuple[PermissionDef, ...] = (
     _p("hero_certificates.activate", "Sertifikatı dərc etmək", "Publish certificate"),
     _p("hero_certificates.deactivate", "Sertifikatı dərcdən çıxarmaq", "Unpublish certificate"),
     _p("hero_certificates.reorder", "Sertifikatları sıralamaq", "Reorder certificates"),
+
+    # ── honorary_doctors ────────────────────────────────────────────────────
+    _p("honorary_doctors.create", "Fəxri doktor yaratmaq", "Create honorary doctor"),
+    _p("honorary_doctors.update", "Fəxri doktoru redaktə etmək", "Edit honorary doctor"),
+    _p("honorary_doctors.delete", "Fəxri doktoru silmək", "Delete honorary doctor"),
+    _p("honorary_doctors.activate", "Fəxri doktoru dərc etmək", "Publish honorary doctor"),
+    _p("honorary_doctors.deactivate", "Fəxri doktoru dərcdən çıxarmaq", "Unpublish honorary doctor"),
+    _p("honorary_doctors.reorder", "Fəxri doktorları sıralamaq", "Reorder honorary doctors"),
     # ── projects ────────────────────────────────────────────────────────────
     _p("projects.create", "Layihə yaratmaq", "Create project"),
     _p("projects.delete", "Layihəni silmək", "Delete project"),
@@ -326,7 +335,7 @@ SYSTEM_ROLES: Tuple[SystemRoleDef, ...] = (
         name_en="Content editor",
         description_az="Xəbər, elan, hero, layihə və əməkdaşlıqları idarə edir. Silmək icazəsi yoxdur.",
         permissions=_without(
-            keys_for_domains("news", "news_categories", "announcements", "hero", "hero_certificates", "projects", "collaborations", "about", "home", "research_pages"),
+            keys_for_domains("news", "news_categories", "announcements", "hero", "hero_certificates", "honorary_doctors", "projects", "collaborations", "about", "home", "research_pages"),
             "delete",
         ),
     ),

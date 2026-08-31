@@ -114,6 +114,13 @@ ROUTE_PERMISSIONS: Dict[Tuple[str, str], RouteRule] = {
     ("POST", "/api/hero-certificate/deactivate"): RouteRule("hero_certificates.deactivate", target_type="hero_certificate", target_param="certificate_id", target_source="query"),
     ("POST", "/api/hero-certificate/reorder"): RouteRule("hero_certificates.reorder"),
 
+    ("POST", "/api/honorary-doctor/create"): RouteRule("honorary_doctors.create", target_type="honorary_doctors", label_fields=("az_full_name",)),
+    ("PUT", "/api/honorary-doctor/{doctor_id}/update"): RouteRule("honorary_doctors.update", target_type="honorary_doctors", target_param="doctor_id", label_fields=("az_full_name",)),
+    ("DELETE", "/api/honorary-doctor/{doctor_id}/delete"): RouteRule("honorary_doctors.delete", target_type="honorary_doctors", target_param="doctor_id"),
+    ("POST", "/api/honorary-doctor/activate"): RouteRule("honorary_doctors.activate", target_type="honorary_doctors", target_param="doctor_id", target_source="query"),
+    ("POST", "/api/honorary-doctor/deactivate"): RouteRule("honorary_doctors.deactivate", target_type="honorary_doctors", target_param="doctor_id", target_source="query"),
+    ("POST", "/api/honorary-doctor/reorder"): RouteRule("honorary_doctors.reorder"),
+
     # ── projects ───────────────────────────────────────────────────────────
     ("POST", "/api/project/create"): RouteRule("projects.create", target_type="project", label_fields=("az_title",)),
     ("DELETE", "/api/project/{project_id}/delete"): RouteRule("projects.delete", target_type="project", target_param="project_id"),

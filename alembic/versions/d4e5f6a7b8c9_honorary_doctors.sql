@@ -1,30 +1,26 @@
 -- ============================================================================
 --  Honorary doctors — manual equivalent of Alembic revision d4e5f6a7b8c9
---  (revises c2d3e4f5a6b7)
 --
---  Run this INSTEAD of `alembic upgrade head`, not in addition to it.
---  It creates the two tables and then moves alembic_version forward, so a later
---  `alembic upgrade head` skips this revision rather than trying to create the
---  tables a second time.
+--  Production has no `alembic_version` table: alembic has never been run against
+--  it, and the schema was created out of band. So this file only creates the
+--  tables. It deliberately does NOT write a revision stamp — inserting one would
+--  assert that every migration up to this one has been applied, which is not
+--  established, and would make a later `alembic upgrade head` skip real work.
 --
---  STEP 0 FIRST. The stamp at the end only fires if the database is currently on
---  c2d3e4f5a6b7. If step 0 shows anything else, stop and read the notes at the
---  bottom of this file.
+--  Safe to re-run: every statement is IF NOT EXISTS, and the whole thing is one
+--  transaction, so a failure leaves the database untouched.
 -- ============================================================================
 
 
--- ── STEP 0 — preflight, run on its own and read the output ──────────────────
--- Expected: exactly one row, version_num = 'c2d3e4f5a6b7'.
-SELECT version_num FROM alembic_version;
-
--- Expected: 0. If it returns 2, the tables already exist and you are done.
+-- ── STEP 0 — preflight ──────────────────────────────────────────────────────
+-- Expected: 0. If it returns 2 the tables are already there and you are done.
 SELECT count(*) AS existing_tables
 FROM   information_schema.tables
 WHERE  table_schema = current_schema()
 AND    table_name IN ('honorary_doctor', 'honorary_doctor_tr');
 
 
--- ── STEP 1 — the migration ──────────────────────────────────────────────────
+-- ── STEP 1 — create the tables ──────────────────────────────────────────────
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS honorary_doctor (
@@ -36,6 +32,8 @@ CREATE TABLE IF NOT EXISTS honorary_doctor (
     updated_at    TIMESTAMPTZ  NULL
 );
 
+-- Redundant with the primary key index, but the model declares index=True and
+-- this keeps the schema matching what alembic autogenerate expects.
 CREATE INDEX IF NOT EXISTS ix_honorary_doctor_id
     ON honorary_doctor (id);
 
@@ -59,55 +57,43 @@ CREATE INDEX IF NOT EXISTS ix_honorary_doctor_tr_id
 CREATE INDEX IF NOT EXISTS ix_honorary_doctor_tr_doctor_id
     ON honorary_doctor_tr (doctor_id);
 
--- Move the revision pointer. Guarded by the WHERE clause, so if the database is
--- not on the expected parent revision this updates 0 rows and you can resolve it
--- before anything drifts. Check the reported row count: it must be 1.
-UPDATE alembic_version
-SET    version_num = 'd4e5f6a7b8c9'
-WHERE  version_num = 'c2d3e4f5a6b7';
-
 COMMIT;
 
 
 -- ── STEP 2 — verify ─────────────────────────────────────────────────────────
--- Expected: 'd4e5f6a7b8c9'
-SELECT version_num FROM alembic_version;
-
--- Expected: 2 rows — honorary_doctor, honorary_doctor_tr
+-- Expected: 2 rows
 SELECT table_name
 FROM   information_schema.tables
 WHERE  table_schema = current_schema()
 AND    table_name IN ('honorary_doctor', 'honorary_doctor_tr')
 ORDER  BY table_name;
 
--- Expected: 3 rows — the two ix_* indexes on _tr and one on the parent
+-- Expected: 3 ix_* rows plus the two primary key indexes
 SELECT indexname
 FROM   pg_indexes
 WHERE  schemaname = current_schema()
 AND    tablename IN ('honorary_doctor', 'honorary_doctor_tr')
 ORDER  BY indexname;
 
+-- Expected: the unique constraint and the cascading foreign key
+SELECT conname, contype
+FROM   pg_constraint
+WHERE  conrelid = 'honorary_doctor_tr'::regclass
+ORDER  BY conname;
+
 
 -- ============================================================================
---  NOTES
+--  ROLLBACK — drops the roll and everything in it
 --
---  If STEP 0 returned a version other than 'c2d3e4f5a6b7':
---    The database is not on the revision this migration was written against.
---    Do NOT edit the WHERE clause to force the stamp — that would mark the
---    intervening revisions as applied without running them. Run
---    `alembic upgrade head` instead, which applies everything in order
---    including this one, and skip this file entirely.
---
---  If STEP 0 showed the tables already exist:
---    Someone has already applied this. Run only the STEP 2 queries to confirm
---    the version pointer is 'd4e5f6a7b8c9'.
---
---  Rollback (drops the roll and everything in it):
 --    BEGIN;
 --    DROP TABLE IF EXISTS honorary_doctor_tr;
 --    DROP TABLE IF EXISTS honorary_doctor;
---    UPDATE alembic_version
---    SET    version_num = 'c2d3e4f5a6b7'
---    WHERE  version_num = 'd4e5f6a7b8c9';
 --    COMMIT;
+--
+--  ON ADOPTING ALEMBIC LATER
+--    Do not simply create `alembic_version` and insert this revision. That claims
+--    every earlier migration has run, and the ones that have not would then be
+--    skipped forever. Adopting alembic means first diffing the live schema
+--    against Base.metadata, then stamping the revision the database genuinely
+--    matches. Worth doing deliberately, not as part of this change.
 -- ============================================================================

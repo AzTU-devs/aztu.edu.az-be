@@ -61,6 +61,7 @@ RESOURCE_NOUNS: Dict[str, Noun] = {
     "announcements": Noun("elan", "announcement", "elanı", "elanın", "elanların"),
     "hero": Noun("əsas video", "hero video", "əsas videonu", "əsas videonun", "əsas videoların"),
     "hero_certificates": Noun("sertifikat", "certificate", "sertifikatı", "sertifikatın", "sertifikatların"),
+    "honorary_doctors": Noun("fəxri doktor", "honorary doctor", "fəxri doktoru", "fəxri doktorun", "fəxri doktorların"),
     "projects": Noun("layihə", "project", "layihəni", "layihənin", "layihələrin"),
     "collaborations": Noun("əməkdaşlıq", "collaboration", "əməkdaşlığı", "əməkdaşlığın", "əməkdaşlıqların"),
     "employees": Noun("əməkdaş", "employee", "əməkdaşı", "əməkdaşın", "əməkdaşların"),
