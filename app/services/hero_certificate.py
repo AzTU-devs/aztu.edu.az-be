@@ -19,10 +19,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 ALLOWED_FAMILIES = ("world", "europe", "subject", "other")
 
-# 'qs'   — a ranking body: the certificate states a rank position within a family.
-# 'aqas' — a programme-accreditation agency: no rank, no family, the programme
-#          name carried by the translation title is the whole story.
-ALLOWED_ISSUERS = ("qs", "aqas")
+# 'qs'          — a ranking body: the certificate states a rank position within a family.
+# 'greenmetric'  — UI GreenMetric, also a ranking body: it states a rank, but its
+#                  single sustainability table has no family split, so family is
+#                  optional rather than required.
+# 'aqas'         — a programme-accreditation agency: no rank, no family, the
+#                  programme name carried by the translation title is the whole story.
+# 'staregister'  — a register listing: like AQAS, an attestation rather than a rank.
+ALLOWED_ISSUERS = ("qs", "aqas", "greenmetric", "staregister")
+
+# Issuers whose certificates state a position, and therefore require rank_label.
+RANKING_ISSUERS = ("qs", "greenmetric")
+
+# Issuers for which a family is mandatory. Kept separate from RANKING_ISSUERS so
+# that QS behaviour is byte-for-byte what it was before GreenMetric existed.
+FAMILY_REQUIRED_ISSUERS = ("qs",)
 
 DEFAULT_ISSUER = "qs"
 
@@ -77,11 +88,11 @@ def _invalid_issuer_response() -> JSONResponse:
     )
 
 
-def _missing_rank_label_response() -> JSONResponse:
+def _missing_rank_label_response(issuer: str = "qs") -> JSONResponse:
     return JSONResponse(
         content={
             "status_code": 422,
-            "message": "rank_label is required for a QS certificate."
+            "message": f"rank_label is required for a {issuer} certificate."
         },
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
     )
@@ -112,28 +123,31 @@ def _validate_issuer_fields(request):
     None when the payload is valid; the three normalised values are then what
     must be written to the row.
 
-      issuer='qs'   -> rank_label REQUIRED, family REQUIRED (and whitelisted).
-      issuer='aqas' -> both are QS-only concepts: ignored and stored as NULL,
-                       whatever the client happened to send.
+      issuer='qs'          -> rank_label REQUIRED, family REQUIRED (and whitelisted).
+      issuer='greenmetric' -> rank_label REQUIRED, family optional (whitelisted
+                              when supplied, NULL when not).
+      issuer='aqas'        -> both are ranking concepts: ignored and stored as
+      issuer='staregister'    NULL, whatever the client happened to send.
     """
     issuer = _normalise_issuer(getattr(request, "issuer", None))
     if issuer is None:
         return _invalid_issuer_response(), None, None, None
 
-    if issuer != "qs":
-        # AQAS: rank_label / family are not just optional, they are meaningless.
-        # Dropped rather than passed through so an editor flipping qs -> aqas
-        # cannot leave a stale rank behind on the row.
+    if issuer not in RANKING_ISSUERS:
+        # AQAS / STAR Register: rank_label and family are not just optional, they
+        # are meaningless. Dropped rather than passed through so an editor
+        # flipping a ranking issuer -> an accreditor cannot leave a stale rank
+        # behind on the row.
         return None, issuer, None, None
 
     rank_label = request.rank_label
     if isinstance(rank_label, str):
         rank_label = rank_label.strip()
     if not rank_label:
-        return _missing_rank_label_response(), None, None, None
+        return _missing_rank_label_response(issuer), None, None, None
 
     family = _normalise_family(request.family)
-    if family is None:
+    if family is None and issuer in FAMILY_REQUIRED_ISSUERS:
         return _invalid_family_response(), None, None, None
 
     return None, issuer, rank_label, family
