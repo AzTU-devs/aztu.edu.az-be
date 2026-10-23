@@ -361,7 +361,7 @@ async def update_header(
             tr = tr_result.scalar_one_or_none()
             if tr:
                 tr.title = t_val
-                tr.slug = make_slug(t_val)
+                # Labels can change without changing this menu's page URL.
             else:
                 db.add(MenuHeaderTranslation(
                     header_id=header_id,
@@ -528,7 +528,7 @@ async def update_header_item(item_id: int, request: UpdateHeaderItem, db: AsyncS
             tr = tr_result.scalar_one_or_none()
             if tr:
                 tr.title = title_val
-                tr.slug = make_slug(title_val)
+                # Preserve the page URL, including paths of child menu entries.
             else:
                 db.add(MenuHeaderItemTranslation(
                     item_id=item_id,
@@ -640,7 +640,7 @@ async def update_header_sub_item(
             tr = tr_result.scalar_one_or_none()
             if tr:
                 tr.title = title_val
-                tr.slug = make_slug(title_val)
+                # Renaming a link must not change its destination.
             else:
                 db.add(MenuHeaderSubItemTranslation(
                     sub_item_id=sub_item_id,
