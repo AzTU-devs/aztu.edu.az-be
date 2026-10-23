@@ -139,7 +139,7 @@ def _serialize_admin(page: HomePage) -> dict:
                 "id": metric.id,
                 "display_order": metric.display_order,
                 "value": metric.value,
-                "suffix": metric.suffix,
+                "suffix": _metric_suffix(metric.suffix),
                 **_tr_map(metric.translations, METRIC_TR_FIELDS),
             }
             for metric in _metrics_of(page, group)
@@ -155,6 +155,12 @@ def _serialize_admin(page: HomePage) -> dict:
     }
 
 
+def _metric_suffix(value: Optional[str]) -> str:
+    """An omitted decoration must never become visible text in a client."""
+    suffix = (value or "").strip()
+    return "" if suffix.lower() in ("null", "undefined") else suffix
+
+
 def _serialize_public(page: HomePage, lang: str) -> dict:
     def hero_list() -> list:
         out = []
@@ -163,7 +169,7 @@ def _serialize_public(page: HomePage, lang: str) -> dict:
             out.append(
                 {
                     "value": metric.value,
-                    "suffix": metric.suffix,
+                    "suffix": _metric_suffix(metric.suffix),
                     "label": picked.get("label"),
                 }
             )
@@ -176,7 +182,7 @@ def _serialize_public(page: HomePage, lang: str) -> dict:
             out.append(
                 {
                     "value": metric.value,
-                    "suffix": metric.suffix,
+                    "suffix": _metric_suffix(metric.suffix),
                     "label": picked.get("label"),
                     "sublabel": picked.get("sublabel"),
                 }
@@ -243,7 +249,7 @@ async def _replace_metrics(
             page_id=page_id,
             group=group,
             value=payload.get("value"),
-            suffix=payload.get("suffix"),
+            suffix=_metric_suffix(payload.get("suffix")),
             display_order=index,
             created_at=now,
             updated_at=now,
